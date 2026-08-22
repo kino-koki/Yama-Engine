@@ -1046,7 +1046,7 @@ namespace ShanyuEngine.AI
             return tree;
         }
 
-        private static BTNode? BuildNode(LLMBehaviorNode spec, Func<string, Func<BTContext, BTNodeStatus>> taskFactory)
+        private static BTNodeV2? BuildNode(LLMBehaviorNode spec, Func<string, Func<BTContext, BTNodeStatus>> taskFactory)
         {
             switch (spec.Kind)
             {

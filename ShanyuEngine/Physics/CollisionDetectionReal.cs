@@ -204,6 +204,71 @@ namespace ShanyuEngine.Physics
         public override string ToString() => $"({X:F4}, {Y:F4}, {Z:F4})";
     }
 
+    /// <summary>物理专用二维向量（与 <see cref="PhysicsVector3"/> 同风格，用于切线冲量等二维量）。</summary>
+    public struct PhysicsVector2
+    {
+        public float X, Y;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhysicsVector2(float x, float y) { X = x; Y = y; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhysicsVector2(Vector2 v) { X = v.X; Y = v.Y; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector2(PhysicsVector2 v) => new Vector2(v.X, v.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator PhysicsVector2(Vector2 v) => new PhysicsVector2(v.X, v.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator +(PhysicsVector2 a, PhysicsVector2 b)
+            => new PhysicsVector2(a.X + b.X, a.Y + b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator -(PhysicsVector2 a, PhysicsVector2 b)
+            => new PhysicsVector2(a.X - b.X, a.Y - b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator -(PhysicsVector2 v)
+            => new PhysicsVector2(-v.X, -v.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator *(PhysicsVector2 v, float s)
+            => new PhysicsVector2(v.X * s, v.Y * s);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator *(float s, PhysicsVector2 v)
+            => new PhysicsVector2(v.X * s, v.Y * s);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator *(PhysicsVector2 a, PhysicsVector2 b)
+            => new PhysicsVector2(a.X * b.X, a.Y * b.Y);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector2 operator /(PhysicsVector2 v, float s)
+        {
+            float inv = 1.0f / s;
+            return new PhysicsVector2(v.X * inv, v.Y * inv);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(PhysicsVector2 b) => X * b.X + Y * b.Y;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float LengthSquared() => X * X + Y * Y;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Length() => MathF.Sqrt(X * X + Y * Y);
+
+        public static readonly PhysicsVector2 Zero = new PhysicsVector2(0, 0);
+        public static readonly PhysicsVector2 One = new PhysicsVector2(1, 1);
+        public static readonly PhysicsVector2 UnitX = new PhysicsVector2(1, 0);
+        public static readonly PhysicsVector2 UnitY = new PhysicsVector2(0, 1);
+
+        public override string ToString() => $"({X:F4}, {Y:F4})";
+    }
+
     /// <summary>物理四元数。</summary>
     public struct PhysicsQuaternion
     {

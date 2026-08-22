@@ -675,6 +675,8 @@ namespace ShanyuEngine.RHI
         public int SampleMask = 0xFFFFFFFF;
         public int PatchControlPointCount;
         public RHISamplerDesc[] StaticSamplers = Array.Empty<RHISamplerDesc>();
+        /// <summary>关联的渲染通道（可选；为 null 时由管线内部推导）。</summary>
+        public RHIRenderPass? RenderPass;
         /// <summary>关联的根签名（可选；为 null 时通过命令列表单独设置）</summary>
         public RHIRootSignature? RootSignature;
         public RHIPipelineType Type => RHIPipelineType.Graphics;

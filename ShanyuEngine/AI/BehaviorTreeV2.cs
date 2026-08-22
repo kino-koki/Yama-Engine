@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------
 //  本文件实现一套完整的工业级行为树：
 //    1. Blackboard        - 共享内存(变量存储/类型安全)
-//    2. BTNode 基类       - 抽象节点 + 执行结果枚举
+//    2. BTNodeV2 基类       - 抽象节点 + 执行结果枚举
 //    3. Composite 节点    - Sequence / Selector / Parallel / Random
 //    4. Decorator 节点    - 条件/反转/重复/超时/冷却/黑板检查
 //    5. Task 节点         - 等待/移动/播放动画/自定义 lambda
@@ -100,12 +100,82 @@ namespace ShanyuEngine.AI
     /// Sequence: 按顺序执行子节点，全部成功才成功，任一失败就失败。
     /// 类似 AND。
     /// </summary>
-    public sealed class BTSequence : BTNode
+
+    // ========================================================================
+    //  二点五、V2 节点基类（去重修复时恢复：V2 节点需要独立的执行上下文签名）
+    // ========================================================================
+
+    /// <summary>V2 行为树节点基类。与 V1 的 BTNodeV2 隔离，使用 BTContext/BTNodeStatus。</summary>
+    public abstract class BTNodeV2
+    {
+        /// <summary>节点显示名。</summary>
+        public string Name = "Node";
+        /// <summary>父节点（根节点为 null）。</summary>
+        public BTNodeV2? Parent;
+        /// <summary>子节点列表（复合节点使用）。</summary>
+        public readonly List<BTNodeV2> Children = new();
+        /// <summary>最近一次执行状态。</summary>
+        public BTNodeStatus Status { get; protected set; } = BTNodeStatus.NotStarted;
+        /// <summary>是否正在运行。</summary>
+        public bool IsRunning => Status == BTNodeStatus.Running;
+
+        /// <summary>执行节点逻辑。</summary>
+        public abstract BTNodeStatus Execute(BTContext context);
+
+        /// <summary>重置本节点及所有子节点状态。</summary>
+        public virtual void Reset()
+        {
+            Status = BTNodeStatus.NotStarted;
+            foreach (var child in Children) child.Reset();
+        }
+
+        /// <summary>被中止时的回调。</summary>
+        public virtual void OnAbort(BTContext context) { }
+
+        /// <summary>中止节点。</summary>
+        public virtual void Abort(BTContext context)
+        {
+            OnAbort(context);
+            Status = BTNodeStatus.Aborted;
+        }
+
+        /// <summary>标记为运行中。</summary>
+        protected void StartRunning(BTContext context) => Status = BTNodeStatus.Running;
+
+        /// <summary>添加子节点并设置其父引用。</summary>
+        public T AddChild<T>(T child) where T : BTNodeV2
+        {
+            child.Parent = this;
+            Children.Add(child);
+            return child;
+        }
+    }
+
+    /// <summary>V2 装饰器基类：持有一个子节点。</summary>
+    public abstract class BTDecoratorV2 : BTNodeV2
+    {
+        /// <summary>被装饰的子节点。</summary>
+        public BTNodeV2? Child;
+
+        protected BTDecoratorV2(BTNodeV2 child)
+        {
+            Child = child;
+            child.Parent = this;
+        }
+
+        public override void Reset()
+        {
+            base.Reset();
+            Child?.Reset();
+        }
+    }
+
+    public sealed class BTSequence : BTNodeV2
     {
         private int _currentChild = 0;
 
         public BTSequence() { Name = "Sequence"; }
-        public BTSequence(params BTNode[] children) { Name = "Sequence"; Children.AddRange(children); }
+        public BTSequence(params BTNodeV2[] children) { Name = "Sequence"; Children.AddRange(children); }
 
         public override BTNodeStatus Execute(BTContext context)
         {
@@ -154,12 +224,12 @@ namespace ShanyuEngine.AI
     /// Selector: 按顺序尝试子节点，任一成功就成功，全部失败才失败。
     /// 类似 OR。
     /// </summary>
-    public sealed class BTSelector : BTNode
+    public sealed class BTSelector : BTNodeV2
     {
         private int _currentChild = 0;
 
         public BTSelector() { Name = "Selector"; }
-        public BTSelector(params BTNode[] children) { Name = "Selector"; Children.AddRange(children); }
+        public BTSelector(params BTNodeV2[] children) { Name = "Selector"; Children.AddRange(children); }
 
         public override BTNodeStatus Execute(BTContext context)
         {
@@ -221,14 +291,14 @@ namespace ShanyuEngine.AI
     /// RandomSelector: 随机顺序执行子节点(打乱后当 Selector)。
     /// 给 AI 加随机性用。
     /// </summary>
-    public sealed class BTRandomSelector : BTNode
+    public sealed class BTRandomSelector : BTNodeV2
     {
         private int _currentChild = 0;
         private int[]? _order;
         private Random _rng = new();
 
         public BTRandomSelector() { Name = "RandomSelector"; }
-        public BTRandomSelector(params BTNode[] children) { Name = "RandomSelector"; Children.AddRange(children); }
+        public BTRandomSelector(params BTNodeV2[] children) { Name = "RandomSelector"; Children.AddRange(children); }
 
         public override BTNodeStatus Execute(BTContext context)
         {
@@ -277,7 +347,7 @@ namespace ShanyuEngine.AI
     /// <summary>
     /// WeightedRandomSelector: 按权重随机选子节点执行。
     /// </summary>
-    public sealed class BTWeightedRandomSelector : BTNode
+    public sealed class BTWeightedRandomSelector : BTNodeV2
     {
         public List<float> Weights = new();
         private int _currentChild = -1;
@@ -329,12 +399,12 @@ namespace ShanyuEngine.AI
     /// <summary>装饰器基类：包装一个子节点，修改其行为。</summary>
 
     /// <summary>条件装饰器：条件满足才执行子节点。</summary>
-    public sealed class BTCondition : BTDecorator
+    public sealed class BTCondition : BTDecoratorV2
     {
         public Func<BTContext, bool> Condition;
         public bool AbortOnFail = true; // 失败时是否中止子节点
 
-        public BTCondition(Func<BTContext, bool> condition, BTNode? child = null)
+        public BTCondition(Func<BTContext, bool> condition, BTNodeV2? child = null)
             : base(child ?? new BTNoOp())
         {
             Condition = condition;
@@ -356,9 +426,9 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>反转装饰器：把子节点结果 Success/Failure 互换。</summary>
-    public sealed class BTInverter : BTDecorator
+    public sealed class BTInverter : BTDecoratorV2
     {
-        public BTInverter(BTNode? child = null) : base(child ?? new BTNoOp()) { Name = "Inverter"; }
+        public BTInverter(BTNodeV2? child = null) : base(child ?? new BTNoOp()) { Name = "Inverter"; }
 
         public override BTNodeStatus Execute(BTContext context)
         {
@@ -374,13 +444,13 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>重复装饰器：子节点成功后重复执行 N 次。</summary>
-    public sealed class BTRepeater : BTDecorator
+    public sealed class BTRepeater : BTDecoratorV2
     {
         public int Count = -1; // -1=无限
         public bool RepeatOnFailure = false;
         private int _current = 0;
 
-        public BTRepeater(BTNode? child = null, int count = -1) : base(child ?? new BTNoOp())
+        public BTRepeater(BTNodeV2? child = null, int count = -1) : base(child ?? new BTNoOp())
         {
             Count = count; Name = "Repeater";
         }
@@ -417,12 +487,12 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>超时装饰器：超时则中止子节点并失败。</summary>
-    public sealed class BTTimeout : BTDecorator
+    public sealed class BTTimeout : BTDecoratorV2
     {
         public float TimeoutSeconds;
         private float _elapsed;
 
-        public BTTimeout(float seconds, BTNode? child = null) : base(child ?? new BTNoOp())
+        public BTTimeout(float seconds, BTNodeV2? child = null) : base(child ?? new BTNoOp())
         {
             TimeoutSeconds = seconds; Name = "Timeout";
         }
@@ -448,12 +518,12 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>冷却装饰器：子节点完成后强制等待一段时间才能再次执行。</summary>
-    public sealed class BTCoolDown : BTDecorator
+    public sealed class BTCoolDown : BTDecoratorV2
     {
         public float CoolDownSeconds;
         private float _timer;
 
-        public BTCoolDown(float seconds, BTNode? child = null) : base(child ?? new BTNoOp())
+        public BTCoolDown(float seconds, BTNodeV2? child = null) : base(child ?? new BTNoOp())
         {
             CoolDownSeconds = seconds; Name = "CoolDown";
         }
@@ -477,7 +547,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>黑板检查装饰器。</summary>
-    public sealed class BTBlackboardCheck : BTDecorator
+    public sealed class BTBlackboardCheck : BTDecoratorV2
     {
         public string Key;
         public BlackboardKeyType KeyType;
@@ -496,7 +566,7 @@ namespace ShanyuEngine.AI
             IsNotSet
         }
 
-        public BTBlackboardCheck(string key, BlackboardKeyType type, ComparisonOp op, object? expected = null, BTNode? child = null)
+        public BTBlackboardCheck(string key, BlackboardKeyType type, ComparisonOp op, object? expected = null, BTNodeV2? child = null)
             : base(child ?? new BTNoOp())
         {
             Key = key; KeyType = type; Op = op; ExpectedValue = expected ?? default;
@@ -535,12 +605,12 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>循环直到成功(找路失败重试场景)。</summary>
-    public sealed class BTUntilSuccess : BTDecorator
+    public sealed class BTUntilSuccess : BTDecoratorV2
     {
         public int MaxAttempts = -1;
         private int _attempts;
 
-        public BTUntilSuccess(BTNode? child = null, int maxAttempts = -1) : base(child ?? new BTNoOp())
+        public BTUntilSuccess(BTNodeV2? child = null, int maxAttempts = -1) : base(child ?? new BTNoOp())
         {
             MaxAttempts = maxAttempts; Name = "UntilSuccess";
         }
@@ -579,7 +649,7 @@ namespace ShanyuEngine.AI
     // ========================================================================
 
     /// <summary>空操作节点(占位用)。</summary>
-    public sealed class BTNoOp : BTNode
+    public sealed class BTNoOp : BTNodeV2
     {
         public BTNoOp() { Name = "NoOp"; }
         public override BTNodeStatus Execute(BTContext context)
@@ -590,7 +660,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>等待指定时间。</summary>
-    public sealed class BTWait : BTNode
+    public sealed class BTWait : BTNodeV2
     {
         public float WaitTime;
         private float _elapsed;
@@ -614,7 +684,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>等待黑板上某条件成立。</summary>
-    public sealed class BTWaitForCondition : BTNode
+    public sealed class BTWaitForCondition : BTNodeV2
     {
         public Func<BTContext, bool> Condition;
         public float Timeout = -1;
@@ -650,7 +720,7 @@ namespace ShanyuEngine.AI
     /// <summary>
     /// 通用 Lambda 任务节点。用闭包快速实现任务逻辑。
     /// </summary>
-    public class BTTask : BTNode
+    public class BTTask : BTNodeV2
     {
         public Func<BTContext, BTNodeStatus> Task;
 
@@ -667,7 +737,7 @@ namespace ShanyuEngine.AI
             }
             catch (Exception ex)
             {
-                context.LogError($"Task '{Name}' threw: {ex.Message}");
+                context.Error($"Task '{Name}' threw: {ex.Message}");
                 Status = BTNodeStatus.Error;
             }
             return Status;
@@ -675,7 +745,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>移动到目标位置(需要外部提供移动函数)。</summary>
-    public sealed class BTMoveTo : BTNode
+    public sealed class BTMoveTo : BTNodeV2
     {
         public Func<BTContext, Vector3> GetTarget;
         public float AcceptanceRadius = 0.5f;
@@ -718,7 +788,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>播放动画任务。</summary>
-    public sealed class BTPlayAnimation : BTNode
+    public sealed class BTPlayAnimation : BTNodeV2
     {
         public string AnimName;
         public bool WaitComplete = true;
@@ -783,8 +853,8 @@ namespace ShanyuEngine.AI
 
         public Vector3 GetAgentPosition() => GetAgentPositionFn?.Invoke() ?? Vector3.Zero;
 
-        public void LogWarning(string msg) => LogWarning?.Invoke(msg);
-        public void LogError(string msg) => LogError?.Invoke(msg);
+        public void Warn(string msg) => LogWarning?.Invoke(msg);
+        public void Error(string msg) => LogError?.Invoke(msg);
     }
 
     // ========================================================================
@@ -797,7 +867,7 @@ namespace ShanyuEngine.AI
     public sealed class BehaviorTreeV2
     {
         public string Name = "";
-        public BTNode? Root;
+        public BTNodeV2? Root;
         public Blackboard Blackboard = new();
         public bool IsActive = true;
         public float TickInterval = 0f; // 0=每帧 tick，>0=按间隔
@@ -808,7 +878,7 @@ namespace ShanyuEngine.AI
         public BehaviorTreeV2() { }
         public BehaviorTreeV2(string name) { Name = name; }
 
-        public void SetRoot(BTNode root)
+        public void SetRoot(BTNodeV2 root)
         {
             Root = root;
             root.Parent = null;
@@ -891,7 +961,7 @@ namespace ShanyuEngine.AI
     public sealed class BTBuilder
     {
         private readonly BehaviorTreeV2 _tree;
-        private readonly Stack<BTNode> _stack = new();
+        private readonly Stack<BTNodeV2> _stack = new();
 
         public BTBuilder(string name = "")
         {
@@ -1032,7 +1102,7 @@ namespace ShanyuEngine.AI
             return this;
         }
 
-        public BTBuilder Spawn(out BTNode node)
+        public BTBuilder Spawn(out BTNodeV2 node)
         {
             node = _stack.Count > 0 ? _stack.Peek() : null!;
             return this;
@@ -1047,7 +1117,7 @@ namespace ShanyuEngine.AI
             return _tree;
         }
 
-        private void AddChild(BTNode node)
+        private void AddChild(BTNodeV2 node)
         {
             if (_stack.Count == 0)
             {
@@ -1056,7 +1126,7 @@ namespace ShanyuEngine.AI
             else
             {
                 var parent = _stack.Peek();
-                if (parent is BTDecorator dec)
+                if (parent is BTDecoratorV2 dec)
                     dec.SetChild(node);
                 else
                 {

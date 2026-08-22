@@ -15,6 +15,7 @@
 // 作者: 山雨引擎团队
 // =============================================================================
 
+using Vulkan = Silk.NET.Vulkan;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,8 +25,7 @@ using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 
 using Semaphore = Silk.NET.Vulkan.Semaphore;
-using Buffer = Vulkan.Buffer;
-using Vulkan = Silk.NET.Vulkan;
+using Buffer = Silk.NET.Vulkan.Buffer;
 namespace ShanyuEngine.Vulkan
 {
     // ════════════════════════════════════════════════════════════════════════════

@@ -116,6 +116,8 @@
 
     <!-- 根目录入口 -->
     <Compile Include="EngineApplication.cs" />
+    <!-- 兼容类型补全层（缺失的基础类型：Camera / BodyDescriptor / PhysicsRenderTarget 等） -->
+    <Compile Include="EngineCompatTypes.cs" />
 
     <!-- ====== 排除重复或已废弃文件 ====== -->
     <!-- SparseShadowAtlases: 开发中，暂不编译 -->

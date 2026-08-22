@@ -1,0 +1,295 @@
+UNIQUE ERRORS: 289
+
+ShanyuEngine/AI/EnhancedPerceptionSystem.cs(114): CS0111: 类型“AABBOcclusionChecker”已定义了一个名为“AddBox”的具有相同参数类型的成员
+ShanyuEngine/AI/FiniteStateMachineSystem.cs(661): CS0509: “HierarchicalStateMachine<T>.TempHierarchicalWrapper”: 无法从密封类型“HierarchicalStateMachine<T>”派生
+ShanyuEngine/AI/NavigationSystem.cs(1276): CS0426: 类型“NavMeshGenerator”中不存在类型名“NavMeshBuildConfig”
+ShanyuEngine/AI/NavigationSystem.cs(1404): CS0426: 类型“NavMeshGenerator”中不存在类型名“NavMeshBuildConfig”
+ShanyuEngine/AI/TacticalAnalysisSystem.cs(198): CS0101: 命名空间“ShanyuEngine.AI”已经包含“FlankingSide”的定义
+ShanyuEngine/Animation/AnimBlendNode.cs(32): CS0246: 未能找到类型或命名空间名“BlendSpace”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Audio/AudioSpatialSystem.cs(478): CS0101: 命名空间“ShanyuEngine.Audio”已经包含“DopplerEffect”的定义
+ShanyuEngine/CodeEditing/CodeEditorView.cs(351): CS0246: 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/CodeEditing/CodeEditorView.cs(1443): CS0246: 未能找到类型或命名空间名“FormatterOptions”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/CodeEditing/CodeEditorView.cs(1470): CS0246: 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/CodeEditing/CodeEditorView.cs(1518): CS0246: 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/CodeEditing/CodeEditorView.cs(1519): CS0246: 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/CodeEditing/CodeEditorView.cs(1943): CS0246: 未能找到类型或命名空间名“FormatterOptions”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/EngineModule.cs(479): CS0246: 未能找到类型或命名空间名“Jobs”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/EngineSystems.cs(22): CS0246: 未能找到类型或命名空间名“PhysicsScene”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/EngineSystems.cs(319): CS0234: 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(256): CS0246: 未能找到类型或命名空间名“SwapChain”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(263): CS0246: 未能找到类型或命名空间名“ProbeFieldHardwareRayTracer”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(265): CS0246: 未能找到类型或命名空间名“ProbeFieldVoxelSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(269): CS0246: 未能找到类型或命名空间名“MaterialLibrary”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(270): CS0246: 未能找到类型或命名空间名“BuiltinMaterials”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(274): CS0246: 未能找到类型或命名空间名“PhysicsSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(276): CS0246: 未能找到类型或命名空间名“UISystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(277): CS0246: 未能找到类型或命名空间名“ScriptEngine”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(278): CS0246: 未能找到类型或命名空间名“GameInstance”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(989): CS0246: 未能找到类型或命名空间名“SwapChain”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(1004): CS0246: 未能找到类型或命名空间名“MaterialLibrary”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(1013): CS0246: 未能找到类型或命名空间名“PhysicsSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(1019): CS0246: 未能找到类型或命名空间名“UISystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(1022): CS0246: 未能找到类型或命名空间名“ScriptEngine”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Core/WorldSystemsBootstrap.cs(1025): CS0246: 未能找到类型或命名空间名“GameInstance”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/DCC/DCCBridge.cs(71): CS0234: 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+ShanyuEngine/DataSystem/DataTableSystem.cs(93): CS0246: 未能找到类型或命名空间名“T”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/DataSystem/DataTableSystem.cs(103): CS0246: 未能找到类型或命名空间名“T”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/DataSystem/DataTableSystem.cs(343): CS0101: 命名空间“ShanyuEngine.DataSystem”已经包含“CurveInterpMode”的定义
+ShanyuEngine/DataSystem/DataTableSystem.cs(344): CS0101: 命名空间“ShanyuEngine.DataSystem”已经包含“CurveExtrapolation”的定义
+ShanyuEngine/DataSystem/DataTableSystem.cs(377): CS0101: 命名空间“ShanyuEngine.DataSystem”已经包含“ConfigType”的定义
+ShanyuEngine/DataSystem/DataTableSystem.cs(378): CS0101: 命名空间“ShanyuEngine.DataSystem”已经包含“ConfigFormat”的定义
+ShanyuEngine/Diagnostics/ProfilingSystem.cs(397): CS0246: 未能找到类型或命名空间名“CPUHotSpot”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Diagnostics/ProfilingSystem.cs(404): CS0246: 未能找到类型或命名空间名“RenderPassStats”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Diagnostics/ProfilingSystem.cs(412): CS0246: 未能找到类型或命名空间名“LeakSuspect”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(753): CS0111: 类型“ArchetypeManager”已定义了一个名为“GetAllArchetypes”的具有相同参数类型的成员
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(765): CS0102: 类型“ArchetypeReal”已经包含“Chunks”的定义
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(768): CS0102: 类型“ArchetypeReal”已经包含“ComponentTypes”的定义
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(785): CS0102: 类型“ArchetypeChunk”已经包含“EntityCount”的定义
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(788): CS0111: 类型“ArchetypeChunk”已定义了一个名为“GetEntity”的具有相同参数类型的成员
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(791): CS0111: 类型“ArchetypeChunk”已定义了一个名为“GetComponentData”的具有相同参数类型的成员
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(794): CS0111: 类型“ArchetypeChunk”已定义了一个名为“SetComponentData”的具有相同参数类型的成员
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(803): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/ECS/ArchetypeQuerySystem.cs(804): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/ECS/EntityManagerReal.cs(25): CS0260: 类型“EntityReal”的声明上缺少 partial 修饰符；存在此类型的其他分部声明
+ShanyuEngine/ECS/EntityManagerReal.cs(28): CS0102: 类型“EntityReal”已经包含“Id”的定义
+ShanyuEngine/ECS/EntityManagerReal.cs(31): CS0102: 类型“EntityReal”已经包含“Version”的定义
+ShanyuEngine/ECS/EntityManagerReal.cs(58): CS0111: 类型“EntityReal”已定义了一个名为“Equals”的具有相同参数类型的成员
+ShanyuEngine/ECS/EntityManagerReal.cs(59): CS0111: 类型“EntityReal”已定义了一个名为“Equals”的具有相同参数类型的成员
+ShanyuEngine/ECS/EntityManagerReal.cs(60): CS0111: 类型“EntityReal”已定义了一个名为“GetHashCode”的具有相同参数类型的成员
+ShanyuEngine/ECS/EntityManagerReal.cs(61): CS0111: 类型“EntityReal”已定义了一个名为“op_Equality”的具有相同参数类型的成员
+ShanyuEngine/ECS/EntityManagerReal.cs(62): CS0111: 类型“EntityReal”已定义了一个名为“op_Inequality”的具有相同参数类型的成员
+ShanyuEngine/ECS/EntityManagerReal.cs(196): CS0111: 类型“EntityManagerReal”已定义了一个名为“DestroyEntity”的具有相同参数类型的成员
+ShanyuEngine/ECS/EntityManagerReal.cs(518): CS0225: Params 参数必须具有有效的集合类型
+ShanyuEngine/ECS/EntitySparseSet.cs(417): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(111): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(136): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(136): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(165): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(165): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(165): CS1073: 意外标记“ref”
+ShanyuEngine/ECS/SystemBaseReal.cs(370): CS0102: 类型“SystemBaseReal”已经包含“Name”的定义
+ShanyuEngine/ECS/SystemBaseReal.cs(376): CS0102: 类型“SystemBaseReal”已经包含“Enabled”的定义
+ShanyuEngine/ECS/SystemBaseReal.cs(390): CS0111: 类型“SystemBaseReal”已定义了一个名为“OnCreate”的具有相同参数类型的成员
+ShanyuEngine/ECS/SystemBaseReal.cs(395): CS0111: 类型“SystemBaseReal”已定义了一个名为“OnDestroy”的具有相同参数类型的成员
+ShanyuEngine/ECS/SystemBaseReal.cs(400): CS0501: “SystemBaseReal.OnUpdate(float)”必须声明主体，因为它未标记为 abstract、extern 或 partial
+ShanyuEngine/ECS/SystemBaseReal.cs(400): CS0111: 类型“SystemBaseReal”已定义了一个名为“OnUpdate”的具有相同参数类型的成员
+ShanyuEngine/ECS/SystemScheduler.cs(616): CS0102: 类型“SystemBaseReal”已经包含“Name”的定义
+ShanyuEngine/ECS/SystemScheduler.cs(619): CS0111: 类型“SystemBaseReal”已定义了一个名为“OnCreate”的具有相同参数类型的成员
+ShanyuEngine/ECS/SystemScheduler.cs(622): CS0111: 类型“SystemBaseReal”已定义了一个名为“OnDestroy”的具有相同参数类型的成员
+ShanyuEngine/ECS/SystemScheduler.cs(625): CS0111: 类型“SystemBaseReal”已定义了一个名为“OnUpdate”的具有相同参数类型的成员
+ShanyuEngine/Editor/EditorPlayModeController.cs(24): CS0234: 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+ShanyuEngine/Editor/EditorPlayModeController.cs(501): CS0426: 类型“ScriptAPI.Debug”中不存在类型名“LogLevel”
+ShanyuEngine/Editor/EditorUI.cs(12): CS0234: 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+ShanyuEngine/Editor/Panels/ConsolePanel.cs(9): CS0234: 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+ShanyuEngine/Editor/Panels/InspectorPanel.cs(241): CS0246: 未能找到类型或命名空间名“IComponent”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Editor/PieIntegration.cs(70): CS0426: 类型“EditorPlayModeController”中不存在类型名“LogLevel”
+ShanyuEngine/Editor/PieIntegration.cs(529): CS0426: 类型“EditorPlayModeController”中不存在类型名“LogLevel”
+ShanyuEngine/GameFramework/Actor.cs(77): CS0246: 未能找到类型或命名空间名“SceneComponent”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/GameFramework/Controller.cs(97): CS0246: 未能找到类型或命名空间名“CameraManager”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/GameFramework/GameModeSystem.cs(131): CS0115: “GameModeDeathmatch.Update(float)”: 没有找到适合的方法来重写
+ShanyuEngine/GameFramework/GameModeSystem.cs(152): CS0115: “GameModeDeathmatch.CheckWinCondition()”: 没有找到适合的方法来重写
+ShanyuEngine/GameFramework/GameModeSystem.cs(278): CS0115: “GameModeCoop.OnMatchStartHandler()”: 没有找到适合的方法来重写
+ShanyuEngine/GameFramework/GameModeSystem.cs(285): CS0115: “GameModeCoop.Update(float)”: 没有找到适合的方法来重写
+ShanyuEngine/Input/InputActionAssetSerialization.cs(539): CS0053: 可访问性不一致: 属性类型“List<InputActionMapDTO>”的可访问性低于属性“InputActionAssetDTO.Maps”
+ShanyuEngine/Input/InputActionAssetSerialization.cs(540): CS0053: 可访问性不一致: 属性类型“List<ControlSchemeDTO>”的可访问性低于属性“InputActionAssetDTO.ControlSchemes”
+ShanyuEngine/Input/InputActionAssetSerialization.cs(541): CS0053: 可访问性不一致: 属性类型“List<BindingOverrideDTO>”的可访问性低于属性“InputActionAssetDTO.BindingOverrides”
+ShanyuEngine/Input/InputActionAssetSerialization.cs(544): CS0053: 可访问性不一致: 属性类型“List<InputActionMapDTO>”的可访问性低于属性“InputActionAssetDTO.V1ActionMaps”
+ShanyuEngine/Input/InputModifierSystem.cs(617): CS0534: “SwizzleModifierV2”不实现继承的抽象成员“InputModifier.ProcessValue(float)”
+ShanyuEngine/Materials/MaterialSystemReal.cs(21): CS0234: 命名空间“Vortice”中不存在类型或命名空间名“D3DCompiler”(是否缺少程序集引用?)
+ShanyuEngine/Materials/MaterialSystemReal.cs(749): CS0246: 未能找到类型或命名空间名“Macro”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Materials/MaterialSystemReal.cs(763): CS0246: 未能找到类型或命名空间名“Macro”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Network/NetworkDebugSystem.cs(10): CS0234: 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+ShanyuEngine/Network/NetworkFramingReal.cs(458): CS0102: 类型“ReliableChannel”已经包含“SlowStartThreshold”的定义
+ShanyuEngine/Network/NetworkLagCompensationReal.cs(144): CS0102: 类型“LagCompensatorReal”已经包含“_maxRewindSeconds”的定义
+ShanyuEngine/Network/NetworkMatchmaking.cs(6): CS0101: 命名空间“ShanyuEngine.Network”已经包含“ConnectionState”的定义
+ShanyuEngine/Network/NetworkRPCReal.cs(31): CS0592: 特性“AttributeUsage”对此声明类型无效。它仅对“类”声明有效。
+ShanyuEngine/Network/NetworkReplicationReal.cs(34): CS0592: 特性“AttributeUsage”对此声明类型无效。它仅对“类”声明有效。
+ShanyuEngine/Network/NetworkReplicationReal.cs(415): CS0050: 可访问性不一致: 返回类型“ReplicationSerializer.PropertyMetadata
+ShanyuEngine/Network/PropertyReplicationSystem.cs(258): CS0101: 命名空间“ShanyuEngine.Network”已经包含“ReplicationCondition”的定义
+ShanyuEngine/Networking/NetworkReplication.cs(40): CS0579: “AttributeUsage”特性重复
+ShanyuEngine/Physics/CharacterControllerReal.cs(355): CS0102: 类型“CharacterControllerReal”已经包含“IsGrounded”的定义
+ShanyuEngine/Physics/CharacterControllerSystem.cs(43): CS0101: 命名空间“ShanyuEngine.Physics”已经包含“CharacterState”的定义
+ShanyuEngine/Physics/CollisionBaker.cs(212): CS0246: 未能找到类型或命名空间名“BodyDescriptor”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/CollisionBaker.cs(214): CS0103: 当前上下文中不存在名称“PhysicsLayers”
+ShanyuEngine/Physics/CollisionBaker.cs(214): CS0103: 当前上下文中不存在名称“PhysicsLayers”
+ShanyuEngine/Physics/CollisionBaker.cs(335): CS0234: 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+ShanyuEngine/Physics/CollisionBaker.cs(1085): CS0234: 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+ShanyuEngine/Physics/CollisionBaker.cs(1331): CS0234: 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+ShanyuEngine/Physics/CollisionSolverReal.cs(53): CS0246: 未能找到类型或命名空间名“PhysicsVector2”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/CollisionSolverReal.cs(340): CS0246: 未能找到类型或命名空间名“PhysicsVector2”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/CollisionSolverReal.cs(525): CS0115: “PointConstraint.InitVelocitySolve(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(533): CS0115: “PointConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(557): CS0115: “PointConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(610): CS0115: “HingeConstraint.InitVelocitySolve(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(618): CS0115: “HingeConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(684): CS0115: “HingeConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(708): CS0115: “HingeConstraint.GetNumSolverIterations()”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/CollisionSolverReal.cs(736): CS0115: “SliderConstraint.InitVelocitySolve(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(741): CS0115: “SliderConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(798): CS0115: “SliderConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(850): CS0115: “ConeTwistConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(905): CS0115: “ConeTwistConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(950): CS0115: “DistanceConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(983): CS0115: “DistanceConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1041): CS0115: “Dof6SpringConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1105): CS0115: “Dof6SpringConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1128): CS0115: “Dof6SpringConstraint.GetNumSolverIterations()”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/CollisionSolverReal.cs(1148): CS0115: “GearConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1169): CS0115: “GearConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1196): CS0115: “PulleyConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1233): CS0115: “PulleyConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1279): CS0115: “ContactConstraint.SolveVelocity(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1285): CS0115: “ContactConstraint.SolvePosition(IRigidBodyProxy
+ShanyuEngine/Physics/CollisionSolverReal.cs(1291): CS0115: “ContactConstraint.GetNumSolverIterations()”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/ConstraintSolver.cs(648): CS0115: “FixedConstraint.FillData(ref ConstraintData)”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/ConstraintSolver.cs(669): CS0115: “MotorConstraint.FillData(ref ConstraintData)”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/DestructibleSystem.cs(499): CS0246: 未能找到类型或命名空间名“PhysicsScene”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/JoltPhysicsBridge.cs(1052): CS0246: 未能找到类型或命名空间名“PhysicsScene”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/NarrowphaseSystem.cs(1189): CS0534: “TriangleShape”不实现继承的抽象成员“Shape.Type.get”
+ShanyuEngine/Physics/NarrowphaseSystem.cs(1199): CS0115: “TriangleShape.GetSupportShape(Vector3, Quaternion)”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/PBDSolver.cs(86): CS0535: “DistancePBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+ShanyuEngine/Physics/PBDSolver.cs(129): CS0535: “CollisionPBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+ShanyuEngine/Physics/PBDSolver.cs(182): CS0535: “VolumePBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+ShanyuEngine/Physics/PBDSolver.cs(249): CS0535: “ShapeMatchingPBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+ShanyuEngine/Physics/PhysicsDemoScene.cs(294): CS0246: 未能找到类型或命名空间名“PhysicsRenderTarget”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/PhysicsMaterial.cs(291): CS0246: 未能找到类型或命名空间名“BodyDescriptor”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/PhysicsMaterial.cs(304): CS0246: 未能找到类型或命名空间名“BodyDescriptor”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/PhysicsRenderBridge.cs(32): CS0246: 未能找到类型或命名空间名“PhysicsRenderTarget”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/PhysicsRenderBridge.cs(61): CS0246: 未能找到类型或命名空间名“PhysicsRenderTarget”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Physics/PhysicsWorld.cs(341): CS1737: 可选参数必须出现在所有必需参数之后
+ShanyuEngine/Physics/PhysicsWorldV2.cs(160): CS8983: 具有字段初始值设定项的“结构”必须包含显式声明的构造函数。
+ShanyuEngine/Physics/Real/Constraints.cs(50): CS0115: “SpringConstraint.Solve(float)”: 没有找到适合的方法来重写
+ShanyuEngine/Physics/RigidBodyDynamicsReal.cs(28): CS0101: 命名空间“ShanyuEngine.Physics”已经包含“BodyType”的定义
+ShanyuEngine/Platform/AndroidAdapter.cs(664): CS0102: 类型“AndroidAdapter”已经包含“OnConfigurationChanged”的定义
+ShanyuEngine/Platform/SDL2Window.cs(273): CS0246: 未能找到类型或命名空间名“uint8_t”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Platform/SDL2Window.cs(292): CS0246: 未能找到类型或命名空间名“int16_t”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Platform/SDL2Window.cs(311): CS0111: 类型“SDL2Native”已定义了一个名为“SDL_InitSubSystem”的具有相同参数类型的成员
+ShanyuEngine/RHI/RHIBarrierTracker.cs(1592): CS0527: 接口列表中的类型“RHIResource”不是接口
+ShanyuEngine/RHI/RHICopyEngine.cs(493): CS9244: 类型 "ReadOnlySpan<byte>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "(T1, T2, T3)" 中将其用作参数 "T3"
+ShanyuEngine/RHI/RHIDevice.cs(23): CS0101: 命名空间“ShanyuEngine.RHI”已经包含“RHITexture”的定义
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(170): CS0246: 未能找到类型或命名空间名“RHIBufferUsage”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(205): CS0246: 未能找到类型或命名空间名“RHIMapMode”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(205): CS0103: 当前上下文中不存在名称“RHIMapMode”
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(227): CS0246: 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(227): CS0103: 当前上下文中不存在名称“RHITextureUsage”
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(249): CS0246: 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(249): CS0103: 当前上下文中不存在名称“RHITextureUsage”
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(271): CS0246: 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(271): CS0103: 当前上下文中不存在名称“RHITextureUsage”
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(294): CS0246: 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(294): CS0103: 当前上下文中不存在名称“RHITextureUsage”
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(538): CS0246: 未能找到类型或命名空间名“RHIRenderPass”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(611): CS0246: 未能找到类型或命名空间名“RHIDeviceCapabilities”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(641): CS0246: 未能找到类型或命名空间名“RHIFormatProperties”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIDeviceExtensions.cs(648): CS0246: 未能找到类型或命名空间名“RHIFormatUsage”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/RHI/RHIReadbackManager.cs(688): CS0122: “RHIReadbackManager.ReadbackType”不可访问，因为它具有一定的保护级别
+ShanyuEngine/RHI/RHIRenderPassBuilder.cs(1080): CS0111: 类型“IRHICommandList”已定义了一个名为“DrawIndexed”的具有相同参数类型的成员
+ShanyuEngine/RHI/RHIRenderPassBuilder.cs(1081): CS0111: 类型“IRHICommandList”已定义了一个名为“Dispatch”的具有相同参数类型的成员
+ShanyuEngine/RHI/RHIResourceTracker.cs(382): CS0246: 未能找到类型或命名空间名“RHIShaderDesc”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/BloomEffect.cs(124): CS0579: “StructLayout”特性重复
+ShanyuEngine/Rendering/ClusterForwardRenderer.cs(918): CS0246: 未能找到类型或命名空间名“PBRMaterial”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/DynamicResolutionScaler.cs(88): CS0246: 未能找到类型或命名空间名“RHITimerQuery”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/FoliageRenderingSystem.cs(1039): CS0246: 未能找到类型或命名空间名“RHIMaterial”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/HybridLightingRenderer.cs(389): CS0246: 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/HybridLightingRenderer.cs(421): CS0246: 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/HybridLightingRenderer.cs(483): CS0246: 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/HybridLightingRenderer.cs(605): CS0246: 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/HybridLightingRenderer.cs(666): CS0246: 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/MicroClusterVirtualGeometry.cs(58): CS0579: “StructLayout”特性重复
+ShanyuEngine/Rendering/MotionBlurSystem.cs(51): CS0102: 类型“MotionBlurConfig”已经包含“Quality”的定义
+ShanyuEngine/Rendering/PostProcessingStack.cs(19): CS0101: 命名空间“ShanyuEngine.Rendering”已经包含“TonemapOperator”的定义
+ShanyuEngine/Rendering/PostProcessingStack.cs(34): CS0101: 命名空间“ShanyuEngine.Rendering”已经包含“BokehShape”的定义
+ShanyuEngine/Rendering/RenderPipeline.cs(312): CS0101: 命名空间“ShanyuEngine.Rendering”已经包含“LightType”的定义
+ShanyuEngine/Rendering/RenderPrimitives.cs(1364): CS0111: 类型“SceneRenderer”已定义了一个名为“GetRenderItems”的具有相同参数类型的成员
+ShanyuEngine/Rendering/ShadowSystem.cs(1362): CS0246: 未能找到类型或命名空间名“RenderResource”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/VegetationSystem.cs(123): CS0579: “StructLayout”特性重复
+ShanyuEngine/Rendering/VirtualGeometry.cs(6): CS0101: 命名空间“ShanyuEngine.Rendering”已经包含“BoundingSphere”的定义
+ShanyuEngine/Rendering/VisibilityBufferRenderer.cs(56): CS0579: “StructLayout”特性重复
+ShanyuEngine/Rendering/WorldIntegrationHelper.cs(223): CS0246: 未能找到类型或命名空间名“ProbeFieldIntegration”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/WorldIntegrationHelper.cs(351): CS0246: 未能找到类型或命名空间名“MaterialLibrary”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Rendering/WorldRenderPipeline.cs(393): CS0246: 未能找到类型或命名空间名“RHITimestampQueryHeap”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Runtime/AsyncComputeManager.cs(31): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/AsyncComputeManager.cs(32): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(174): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(175): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(175): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(175): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(175): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(176): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(177): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(285): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(288): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(291): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/GpuCommandRecorder.cs(294): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/JobScheduler.cs(353): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/JobScheduler.cs(354): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/JobScheduler.cs(355): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Runtime/JobScheduler.cs(356): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Scripting/ScriptRuntime.cs(36): CS0234: 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+ShanyuEngine/ShaderGraph/ShaderNodeLibrary.cs(135): CS0263: “TangentNode”的分部声明一定不能指定不同的基类
+ShanyuEngine/ShaderGraph/ShaderNodeLibrary.cs(543): CS0101: 命名空间“ShanyuEngine.ShaderGraph”已经包含“TangentNode”的定义
+ShanyuEngine/ShaderGraph/ShaderNodeLibrary.cs(545): CS0111: 类型“TangentNode”已定义了一个名为“TangentNode”的具有相同参数类型的成员
+ShanyuEngine/ShanyuEngine.csproj : warning NU1900: 获取包漏洞数据时出错: 无法加载源 https:/mirrors.aliyun.com/nuget/index.json 的服务索引。
+F:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine/ShanyuEngine.csproj : warning NU1900: 获取包漏洞数据时出错: 无法加载源 https:/nuget.cdn.azure.cn/v3/index.json 的服务索引。
+F:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine/ShanyuEngine.csproj : warning NU1900: 获取包漏洞数据时出错: 无法加载源 https:/mirrors.aliyun.com/nuget/index.json 的服务索引。
+F:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine/ShanyuEngine.csproj : warning NU1900: 获取包漏洞数据时出错: 无法加载源 https:/nuget.cdn.azure.cn/v3/index.json 的服务索引。
+F:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine/RHI/RHIDevice.cs(23): CS0101: 命名空间“ShanyuEngine.RHI”已经包含“RHITexture”的定义
+ShanyuEngine/Testing/RuntimeTests.cs(131): CS0535: “RuntimeTests.RuntimeCounterComponent”不实现接口成员“IAssetComponent.Update(float, SceneObject)”
+ShanyuEngine/Testing/RuntimeTests.cs(140): CS0234: 命名空间“ShanyuEngine.Runtime”中不存在类型或命名空间名“SceneObject”(是否缺少程序集引用?)
+ShanyuEngine/UI/CanvasRenderer.cs(34): CS0052: 可访问性不一致: 字段类型“DrawCmdType”的可访问性低于字段“DrawCmd.Type”
+ShanyuEngine/UI/CanvasRenderer.cs(38): CS0051: 可访问性不一致: 参数类型“DrawCmdType”的可访问性低于方法“DrawCmd.DrawCmd(DrawCmdType)”
+ShanyuEngine/UI/ProgressBar.cs(12): CS0115: “Toggle.OnDraw(CanvasRenderer)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/ProgressBar.cs(20): CS0115: “Toggle.OnMouseDown(float, float, int)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/ProgressBar.cs(37): CS0115: “Dropdown.OnDraw(CanvasRenderer)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/ProgressBar.cs(58): CS0115: “Dropdown.OnMouseDown(float, float, int)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/ProgressBar.cs(75): CS0115: “Dropdown.OnMouseMove(float, float)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/TextBox.cs(24): CS0115: “TextBox.OnDraw(CanvasRenderer)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/TextBox.cs(56): CS0115: “TextBox.OnMouseDown(float, float, int)”: 没有找到适合的方法来重写
+ShanyuEngine/UI/TextBox.cs(62): CS0246: 未能找到类型或命名空间名“Key”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/UI/UIRendererReal.cs(662): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/UI/UIRendererReal.cs(663): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/UI/UIRendererReal.cs(664): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/UI/UmgWidgetSystem.cs(1507): CS0592: 特性“System.Runtime.InteropServices.StructLayout”对此声明类型无效。它仅对“类, 结构”声明有效。
+ShanyuEngine/UI/WidgetAnimation.cs(24): CS0101: 命名空间“ShanyuEngine.UI”已经包含“EasingType”的定义
+ShanyuEngine/VFX/ParticleSystem.cs(298): CS0592: 特性“MethodImpl”对此声明类型无效。它仅对“构造函数, 方法”声明有效。
+ShanyuEngine/VFX/ParticleSystem.cs(1725): CS0246: 未能找到类型或命名空间名“ParticleModuleCoreCore”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanBarrierOptimizer.cs(31): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanCommandList.cs(10): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanCommandList.cs(11): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanCommandList.cs(420): CS8080: 自动实现的属性必须覆盖被覆盖属性的所有访问器。
+ShanyuEngine/Vulkan/VulkanCommandPoolManager.cs(27): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanCommandPoolManager.cs(455): CS0050: 可访问性不一致: 返回类型“CommandPoolWrapper”的可访问性低于方法“VulkanCommandPoolManager.GetCurrentThreadPool(CommandPoolType)”
+ShanyuEngine/Vulkan/VulkanCommandPoolManager.cs(503): CS8340: 只读结构的实例字段必须为只读。
+ShanyuEngine/Vulkan/VulkanDebugMarker.cs(436): CS0246: 未能找到类型或命名空间名“DebugUtilsObjectTypeEXT”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanDescriptorPoolManager.cs(29): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanDescriptors.cs(7): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanDescriptors.cs(8): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanDevice.cs(31): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanDevice.cs(32): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanInterop.cs(62): CS0556: 用户定义的转换必须是转换成封闭类型，或者从封闭类型转换
+ShanyuEngine/Vulkan/VulkanMemoryAllocator.cs(27): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanMemoryAllocator.cs(1158): CS0101: 命名空间“ShanyuEngine.Vulkan”已经包含“MemoryTypePool”的定义
+ShanyuEngine/Vulkan/VulkanPipeline.cs(7): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanPipeline.cs(8): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanPipelineCache.cs(29): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanPipelineCache.cs(30): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanQueryPool.cs(29): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanQueryPool.cs(30): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanResources.cs(1002): CS0101: 命名空间“ShanyuEngine.RHI.Vulkan”已经包含“VkSemaphore”的定义
+ShanyuEngine/Vulkan/VulkanShaderManager.cs(31): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanShaderManager.cs(32): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanSwapchain.cs(10): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanSwapchain.cs(37): CS0246: 未能找到类型或命名空间名“SwapchainApi”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanSwapchain.cs(539): CS0115: “VulkanSwapChain.Present(int)”: 没有找到适合的方法来重写
+ShanyuEngine/Vulkan/VulkanSwapchainManager.cs(28): CS0246: 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/Vulkan/VulkanSyncManager.cs(401): CS0051: 可访问性不一致: 参数类型“FencePool”的可访问性低于方法“FrameFenceManager.FrameFenceManager(FencePool, int)”
+ShanyuEngine/Vulkan/VulkanSyncManager.cs(462): CS0051: 可访问性不一致: 参数类型“SemaphorePool”的可访问性低于方法“SwapchainSemaphoreManager.SwapchainSemaphoreManager(SemaphorePool, int)”
+ShanyuEngine/World/LandscapeGrassSystem.cs(588): CS0246: 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/World/LandscapeGrassSystem.cs(596): CS0246: 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/World/LandscapeGrassSystem.cs(1328): CS0246: 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/World/LandscapeGrassSystem.cs(1364): CS0246: 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/World/ProceduralGenerationSystem.cs(1912): CS0246: 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+ShanyuEngine/World/StreamingSystem.cs(485): CS0051: 可访问性不一致: 参数类型“PriorityRequest”的可访问性低于方法“ResourcePriorityScheduler.Enqueue(PriorityRequest)”
+ShanyuEngine/World/StreamingSystem.cs(512): CS0050: 可访问性不一致: 返回类型“List<PriorityRequest>”的可访问性低于方法“ResourcePriorityScheduler.PeekTop(int)”
+ShanyuEngine/World/StreamingSystem.cs(522): CS0050: 可访问性不一致: 返回类型“PriorityRequest”的可访问性低于方法“ResourcePriorityScheduler.DequeueHighest()”
+ShanyuEngine/World/StreamingSystem.cs(881): CS0118: “World”是 命名空间，但此处被当做 类型 来使用

@@ -1200,7 +1200,24 @@ namespace ShanyuEngine.AI
     /// </summary>
 
     /// <summary>移动到目标位置。</summary>
-    public sealed class BTTask_MoveTo : BTTask
+
+    /// <summary>
+    /// V1 任务节点基类（去重修复时恢复：与 V2 的 BTTask 隔离）。
+    /// 密封 Execute，将执行委托给受保护的 ExecuteTask。
+    /// </summary>
+    public abstract class BTTaskV1 : BTNode
+    {
+        public sealed override BTNodeState Execute(BTNodeContext ctx)
+        {
+            LastState = ExecuteTask(ctx);
+            return LastState;
+        }
+
+        /// <summary>任务具体逻辑。</summary>
+        protected abstract BTNodeState ExecuteTask(BTNodeContext ctx);
+    }
+
+    public sealed class BTTask_MoveTo : BTTaskV1
     {
         public string TargetKey { get; set; } = "MoveTarget";
         public float AcceptanceRadius { get; set; } = 1f;
@@ -1225,7 +1242,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>等待N秒。</summary>
-    public sealed class BTTask_Wait : BTTask
+    public sealed class BTTask_Wait : BTTaskV1
     {
         public float WaitTime { get; set; } = 1f;
         public float RandomDeviation { get; set; } = 0f;
@@ -1234,7 +1251,7 @@ namespace ShanyuEngine.AI
 
         public BTTask_Wait() { NodeName = "Wait"; }
 
-        protected override void InitNode(BTNodeContext ctx)
+        public override void InitNode(BTNodeContext ctx)
         {
             base.InitNode(ctx);
             _targetWait = WaitTime;
@@ -1261,7 +1278,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>播放动画。</summary>
-    public sealed class BTTask_PlayAnim : BTTask
+    public sealed class BTTask_PlayAnim : BTTaskV1
     {
         public string AnimationName { get; set; } = "";
         public bool WaitUntilComplete { get; set; } = true;
@@ -1295,7 +1312,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>等待黑板变量时间。</summary>
-    public sealed class BTTask_WaitBlackboardTime : BTTask
+    public sealed class BTTask_WaitBlackboardTime : BTTaskV1
     {
         public string TimeKey { get; set; } = "WaitTime";
         private float _elapsed = 0f;
@@ -1303,7 +1320,7 @@ namespace ShanyuEngine.AI
 
         public BTTask_WaitBlackboardTime() { NodeName = "WaitBlackboardTime"; }
 
-        protected override void InitNode(BTNodeContext ctx)
+        public override void InitNode(BTNodeContext ctx)
         {
             base.InitNode(ctx);
             _targetWait = ctx.Blackboard?.GetValue<float>(TimeKey) ?? 1f;
@@ -1325,7 +1342,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>设置黑板值。</summary>
-    public sealed class BTTask_SetBlackboardValue : BTTask
+    public sealed class BTTask_SetBlackboardValue : BTTaskV1
     {
         public string KeyName { get; set; } = "";
         public object Value { get; set; }
@@ -1348,7 +1365,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>清除黑板值。</summary>
-    public sealed class BTTask_ClearBlackboardValue : BTTask
+    public sealed class BTTask_ClearBlackboardValue : BTTaskV1
     {
         public string KeyName { get; set; } = "";
 
@@ -1366,7 +1383,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>转向目标。</summary>
-    public sealed class BTTask_TurnTo : BTTask
+    public sealed class BTTask_TurnTo : BTTaskV1
     {
         public string TargetKey { get; set; } = "LookTarget";
         public float ToleranceAngle { get; set; } = 5f; // 度
@@ -1387,14 +1404,14 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>运行子行为树。</summary>
-    public sealed class BTTask_RunBehaviorTree : BTTask
+    public sealed class BTTask_RunBehaviorTree : BTTaskV1
     {
         public BehaviorTree SubTreeAsset { get; set; }
         private BehaviorTreeInstance _subInstance;
 
         public BTTask_RunBehaviorTree() { NodeName = "RunBehaviorTree"; }
 
-        protected override void InitNode(BTNodeContext ctx)
+        public override void InitNode(BTNodeContext ctx)
         {
             base.InitNode(ctx);
             if (SubTreeAsset != null)
@@ -1420,7 +1437,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>Actor通用动作回调。</summary>
-    public sealed class BTTask_ActorAction : BTTask
+    public sealed class BTTask_ActorAction : BTTaskV1
     {
         public string ActionName { get; set; } = "";
         public Action<BTNodeContext> OnExecute { get; set; }
@@ -1438,7 +1455,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>生成Actor。</summary>
-    public sealed class BTTask_SpawnActor : BTTask
+    public sealed class BTTask_SpawnActor : BTTaskV1
     {
         public string SpawnLocationKey { get; set; } = "SpawnLocation";
         public Func<BTNodeContext, ShanyuEngine.GameFramework.Actor> SpawnFunc { get; set; }
@@ -1458,7 +1475,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>随机选择。</summary>
-    public sealed class BTTask_RandomSelector : BTTask
+    public sealed class BTTask_RandomSelector : BTTaskV1
     {
         private readonly Random _rng = new Random();
 
@@ -1476,7 +1493,7 @@ namespace ShanyuEngine.AI
     }
 
     /// <summary>调试日志。</summary>
-    public sealed class BTTask_Log : BTTask
+    public sealed class BTTask_Log : BTTaskV1
     {
         public string LogMessage { get; set; } = "BT Log";
         public string LogKey { get; set; } = ""; // 从黑板读取消息

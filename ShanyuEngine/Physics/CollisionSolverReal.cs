@@ -503,10 +503,34 @@ namespace ShanyuEngine.Physics
 
     #region ======================== 约束系统 ========================
 
+    /// <summary>
+    ///  序贯冲量求解器使用的约束基类。与 Jolt 后端的 <c>Constraint</c> 解耦：
+    ///  本基类面向手写求解器，提供速度/位置求解的虚方法钩子与刚体索引。
+    /// </summary>
+    public abstract class SolverConstraint
+    {
+        /// <summary>物体A在 bodies 数组中的索引（-1 表示世界/静态）。</summary>
+        public int BodyIndexA = -1;
+        /// <summary>物体B在 bodies 数组中的索引（-1 表示世界/静态）。</summary>
+        public int BodyIndexB = -1;
+
+        /// <summary>在速度求解阶段前初始化缓存（质量矩阵、r 向量等）。默认空实现，子类按需重写。</summary>
+        public virtual void InitVelocitySolve(IRigidBodyProxy[] bodies, float dt) { }
+
+        /// <summary>单次速度迭代求解。</summary>
+        public abstract void SolveVelocity(IRigidBodyProxy[] bodies, float dt);
+
+        /// <summary>单次位置迭代求解（Baumgarte / 位置投影）。</summary>
+        public abstract void SolvePosition(IRigidBodyProxy[] bodies, float dt);
+
+        /// <summary>该约束建议的求解迭代次数（可被求解器覆盖）。</summary>
+        public virtual int GetNumSolverIterations() => 10;
+    }
+
     /// <summary>约束基类。</summary>
 
     /// <summary>点约束（球铰 / 球-套节 / 3DOF约束）。</summary>
-    public class PointConstraint : Constraint
+    public class PointConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAnchorA;
         public PhysicsVector3 LocalAnchorB;
@@ -580,7 +604,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>铰链约束（1旋转轴，5DOF约束）。</summary>
-    public class HingeConstraint : Constraint
+    public class HingeConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAnchorA;
         public PhysicsVector3 LocalAnchorB;
@@ -709,7 +733,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>滑块约束（1平移轴，5DOF约束）。</summary>
-    public class SliderConstraint : Constraint
+    public class SliderConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAnchorA;
         public PhysicsVector3 LocalAnchorB;
@@ -823,7 +847,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>锥扭转约束（3DOF旋转约束，摆动锥角+扭转限制）。</summary>
-    public class ConeTwistConstraint : Constraint
+    public class ConeTwistConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAnchorA;
         public PhysicsVector3 LocalAnchorB;
@@ -928,7 +952,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>距离约束。</summary>
-    public class DistanceConstraint : Constraint
+    public class DistanceConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAnchorA;
         public PhysicsVector3 LocalAnchorB;
@@ -1012,7 +1036,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>6自由度弹簧约束（3线性弹簧 + 3角弹簧）。</summary>
-    public class Dof6SpringConstraint : Constraint
+    public class Dof6SpringConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAnchorA;
         public PhysicsVector3 LocalAnchorB;
@@ -1129,7 +1153,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>齿轮约束（两个旋转体耦合）。</summary>
-    public class GearConstraint : Constraint
+    public class GearConstraint : SolverConstraint
     {
         public PhysicsVector3 LocalAxisA;
         public PhysicsVector3 LocalAxisB;
@@ -1173,7 +1197,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>滑轮约束。</summary>
-    public class PulleyConstraint : Constraint
+    public class PulleyConstraint : SolverConstraint
     {
         public PhysicsVector3 WorldAnchorA;
         public PhysicsVector3 WorldAnchorB;
@@ -1263,7 +1287,7 @@ namespace ShanyuEngine.Physics
     }
 
     /// <summary>接触约束（法线 + 摩擦 + 滚动）。</summary>
-    public class ContactConstraint : Constraint
+    public class ContactConstraint : SolverConstraint
     {
         private ContactManifold _manifold;
         private SequentialImpulseSolver _solver;

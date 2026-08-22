@@ -1,12 +1,12 @@
+using Vulkan = Silk.NET.Vulkan;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.Vulkan;
-using Semaphore = Vulkan.Semaphore;
-using Buffer = Vulkan.Buffer;
+using Semaphore = Silk.NET.Vulkan.Semaphore;
+using Buffer = Silk.NET.Vulkan.Buffer;
 
-using Vulkan = Silk.NET.Vulkan;
 namespace ShanyuEngine.RHI.Vulkan
 {
     // ════════════════════════════════════════════════════════════════

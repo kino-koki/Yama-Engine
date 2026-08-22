@@ -1,0 +1,604 @@
+
+### AI\BehaviorTreeV2.cs (41 errors)
+  L506 CS0115 “BTBlackboardCheck.Execute(BTContext)”: 没有找到适合的方法来重写
+  L110 CS0115 “BTSequence.Execute(BTContext)”: 没有找到适合的方法来重写
+  L146 CS0115 “BTSequence.Reset()”: 没有找到适合的方法来重写
+  L103 CS0534 “BTSequence”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L164 CS0115 “BTSelector.Execute(BTContext)”: 没有找到适合的方法来重写
+  L200 CS0115 “BTSelector.Reset()”: 没有找到适合的方法来重写
+  L157 CS0534 “BTSelector”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L548 CS0115 “BTUntilSuccess.Execute(BTContext)”: 没有找到适合的方法来重写
+  L574 CS0115 “BTUntilSuccess.Reset()”: 没有找到适合的方法来重写
+  L233 CS0115 “BTRandomSelector.Execute(BTContext)”: 没有找到适合的方法来重写
+  L274 CS0115 “BTRandomSelector.Reset()”: 没有找到适合的方法来重写
+  L224 CS0534 “BTRandomSelector”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L585 CS0115 “BTNoOp.Execute(BTContext)”: 没有找到适合的方法来重写
+  L582 CS0534 “BTNoOp”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L600 CS0115 “BTWait.Execute(BTContext)”: 没有找到适合的方法来重写
+  L613 CS0115 “BTWait.Reset()”: 没有找到适合的方法来重写
+  L593 CS0534 “BTWait”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L288 CS0115 “BTWeightedRandomSelector.Execute(BTContext)”: 没有找到适合的方法来重写
+  L322 CS0115 “BTWeightedRandomSelector.Reset()”: 没有找到适合的方法来重写
+  L280 CS0534 “BTWeightedRandomSelector”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L625 CS0115 “BTWaitForCondition.Execute(BTContext)”: 没有找到适合的方法来重写
+  L647 CS0115 “BTWaitForCondition.Reset()”: 没有找到适合的方法来重写
+  L617 CS0534 “BTWaitForCondition”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L344 CS0115 “BTCondition.Execute(BTContext)”: 没有找到适合的方法来重写
+  L662 CS0115 “BTTask.Execute(BTContext)”: 没有找到适合的方法来重写
+  L653 CS0534 “BTTask”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L363 CS0115 “BTInverter.Execute(BTContext)”: 没有找到适合的方法来重写
+  L691 CS0115 “BTMoveTo.Execute(BTContext)”: 没有找到适合的方法来重写
+  L714 CS0115 “BTMoveTo.OnAbort(BTContext)”: 没有找到适合的方法来重写
+  L678 CS0534 “BTMoveTo”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L388 CS0115 “BTRepeater.Execute(BTContext)”: 没有找到适合的方法来重写
+  L416 CS0115 “BTRepeater.Reset()”: 没有找到适合的方法来重写
+  L732 CS0115 “BTPlayAnimation.Execute(BTContext)”: 没有找到适合的方法来重写
+  L755 CS0115 “BTPlayAnimation.Reset()”: 没有找到适合的方法来重写
+  L721 CS0534 “BTPlayAnimation”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+  L430 CS0115 “BTTimeout.Execute(BTContext)”: 没有找到适合的方法来重写
+  L447 CS0115 “BTTimeout.Reset()”: 没有找到适合的方法来重写
+  L461 CS0115 “BTCoolDown.Execute(BTContext)”: 没有找到适合的方法来重写
+  L476 CS0115 “BTCoolDown.Reset()”: 没有找到适合的方法来重写
+  L786 CS0102 类型“BTContext”已经包含“LogWarning”的定义
+  L787 CS0102 类型“BTContext”已经包含“LogError”的定义
+
+### Physics\CollisionSolverReal.cs (26 errors)
+  L53 CS0246 未能找到类型或命名空间名“PhysicsVector2”(是否缺少 using 指令或程序集引用?)
+  L340 CS0246 未能找到类型或命名空间名“PhysicsVector2”(是否缺少 using 指令或程序集引用?)
+  L525 CS0115 “PointConstraint.InitVelocitySolve(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L533 CS0115 “PointConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L557 CS0115 “PointConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L610 CS0115 “HingeConstraint.InitVelocitySolve(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L618 CS0115 “HingeConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L684 CS0115 “HingeConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L708 CS0115 “HingeConstraint.GetNumSolverIterations()”: 没有找到适合的方法来重写
+  L736 CS0115 “SliderConstraint.InitVelocitySolve(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L741 CS0115 “SliderConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L798 CS0115 “SliderConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L850 CS0115 “ConeTwistConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L905 CS0115 “ConeTwistConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L950 CS0115 “DistanceConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L983 CS0115 “DistanceConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1041 CS0115 “Dof6SpringConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1105 CS0115 “Dof6SpringConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1128 CS0115 “Dof6SpringConstraint.GetNumSolverIterations()”: 没有找到适合的方法来重写
+  L1148 CS0115 “GearConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1169 CS0115 “GearConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1196 CS0115 “PulleyConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1233 CS0115 “PulleyConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1279 CS0115 “ContactConstraint.SolveVelocity(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1285 CS0115 “ContactConstraint.SolvePosition(IRigidBodyProxy[], float)”: 没有找到适合的方法来重写
+  L1291 CS0115 “ContactConstraint.GetNumSolverIterations()”: 没有找到适合的方法来重写
+
+### ECS\ComponentChunkIterator.cs (24 errors)
+  L110 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2>" 中将其用作参数 "T2"
+  L125 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3>" 中将其用作参数 "T2"
+  L125 CS9244 类型 "Span<T2>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3>" 中将其用作参数 "T3"
+  L143 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T2"
+  L143 CS9244 类型 "Span<T2>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T3"
+  L143 CS9244 类型 "Span<T3>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T4"
+  L164 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T2"
+  L164 CS9244 类型 "Span<T2>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T3"
+  L164 CS9244 类型 "Span<T3>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T4"
+  L164 CS9244 类型 "Span<T4>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T5"
+  L191 CS9244 类型 "Span<EntityReal>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3>" 中将其用作参数 "T2"
+  L191 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3>" 中将其用作参数 "T3"
+  L209 CS9244 类型 "Span<EntityReal>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T2"
+  L209 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T3"
+  L209 CS9244 类型 "Span<T2>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T4"
+  L229 CS9244 类型 "Span<EntityReal>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T2"
+  L229 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T3"
+  L229 CS9244 类型 "Span<T2>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T4"
+  L229 CS9244 类型 "Span<T3>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4, T5>" 中将其用作参数 "T5"
+  L322 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2>" 中将其用作参数 "T2"
+  L344 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3>" 中将其用作参数 "T2"
+  L344 CS9244 类型 "Span<T2>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3>" 中将其用作参数 "T3"
+  L663 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2, T3, T4>" 中将其用作参数 "T4"
+  L710 CS9244 类型 "Span<T1>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "Action<T1, T2>" 中将其用作参数 "T2"
+
+### RHI\RHIDeviceExtensions.cs (15 errors)
+  L170 CS0246 未能找到类型或命名空间名“RHIBufferUsage”(是否缺少 using 指令或程序集引用?)
+  L205 CS0246 未能找到类型或命名空间名“RHIMapMode”(是否缺少 using 指令或程序集引用?)
+  L205 CS0103 当前上下文中不存在名称“RHIMapMode”
+  L227 CS0246 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+  L249 CS0246 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+  L271 CS0246 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+  L294 CS0246 未能找到类型或命名空间名“RHITextureUsage”(是否缺少 using 指令或程序集引用?)
+  L227 CS0103 当前上下文中不存在名称“RHITextureUsage”
+  L249 CS0103 当前上下文中不存在名称“RHITextureUsage”
+  L271 CS0103 当前上下文中不存在名称“RHITextureUsage”
+  L294 CS0103 当前上下文中不存在名称“RHITextureUsage”
+  L538 CS0246 未能找到类型或命名空间名“RHIRenderPass”(是否缺少 using 指令或程序集引用?)
+  L611 CS0246 未能找到类型或命名空间名“RHIDeviceCapabilities”(是否缺少 using 指令或程序集引用?)
+  L641 CS0246 未能找到类型或命名空间名“RHIFormatProperties”(是否缺少 using 指令或程序集引用?)
+  L648 CS0246 未能找到类型或命名空间名“RHIFormatUsage”(是否缺少 using 指令或程序集引用?)
+
+### AI\BehaviorTreeSystem.cs (15 errors)
+  L1211 CS0115 “BTTask_MoveTo.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1237 CS0507 “BTTask_Wait.InitNode(BTNodeContext)”: 当重写“public”继承成员“BTNode.InitNode(BTNodeContext)”时，无法更改访问修饰符
+  L1249 CS0115 “BTTask_Wait.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1273 CS0115 “BTTask_PlayAnim.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1306 CS0507 “BTTask_WaitBlackboardTime.InitNode(BTNodeContext)”: 当重写“public”继承成员“BTNode.InitNode(BTNodeContext)”时，无法更改访问修饰符
+  L1313 CS0115 “BTTask_WaitBlackboardTime.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1336 CS0115 “BTTask_SetBlackboardValue.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1357 CS0115 “BTTask_ClearBlackboardValue.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1377 CS0115 “BTTask_TurnTo.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1397 CS0507 “BTTask_RunBehaviorTree.InitNode(BTNodeContext)”: 当重写“public”继承成员“BTNode.InitNode(BTNodeContext)”时，无法更改访问修饰符
+  L1404 CS0115 “BTTask_RunBehaviorTree.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1431 CS0115 “BTTask_ActorAction.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1448 CS0115 “BTTask_SpawnActor.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1470 CS0115 “BTTask_RandomSelector.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+  L1486 CS0115 “BTTask_Log.ExecuteTask(BTNodeContext)”: 没有找到适合的方法来重写
+
+### Core\WorldSystemsBootstrap.cs (15 errors)
+  L989 CS0246 未能找到类型或命名空间名“SwapChain”(是否缺少 using 指令或程序集引用?)
+  L1004 CS0246 未能找到类型或命名空间名“MaterialLibrary”(是否缺少 using 指令或程序集引用?)
+  L1013 CS0246 未能找到类型或命名空间名“PhysicsSystem”(是否缺少 using 指令或程序集引用?)
+  L1019 CS0246 未能找到类型或命名空间名“UISystem”(是否缺少 using 指令或程序集引用?)
+  L1022 CS0246 未能找到类型或命名空间名“ScriptEngine”(是否缺少 using 指令或程序集引用?)
+  L1025 CS0246 未能找到类型或命名空间名“GameInstance”(是否缺少 using 指令或程序集引用?)
+  L256 CS0246 未能找到类型或命名空间名“SwapChain”(是否缺少 using 指令或程序集引用?)
+  L263 CS0246 未能找到类型或命名空间名“ProbeFieldHardwareRayTracer”(是否缺少 using 指令或程序集引用?)
+  L265 CS0246 未能找到类型或命名空间名“ProbeFieldVoxelSystem”(是否缺少 using 指令或程序集引用?)
+  L269 CS0246 未能找到类型或命名空间名“MaterialLibrary”(是否缺少 using 指令或程序集引用?)
+  L270 CS0246 未能找到类型或命名空间名“BuiltinMaterials”(是否缺少 using 指令或程序集引用?)
+  L274 CS0246 未能找到类型或命名空间名“PhysicsSystem”(是否缺少 using 指令或程序集引用?)
+  L276 CS0246 未能找到类型或命名空间名“UISystem”(是否缺少 using 指令或程序集引用?)
+  L277 CS0246 未能找到类型或命名空间名“ScriptEngine”(是否缺少 using 指令或程序集引用?)
+  L278 CS0246 未能找到类型或命名空间名“GameInstance”(是否缺少 using 指令或程序集引用?)
+
+### ECS\SystemBaseReal.cs (12 errors)
+  L400 CS0501 “SystemBaseReal.OnUpdate(float)”必须声明主体，因为它未标记为 abstract、extern 或 partial
+  L376 CS0102 类型“SystemBaseReal”已经包含“Enabled”的定义
+  L370 CS0102 类型“SystemBaseReal”已经包含“Name”的定义
+  L390 CS0111 类型“SystemBaseReal”已定义了一个名为“OnCreate”的具有相同参数类型的成员
+  L395 CS0111 类型“SystemBaseReal”已定义了一个名为“OnDestroy”的具有相同参数类型的成员
+  L400 CS0111 类型“SystemBaseReal”已定义了一个名为“OnUpdate”的具有相同参数类型的成员
+  L111 CS1073 意外标记“ref”
+  L136 CS1073 意外标记“ref”
+  L136 CS1073 意外标记“ref”
+  L165 CS1073 意外标记“ref”
+  L165 CS1073 意外标记“ref”
+  L165 CS1073 意外标记“ref”
+
+### Runtime\GpuCommandRecorder.cs (11 errors)
+  L174 CS8340 只读结构的实例字段必须为只读。
+  L175 CS8340 只读结构的实例字段必须为只读。
+  L175 CS8340 只读结构的实例字段必须为只读。
+  L175 CS8340 只读结构的实例字段必须为只读。
+  L175 CS8340 只读结构的实例字段必须为只读。
+  L176 CS8340 只读结构的实例字段必须为只读。
+  L177 CS8340 只读结构的实例字段必须为只读。
+  L285 CS8340 只读结构的实例字段必须为只读。
+  L288 CS8340 只读结构的实例字段必须为只读。
+  L291 CS8340 只读结构的实例字段必须为只读。
+  L294 CS8340 只读结构的实例字段必须为只读。
+
+### ECS\EntityManagerReal.cs (10 errors)
+  L25 CS0260 类型“EntityReal”的声明上缺少 partial 修饰符；存在此类型的其他分部声明
+  L28 CS0102 类型“EntityReal”已经包含“Id”的定义
+  L31 CS0102 类型“EntityReal”已经包含“Version”的定义
+  L58 CS0111 类型“EntityReal”已定义了一个名为“Equals”的具有相同参数类型的成员
+  L59 CS0111 类型“EntityReal”已定义了一个名为“Equals”的具有相同参数类型的成员
+  L60 CS0111 类型“EntityReal”已定义了一个名为“GetHashCode”的具有相同参数类型的成员
+  L61 CS0111 类型“EntityReal”已定义了一个名为“op_Equality”的具有相同参数类型的成员
+  L62 CS0111 类型“EntityReal”已定义了一个名为“op_Inequality”的具有相同参数类型的成员
+  L196 CS0111 类型“EntityManagerReal”已定义了一个名为“DestroyEntity”的具有相同参数类型的成员
+  L518 CS0225 Params 参数必须具有有效的集合类型
+
+### ECS\ArchetypeQuerySystem.cs (9 errors)
+  L803 CS8340 只读结构的实例字段必须为只读。
+  L804 CS8340 只读结构的实例字段必须为只读。
+  L785 CS0102 类型“ArchetypeChunk”已经包含“EntityCount”的定义
+  L791 CS0111 类型“ArchetypeChunk”已定义了一个名为“GetComponentData”的具有相同参数类型的成员
+  L794 CS0111 类型“ArchetypeChunk”已定义了一个名为“SetComponentData”的具有相同参数类型的成员
+  L788 CS0111 类型“ArchetypeChunk”已定义了一个名为“GetEntity”的具有相同参数类型的成员
+  L768 CS0102 类型“ArchetypeReal”已经包含“ComponentTypes”的定义
+  L765 CS0102 类型“ArchetypeReal”已经包含“Chunks”的定义
+  L753 CS0111 类型“ArchetypeManager”已定义了一个名为“GetAllArchetypes”的具有相同参数类型的成员
+
+### DataSystem\DataTableSystem.cs (6 errors)
+  L377 CS0101 命名空间“ShanyuEngine.DataSystem”已经包含“ConfigType”的定义
+  L378 CS0101 命名空间“ShanyuEngine.DataSystem”已经包含“ConfigFormat”的定义
+  L343 CS0101 命名空间“ShanyuEngine.DataSystem”已经包含“CurveInterpMode”的定义
+  L344 CS0101 命名空间“ShanyuEngine.DataSystem”已经包含“CurveExtrapolation”的定义
+  L93 CS0246 未能找到类型或命名空间名“T”(是否缺少 using 指令或程序集引用?)
+  L103 CS0246 未能找到类型或命名空间名“T”(是否缺少 using 指令或程序集引用?)
+
+### Physics\CollisionBaker.cs (6 errors)
+  L335 CS0234 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+  L1085 CS0234 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+  L1331 CS0234 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+  L212 CS0246 未能找到类型或命名空间名“BodyDescriptor”(是否缺少 using 指令或程序集引用?)
+  L214 CS0103 当前上下文中不存在名称“PhysicsLayers”
+  L214 CS0103 当前上下文中不存在名称“PhysicsLayers”
+
+### CodeEditing\CodeEditorView.cs (6 errors)
+  L351 CS0246 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+  L1443 CS0246 未能找到类型或命名空间名“FormatterOptions”(是否缺少 using 指令或程序集引用?)
+  L1519 CS0246 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+  L1518 CS0246 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+  L1470 CS0246 未能找到类型或命名空间名“ColoredSegment”(是否缺少 using 指令或程序集引用?)
+  L1943 CS0246 未能找到类型或命名空间名“FormatterOptions”(是否缺少 using 指令或程序集引用?)
+
+### Physics\NarrowphaseSystem.cs (5 errors)
+  L1199 CS0115 “TriangleShape.GetSupportShape(Vector3, Quaternion)”: 没有找到适合的方法来重写
+  L1189 CS0534 “TriangleShape”不实现继承的抽象成员“Shape.Type.get”
+  L1189 CS0534 “TriangleShape”不实现继承的抽象成员“Shape.ComputeAABB(PhysicsTransform)”
+  L1189 CS0534 “TriangleShape”不实现继承的抽象成员“Shape.ComputeVolume()”
+  L1189 CS0534 “TriangleShape”不实现继承的抽象成员“Shape.GetSupportPoint(PhysicsVector3, PhysicsTransform)”
+
+### UI\ProgressBar.cs (5 errors)
+  L12 CS0115 “Toggle.OnDraw(CanvasRenderer)”: 没有找到适合的方法来重写
+  L20 CS0115 “Toggle.OnMouseDown(float, float, int)”: 没有找到适合的方法来重写
+  L37 CS0115 “Dropdown.OnDraw(CanvasRenderer)”: 没有找到适合的方法来重写
+  L58 CS0115 “Dropdown.OnMouseDown(float, float, int)”: 没有找到适合的方法来重写
+  L75 CS0115 “Dropdown.OnMouseMove(float, float)”: 没有找到适合的方法来重写
+
+### Rendering\HybridLightingRenderer.cs (5 errors)
+  L389 CS0246 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+  L421 CS0246 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+  L483 CS0246 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+  L605 CS0246 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+  L666 CS0246 未能找到类型或命名空间名“Camera”(是否缺少 using 指令或程序集引用?)
+
+### Runtime\JobScheduler.cs (4 errors)
+  L353 CS8340 只读结构的实例字段必须为只读。
+  L354 CS8340 只读结构的实例字段必须为只读。
+  L355 CS8340 只读结构的实例字段必须为只读。
+  L356 CS8340 只读结构的实例字段必须为只读。
+
+### Input\InputActionAssetSerialization.cs (4 errors)
+  L539 CS0053 可访问性不一致: 属性类型“List<InputActionMapDTO>”的可访问性低于属性“InputActionAssetDTO.Maps”
+  L540 CS0053 可访问性不一致: 属性类型“List<ControlSchemeDTO>”的可访问性低于属性“InputActionAssetDTO.ControlSchemes”
+  L541 CS0053 可访问性不一致: 属性类型“List<BindingOverrideDTO>”的可访问性低于属性“InputActionAssetDTO.BindingOverrides”
+  L544 CS0053 可访问性不一致: 属性类型“List<InputActionMapDTO>”的可访问性低于属性“InputActionAssetDTO.V1ActionMaps”
+
+### Physics\PBDSolver.cs (4 errors)
+  L86 CS0535 “DistancePBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+  L129 CS0535 “CollisionPBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+  L182 CS0535 “VolumePBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+  L249 CS0535 “ShapeMatchingPBDConstraint”不实现接口成员“IPBDConstraint.Stiffness”
+
+### World\LandscapeGrassSystem.cs (4 errors)
+  L588 CS0246 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+  L596 CS0246 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+  L1328 CS0246 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+  L1364 CS0246 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+
+### World\StreamingSystem.cs (4 errors)
+  L485 CS0051 可访问性不一致: 参数类型“PriorityRequest”的可访问性低于方法“ResourcePriorityScheduler.Enqueue(PriorityRequest)”
+  L512 CS0050 可访问性不一致: 返回类型“List<PriorityRequest>”的可访问性低于方法“ResourcePriorityScheduler.PeekTop(int)”
+  L522 CS0050 可访问性不一致: 返回类型“PriorityRequest”的可访问性低于方法“ResourcePriorityScheduler.DequeueHighest()”
+  L881 CS0118 “World”是 命名空间，但此处被当做 类型 来使用
+
+### GameFramework\GameModeSystem.cs (4 errors)
+  L131 CS0115 “GameModeDeathmatch.Update(float)”: 没有找到适合的方法来重写
+  L152 CS0115 “GameModeDeathmatch.CheckWinCondition()”: 没有找到适合的方法来重写
+  L278 CS0115 “GameModeCoop.OnMatchStartHandler()”: 没有找到适合的方法来重写
+  L285 CS0115 “GameModeCoop.Update(float)”: 没有找到适合的方法来重写
+
+### ECS\SystemScheduler.cs (4 errors)
+  L616 CS0102 类型“SystemBaseReal”已经包含“Name”的定义
+  L619 CS0111 类型“SystemBaseReal”已定义了一个名为“OnCreate”的具有相同参数类型的成员
+  L622 CS0111 类型“SystemBaseReal”已定义了一个名为“OnDestroy”的具有相同参数类型的成员
+  L625 CS0111 类型“SystemBaseReal”已定义了一个名为“OnUpdate”的具有相同参数类型的成员
+
+### Vulkan\VulkanCommandList.cs (3 errors)
+  L10 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L9 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L420 CS8080 自动实现的属性必须覆盖被覆盖属性的所有访问器。
+
+### Vulkan\VulkanCommandPoolManager.cs (3 errors)
+  L26 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L455 CS0050 可访问性不一致: 返回类型“CommandPoolWrapper”的可访问性低于方法“VulkanCommandPoolManager.GetCurrentThreadPool(CommandPoolType)”
+  L503 CS8340 只读结构的实例字段必须为只读。
+
+### Vulkan\VulkanSwapchain.cs (3 errors)
+  L9 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L539 CS0115 “VulkanSwapChain.Present(int)”: 没有找到适合的方法来重写
+  L37 CS0246 未能找到类型或命名空间名“SwapchainApi”(是否缺少 using 指令或程序集引用?)
+
+### Materials\MaterialSystemReal.cs (3 errors)
+  L21 CS0234 命名空间“Vortice”中不存在类型或命名空间名“D3DCompiler”(是否缺少程序集引用?)
+  L749 CS0246 未能找到类型或命名空间名“Macro”(是否缺少 using 指令或程序集引用?)
+  L763 CS0246 未能找到类型或命名空间名“Macro”(是否缺少 using 指令或程序集引用?)
+
+### ShaderGraph\ShaderNodeLibrary.cs (3 errors)
+  L543 CS0101 命名空间“ShanyuEngine.ShaderGraph”已经包含“TangentNode”的定义
+  L135 CS0263 “TangentNode”的分部声明一定不能指定不同的基类
+  L545 CS0111 类型“TangentNode”已定义了一个名为“TangentNode”的具有相同参数类型的成员
+
+### AI\SmartObjectsSystem.cs (3 errors)
+  L1397 CS0115 “BTTask_UseSmartObject.Execute(BTContext)”: 没有找到适合的方法来重写
+  L1467 CS0115 “BTTask_UseSmartObject.Abort(BTContext)”: 没有找到适合的方法来重写
+  L1364 CS0534 “BTTask_UseSmartObject”不实现继承的抽象成员“BTNode.Execute(BTNodeContext)”
+
+### UI\TextBox.cs (3 errors)
+  L62 CS0246 未能找到类型或命名空间名“Key”(是否缺少 using 指令或程序集引用?)
+  L24 CS0115 “TextBox.OnDraw(CanvasRenderer)”: 没有找到适合的方法来重写
+  L56 CS0115 “TextBox.OnMouseDown(float, float, int)”: 没有找到适合的方法来重写
+
+### UI\UIRendererReal.cs (3 errors)
+  L662 CS8340 只读结构的实例字段必须为只读。
+  L663 CS8340 只读结构的实例字段必须为只读。
+  L664 CS8340 只读结构的实例字段必须为只读。
+
+### Platform\SDL2Window.cs (3 errors)
+  L273 CS0246 未能找到类型或命名空间名“uint8_t”(是否缺少 using 指令或程序集引用?)
+  L292 CS0246 未能找到类型或命名空间名“int16_t”(是否缺少 using 指令或程序集引用?)
+  L311 CS0111 类型“SDL2Native”已定义了一个名为“SDL_InitSubSystem”的具有相同参数类型的成员
+
+### Diagnostics\ProfilingSystem.cs (3 errors)
+  L397 CS0246 未能找到类型或命名空间名“CPUHotSpot”(是否缺少 using 指令或程序集引用?)
+  L404 CS0246 未能找到类型或命名空间名“RenderPassStats”(是否缺少 using 指令或程序集引用?)
+  L412 CS0246 未能找到类型或命名空间名“LeakSuspect”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanDescriptors.cs (2 errors)
+  L7 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L6 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanDevice.cs (2 errors)
+  L31 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L30 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanMemoryAllocator.cs (2 errors)
+  L26 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L1158 CS0101 命名空间“ShanyuEngine.Vulkan”已经包含“MemoryTypePool”的定义
+
+### Vulkan\VulkanPipeline.cs (2 errors)
+  L7 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L6 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanPipelineCache.cs (2 errors)
+  L29 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L28 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanQueryPool.cs (2 errors)
+  L29 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L28 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanShaderManager.cs (2 errors)
+  L31 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+  L30 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\PostProcessingStack.cs (2 errors)
+  L19 CS0101 命名空间“ShanyuEngine.Rendering”已经包含“TonemapOperator”的定义
+  L34 CS0101 命名空间“ShanyuEngine.Rendering”已经包含“BokehShape”的定义
+
+### Editor\EditorPlayModeController.cs (2 errors)
+  L24 CS0234 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+  L501 CS0426 类型“ScriptAPI.Debug”中不存在类型名“LogLevel”
+
+### Runtime\AsyncComputeManager.cs (2 errors)
+  L31 CS8340 只读结构的实例字段必须为只读。
+  L32 CS8340 只读结构的实例字段必须为只读。
+
+### RHI\RHIRenderPassBuilder.cs (2 errors)
+  L1080 CS0111 类型“IRHICommandList”已定义了一个名为“DrawIndexed”的具有相同参数类型的成员
+  L1081 CS0111 类型“IRHICommandList”已定义了一个名为“Dispatch”的具有相同参数类型的成员
+
+### Physics\ConstraintSolver.cs (2 errors)
+  L648 CS0115 “FixedConstraint.FillData(ref ConstraintData)”: 没有找到适合的方法来重写
+  L669 CS0115 “MotorConstraint.FillData(ref ConstraintData)”: 没有找到适合的方法来重写
+
+### AI\NavigationSystem.cs (2 errors)
+  L1404 CS0426 类型“NavMeshGenerator”中不存在类型名“NavMeshBuildConfig”
+  L1276 CS0426 类型“NavMeshGenerator”中不存在类型名“NavMeshBuildConfig”
+
+### UI\CanvasRenderer.cs (2 errors)
+  L34 CS0052 可访问性不一致: 字段类型“DrawCmdType”的可访问性低于字段“DrawCmd.Type”
+  L38 CS0051 可访问性不一致: 参数类型“DrawCmdType”的可访问性低于方法“DrawCmd.DrawCmd(DrawCmdType)”
+
+### Physics\PhysicsMaterial.cs (2 errors)
+  L291 CS0246 未能找到类型或命名空间名“BodyDescriptor”(是否缺少 using 指令或程序集引用?)
+  L304 CS0246 未能找到类型或命名空间名“BodyDescriptor”(是否缺少 using 指令或程序集引用?)
+
+### Physics\PhysicsRenderBridge.cs (2 errors)
+  L61 CS0246 未能找到类型或命名空间名“PhysicsRenderTarget”(是否缺少 using 指令或程序集引用?)
+  L32 CS0246 未能找到类型或命名空间名“PhysicsRenderTarget”(是否缺少 using 指令或程序集引用?)
+
+### Core\EngineSystems.cs (2 errors)
+  L22 CS0246 未能找到类型或命名空间名“PhysicsScene”(是否缺少 using 指令或程序集引用?)
+  L319 CS0234 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+
+### Vulkan\VulkanSyncManager.cs (2 errors)
+  L401 CS0051 可访问性不一致: 参数类型“FencePool”的可访问性低于方法“FrameFenceManager.FrameFenceManager(FencePool, int)”
+  L462 CS0051 可访问性不一致: 参数类型“SemaphorePool”的可访问性低于方法“SwapchainSemaphoreManager.SwapchainSemaphoreManager(SemaphorePool, int)”
+
+### VFX\ParticleSystem.cs (2 errors)
+  L298 CS0592 特性“MethodImpl”对此声明类型无效。它仅对“构造函数, 方法”声明有效。
+  L1725 CS0246 未能找到类型或命名空间名“ParticleModuleCoreCore”(是否缺少 using 指令或程序集引用?)
+
+### Testing\RuntimeTests.cs (2 errors)
+  L140 CS0234 命名空间“ShanyuEngine.Runtime”中不存在类型或命名空间名“SceneObject”(是否缺少程序集引用?)
+  L131 CS0535 “RuntimeTests.RuntimeCounterComponent”不实现接口成员“IAssetComponent.Update(float, SceneObject)”
+
+### Network\NetworkReplicationReal.cs (2 errors)
+  L415 CS0050 可访问性不一致: 返回类型“ReplicationSerializer.PropertyMetadata[]”的可访问性低于方法“ReplicationSerializer.GetMetadata(Type)”
+  L34 CS0592 特性“AttributeUsage”对此声明类型无效。它仅对“类”声明有效。
+
+### Editor\PieIntegration.cs (2 errors)
+  L70 CS0426 类型“EditorPlayModeController”中不存在类型名“LogLevel”
+  L529 CS0426 类型“EditorPlayModeController”中不存在类型名“LogLevel”
+
+### Rendering\WorldIntegrationHelper.cs (2 errors)
+  L223 CS0246 未能找到类型或命名空间名“ProbeFieldIntegration”(是否缺少 using 指令或程序集引用?)
+  L351 CS0246 未能找到类型或命名空间名“MaterialLibrary”(是否缺少 using 指令或程序集引用?)
+
+### RHI\RHIDevice.cs (1 errors)
+  L23 CS0101 命名空间“ShanyuEngine.RHI”已经包含“RHITexture”的定义
+
+### Vulkan\VulkanBarrierOptimizer.cs (1 errors)
+  L30 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanDescriptorPoolManager.cs (1 errors)
+  L28 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanSwapchainManager.cs (1 errors)
+  L27 CS0246 未能找到类型或命名空间名“Vulkan”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\RenderPipeline.cs (1 errors)
+  L312 CS0101 命名空间“ShanyuEngine.Rendering”已经包含“LightType”的定义
+
+### Rendering\VirtualGeometry.cs (1 errors)
+  L6 CS0101 命名空间“ShanyuEngine.Rendering”已经包含“BoundingSphere”的定义
+
+### Editor\EditorUI.cs (1 errors)
+  L12 CS0234 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+
+### Editor\Panels\ConsolePanel.cs (1 errors)
+  L9 CS0234 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+
+### Physics\CharacterControllerSystem.cs (1 errors)
+  L43 CS0101 命名空间“ShanyuEngine.Physics”已经包含“CharacterState”的定义
+
+### Physics\RigidBodyDynamicsReal.cs (1 errors)
+  L28 CS0101 命名空间“ShanyuEngine.Physics”已经包含“BodyType”的定义
+
+### Scripting\ScriptRuntime.cs (1 errors)
+  L36 CS0234 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+
+### Network\NetworkDebugSystem.cs (1 errors)
+  L10 CS0234 命名空间“ShanyuEngine.Config”中不存在类型或命名空间名“LogLevel”(是否缺少程序集引用?)
+
+### AI\TacticalAnalysisSystem.cs (1 errors)
+  L198 CS0101 命名空间“ShanyuEngine.AI”已经包含“FlankingSide”的定义
+
+### Audio\AudioSpatialSystem.cs (1 errors)
+  L478 CS0101 命名空间“ShanyuEngine.Audio”已经包含“DopplerEffect”的定义
+
+### RHI\RHIBarrierTracker.cs (1 errors)
+  L1592 CS0527 接口列表中的类型“RHIResource”不是接口
+
+### RHI\RHICopyEngine.cs (1 errors)
+  L493 CS9244 类型 "ReadOnlySpan<byte>" 不能是 ref 结构或允许 ref 结构的类型参数，以便在泛型类型或方法 "(T1, T2, T3)" 中将其用作参数 "T3"
+
+### RHI\RHIReadbackManager.cs (1 errors)
+  L688 CS0122 “RHIReadbackManager.ReadbackType”不可访问，因为它具有一定的保护级别
+
+### RHI\RHIResourceTracker.cs (1 errors)
+  L382 CS0246 未能找到类型或命名空间名“RHIShaderDesc”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanResources.cs (1 errors)
+  L1002 CS0101 命名空间“ShanyuEngine.RHI.Vulkan”已经包含“VkSemaphore”的定义
+
+### Physics\CharacterControllerReal.cs (1 errors)
+  L355 CS0102 类型“CharacterControllerReal”已经包含“IsGrounded”的定义
+
+### GameFramework\Actor.cs (1 errors)
+  L77 CS0246 未能找到类型或命名空间名“SceneComponent”(是否缺少 using 指令或程序集引用?)
+
+### GameFramework\Controller.cs (1 errors)
+  L97 CS0246 未能找到类型或命名空间名“CameraManager”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanInterop.cs (1 errors)
+  L62 CS0556 用户定义的转换必须是转换成封闭类型，或者从封闭类型转换
+
+### UI\WidgetAnimation.cs (1 errors)
+  L24 CS0101 命名空间“ShanyuEngine.UI”已经包含“EasingType”的定义
+
+### AI\EnhancedPerceptionSystem.cs (1 errors)
+  L114 CS0111 类型“AABBOcclusionChecker”已定义了一个名为“AddBox”的具有相同参数类型的成员
+
+### AI\FiniteStateMachineSystem.cs (1 errors)
+  L661 CS0509 “HierarchicalStateMachine<T>.TempHierarchicalWrapper”: 无法从密封类型“HierarchicalStateMachine<T>”派生
+
+### Animation\AnimBlendNode.cs (1 errors)
+  L32 CS0246 未能找到类型或命名空间名“BlendSpace”(是否缺少 using 指令或程序集引用?)
+
+### Physics\DestructibleSystem.cs (1 errors)
+  L499 CS0246 未能找到类型或命名空间名“PhysicsScene”(是否缺少 using 指令或程序集引用?)
+
+### Input\InputModifierSystem.cs (1 errors)
+  L617 CS0534 “SwizzleModifierV2”不实现继承的抽象成员“InputModifier.ProcessValue(float)”
+
+### Physics\PhysicsDemoScene.cs (1 errors)
+  L294 CS0246 未能找到类型或命名空间名“PhysicsRenderTarget”(是否缺少 using 指令或程序集引用?)
+
+### Physics\JoltPhysicsBridge.cs (1 errors)
+  L1052 CS0246 未能找到类型或命名空间名“PhysicsScene”(是否缺少 using 指令或程序集引用?)
+
+### Vulkan\VulkanDebugMarker.cs (1 errors)
+  L436 CS0246 未能找到类型或命名空间名“DebugUtilsObjectTypeEXT”(是否缺少 using 指令或程序集引用?)
+
+### Physics\PhysicsWorldV2.cs (1 errors)
+  L160 CS8983 具有字段初始值设定项的“结构”必须包含显式声明的构造函数。
+
+### Physics\PhysicsWorld.cs (1 errors)
+  L341 CS1737 可选参数必须出现在所有必需参数之后
+
+### UI\UmgWidgetSystem.cs (1 errors)
+  L1507 CS0592 特性“System.Runtime.InteropServices.StructLayout”对此声明类型无效。它仅对“类, 结构”声明有效。
+
+### Physics\Real\Constraints.cs (1 errors)
+  L50 CS0115 “SpringConstraint.Solve(float)”: 没有找到适合的方法来重写
+
+### Networking\NetworkReplication.cs (1 errors)
+  L40 CS0579 “AttributeUsage”特性重复
+
+### Core\EngineModule.cs (1 errors)
+  L479 CS0246 未能找到类型或命名空间名“Jobs”(是否缺少 using 指令或程序集引用?)
+
+### Network\NetworkMatchmaking.cs (1 errors)
+  L6 CS0101 命名空间“ShanyuEngine.Network”已经包含“ConnectionState”的定义
+
+### Network\PropertyReplicationSystem.cs (1 errors)
+  L258 CS0101 命名空间“ShanyuEngine.Network”已经包含“ReplicationCondition”的定义
+
+### DCC\DCCBridge.cs (1 errors)
+  L71 CS0234 命名空间“ShanyuEngine.Assets”中不存在类型或命名空间名“BoundingBox”(是否缺少程序集引用?)
+
+### World\ProceduralGenerationSystem.cs (1 errors)
+  L1912 CS0246 未能找到类型或命名空间名“TerrainSystem”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\ClusterForwardRenderer.cs (1 errors)
+  L918 CS0246 未能找到类型或命名空间名“PBRMaterial”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\BloomEffect.cs (1 errors)
+  L124 CS0579 “StructLayout”特性重复
+
+### Platform\AndroidAdapter.cs (1 errors)
+  L664 CS0102 类型“AndroidAdapter”已经包含“OnConfigurationChanged”的定义
+
+### Network\NetworkLagCompensationReal.cs (1 errors)
+  L144 CS0102 类型“LagCompensatorReal”已经包含“_maxRewindSeconds”的定义
+
+### Network\NetworkFramingReal.cs (1 errors)
+  L458 CS0102 类型“ReliableChannel”已经包含“SlowStartThreshold”的定义
+
+### Editor\Panels\InspectorPanel.cs (1 errors)
+  L241 CS0246 未能找到类型或命名空间名“IComponent”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\FoliageRenderingSystem.cs (1 errors)
+  L1039 CS0246 未能找到类型或命名空间名“RHIMaterial”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\DynamicResolutionScaler.cs (1 errors)
+  L88 CS0246 未能找到类型或命名空间名“RHITimerQuery”(是否缺少 using 指令或程序集引用?)
+
+### ECS\EntitySparseSet.cs (1 errors)
+  L417 CS1073 意外标记“ref”
+
+### Network\NetworkRPCReal.cs (1 errors)
+  L31 CS0592 特性“AttributeUsage”对此声明类型无效。它仅对“类”声明有效。
+
+### Rendering\MicroClusterVirtualGeometry.cs (1 errors)
+  L58 CS0579 “StructLayout”特性重复
+
+### Rendering\MotionBlurSystem.cs (1 errors)
+  L51 CS0102 类型“MotionBlurConfig”已经包含“Quality”的定义
+
+### Rendering\ShadowSystem.cs (1 errors)
+  L1362 CS0246 未能找到类型或命名空间名“RenderResource”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\VegetationSystem.cs (1 errors)
+  L123 CS0579 “StructLayout”特性重复
+
+### Rendering\VisibilityBufferRenderer.cs (1 errors)
+  L56 CS0579 “StructLayout”特性重复
+
+### Rendering\WorldRenderPipeline.cs (1 errors)
+  L393 CS0246 未能找到类型或命名空间名“RHITimestampQueryHeap”(是否缺少 using 指令或程序集引用?)
+
+### Rendering\RenderPrimitives.cs (1 errors)
+  L1364 CS0111 类型“SceneRenderer”已定义了一个名为“GetRenderItems”的具有相同参数类型的成员

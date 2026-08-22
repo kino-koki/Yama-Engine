@@ -25,6 +25,27 @@ using System.Threading.Tasks;
 
 namespace ShanyuEngine.ECS
 {
+// ──────────────────────────────────────────────────────────────────────────────
+// 区块迭代委托（Span<T> 不能作为 Action<> 的泛型参数，故使用自定义委托）
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// <summary>单组件迭代委托。</summary>
+public delegate void ChunkAction<T1>(ArchetypeChunk chunk, Span<T1> c1);
+/// <summary>双组件迭代委托。</summary>
+public delegate void ChunkAction<T1, T2>(ArchetypeChunk chunk, Span<T1> c1, Span<T2> c2);
+/// <summary>三组件迭代委托。</summary>
+public delegate void ChunkAction<T1, T2, T3>(ArchetypeChunk chunk, Span<T1> c1, Span<T2> c2, Span<T3> c3);
+/// <summary>四组件迭代委托。</summary>
+public delegate void ChunkAction<T1, T2, T3, T4>(ArchetypeChunk chunk, Span<T1> c1, Span<T2> c2, Span<T3> c3, Span<T4> c4);
+/// <summary>实体+单组件迭代委托。</summary>
+public delegate void ChunkEntityAction<T1>(ArchetypeChunk chunk, Span<EntityReal> entities, Span<T1> c1);
+/// <summary>实体+双组件迭代委托。</summary>
+public delegate void ChunkEntityAction<T1, T2>(ArchetypeChunk chunk, Span<EntityReal> entities, Span<T1> c1, Span<T2> c2);
+/// <summary>实体+三组件迭代委托。</summary>
+public delegate void ChunkEntityAction<T1, T2, T3>(ArchetypeChunk chunk, Span<EntityReal> entities, Span<T1> c1, Span<T2> c2, Span<T3> c3);
+/// <summary>带索引区间的组件迭代委托。</summary>
+public delegate void ChunkIndexAction<T1>(ArchetypeChunk chunk, int start, int count, Span<T1> c1);
+
     /// <summary>
     /// 组件块迭代器：高效遍历查询结果的 chunk，提供类型安全的组件访问。
     /// </summary>
@@ -107,7 +128,7 @@ namespace ShanyuEngine.ECS
         /// <summary>
         /// 遍历所有 chunk，提供单个组件类型的数组访问。
         /// </summary>
-        public void ForEach<T1>(Action<ArchetypeChunk, Span<T1>> action) where T1 : struct
+        public void ForEach<T1>(ChunkAction<T1> action) where T1 : struct
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
 
@@ -122,7 +143,7 @@ namespace ShanyuEngine.ECS
         /// <summary>
         /// 遍历所有 chunk，提供两个组件类型的数组访问。
         /// </summary>
-        public void ForEach<T1, T2>(Action<ArchetypeChunk, Span<T1>, Span<T2>> action)
+        public void ForEach<T1, T2>(ChunkAction<T1, T2> action)
             where T1 : struct
             where T2 : struct
         {
@@ -140,7 +161,7 @@ namespace ShanyuEngine.ECS
         /// <summary>
         /// 遍历所有 chunk，提供三个组件类型的数组访问。
         /// </summary>
-        public void ForEach<T1, T2, T3>(Action<ArchetypeChunk, Span<T1>, Span<T2>, Span<T3>> action)
+        public void ForEach<T1, T2, T3>(ChunkAction<T1, T2, T3> action)
             where T1 : struct
             where T2 : struct
             where T3 : struct
@@ -161,7 +182,7 @@ namespace ShanyuEngine.ECS
         /// 遍历所有 chunk，提供四个组件类型的数组访问。
         /// </summary>
         public void ForEach<T1, T2, T3, T4>(
-            Action<ArchetypeChunk, Span<T1>, Span<T2>, Span<T3>, Span<T4>> action)
+            ChunkAction<T1, T2, T3, T4> action)
             where T1 : struct
             where T2 : struct
             where T3 : struct
@@ -188,7 +209,7 @@ namespace ShanyuEngine.ECS
         /// 遍历所有 chunk，同时提供实体数组和单个组件数组。
         /// </summary>
         public void ForEachWithEntity<T1>(
-            Action<ArchetypeChunk, Span<EntityReal>, Span<T1>> action)
+            ChunkEntityAction<T1> action)
             where T1 : struct
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
@@ -206,7 +227,7 @@ namespace ShanyuEngine.ECS
         /// 遍历所有 chunk，同时提供实体数组和两个组件数组。
         /// </summary>
         public void ForEachWithEntity<T1, T2>(
-            Action<ArchetypeChunk, Span<EntityReal>, Span<T1>, Span<T2>> action)
+            ChunkEntityAction<T1, T2> action)
             where T1 : struct
             where T2 : struct
         {
@@ -226,7 +247,7 @@ namespace ShanyuEngine.ECS
         /// 遍历所有 chunk，同时提供实体数组和三个组件数组。
         /// </summary>
         public void ForEachWithEntity<T1, T2, T3>(
-            Action<ArchetypeChunk, Span<EntityReal>, Span<T1>, Span<T2>, Span<T3>> action)
+            ChunkEntityAction<T1, T2, T3> action)
             where T1 : struct
             where T2 : struct
             where T3 : struct
@@ -319,7 +340,7 @@ namespace ShanyuEngine.ECS
         /// <summary>
         /// 并行遍历所有 chunk，带组件访问。
         /// </summary>
-        public void ForEachParallel<T1>(Action<ArchetypeChunk, Span<T1>> action) where T1 : struct
+        public void ForEachParallel<T1>(ChunkAction<T1> action) where T1 : struct
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
             if (_chunkCount == 0) return;
@@ -341,7 +362,7 @@ namespace ShanyuEngine.ECS
         /// <summary>
         /// 并行遍历所有 chunk，带两个组件访问。
         /// </summary>
-        public void ForEachParallel<T1, T2>(Action<ArchetypeChunk, Span<T1>, Span<T2>> action)
+        public void ForEachParallel<T1, T2>(ChunkAction<T1, T2> action)
             where T1 : struct
             where T2 : struct
         {
@@ -660,7 +681,7 @@ namespace ShanyuEngine.ECS
         /// <summary>
         /// 遍历所有实体的索引，带组件访问。
         /// </summary>
-        public void ForEachIndex<T1>(Action<ArchetypeChunk, int, int, Span<T1>> action) where T1 : struct
+        public void ForEachIndex<T1>(ChunkIndexAction<T1> action) where T1 : struct
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
             int globalIndex = 0;
@@ -707,7 +728,7 @@ namespace ShanyuEngine.ECS
         }
 
         /// <summary>遍历满足条件的 chunk，带组件访问</summary>
-        public void ForEach<T1>(Action<ArchetypeChunk, Span<T1>> action) where T1 : struct
+        public void ForEach<T1>(ChunkAction<T1> action) where T1 : struct
         {
             for (int i = 0; i < _iterator.ChunkCount; i++)
             {

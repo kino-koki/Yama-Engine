@@ -1,0 +1,4 @@
+  正在确定要还原的项目…
+F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ShanyuEngine.csproj : warning NU1900: 获取包漏洞数据时出错: 无法加载源 https://mirrors.aliyun.com/nuget/index.json 的服务索引。
+F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ShanyuEngine.csproj : warning NU1900: 获取包漏洞数据时出错: 无法加载源 https://nuget.cdn.azure.cn/v3/index.json 的服务索引。
+  已还原 F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ShanyuEngine.csproj (用时 15.59 秒)。

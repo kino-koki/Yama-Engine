@@ -1361,7 +1361,7 @@ namespace ShanyuEngine.AI
     ///   3. 每帧调用交互的 Tick 推进，返回 Running；
     ///   4. 交互完成（Success/Failed）或被中止（Abort）时，释放槽位并清理使用者组件。
     /// </summary>
-    public sealed class BTTask_UseSmartObject : BTNode
+    public sealed class BTTask_UseSmartObject : BTNodeV2
     {
         /// <summary>
         /// 数据库引用。若为 null，则回退到 SmartObjectDatabase.Active。
