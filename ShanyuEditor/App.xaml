@@ -1,0 +1,22 @@
+<Application
+    x:Class="ShanyuEditor.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ShanyuEditor">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <SolidColorBrush x:Key="ShanyuAccentBrush" Color="#FF4A90E2"/>
+            <SolidColorBrush x:Key="ShanyuBackgroundBrush" Color="#FF1A1A1E"/>
+            <SolidColorBrush x:Key="ShanyuPanelBrush" Color="#FF25252A"/>
+            <SolidColorBrush x:Key="ShanyuBorderBrush" Color="#FF3A3A40"/>
+            <SolidColorBrush x:Key="ShanyuTextBrush" Color="#FFE0E0E8"/>
+            <SolidColorBrush x:Key="ShanyuSubTextBrush" Color="#FF8A8A96"/>
+            <Thickness x:Key="PanelPadding">4</Thickness>
+            <CornerRadius x:Key="ShanyuCornerRadius">2</CornerRadius>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

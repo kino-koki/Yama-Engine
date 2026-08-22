@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Settings - Shanyu Engine</title>
+    <style id="theme-vars">
+:root {
+  /* Unity 5 Dark Theme for Shanyu Engine */
+  --color-bg-base: #191919;
+  --color-bg-panel: #2b2b2b;
+  --color-bg-panel-solid: #2b2b2b;
+  --color-bg-elevated: #333333;
+  --color-bg-sunken: #0e0e0e;
+  --color-bg-viewport: #1c1c1c;
+  --color-bg-toolbar: #323232;
+  --color-bg-hover: #363636;
+  --color-bg-active: #404040;
+  --color-bg-selected: #2c5f8a;
+  --color-bg-selected-text: #ffffff;
+  --color-bg-input: #1c1c1c;
+  --color-bg-tab-active: #2b2b2b;
+  --color-bg-tab-inactive: #262626;
+  --color-bg-header: #2a2a2a;
+  --color-bg-pro: #2b2b2b;
+  --color-bg-pro-header: #333333;
+  --color-bg-dropdown: #2b2b2b;
+  --color-bg-playmode: #2a1f1f;
+  --color-text-primary: #cccccc;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-text-accent: #3d9eff;
+  --color-text-bright: #f0f0f0;
+  --color-brand: #3d9eff;
+  --color-brand-hover: #5bb0ff;
+  --color-brand-muted: rgba(61,158,255,0.2);
+  --color-brand-dark: #2870b3;
+  --state-success: #49b86e;
+  --state-warning: #e8c44a;
+  --state-error: #e74c4c;
+  --state-info: #3d9eff;
+  --color-border: #111111;
+  --color-border-light: #444444;
+  --color-border-subtle: #333333;
+  --color-border-focus: #3d9eff;
+  --color-border-pro: #111111;
+  --color-axis-x: #e74c4c;
+  --color-axis-y: #49b86e;
+  --color-axis-z: #3d9eff;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-full: 9999px;
+  --font-display: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --leading-tight: 1.2;
+  --leading-normal: 1.4;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-8: 16px;
+  --space-10: 20px;
+  --space-12: 24px;
+  --space-16: 32px;
+  --surface-panel: 1px solid var(--color-border);
+  --surface-elevated: 1px solid var(--color-border-light);
+  --surface-floating: 0 2px 8px rgba(0,0,0,0.5), 1px solid var(--color-border-light);
+  /* Unity-specific: inspector label width, toolbar height, etc. */
+  --unity-label-width: 110px;
+  --unity-toolbar-height: 30px;
+  --unity-menubar-height: 20px;
+  --unity-tab-height: 22px;
+  --unity-statusbar-height: 22px;
+  --unity-header-height: 22px;
+  --unity-indent: 16px;
+  --unity-icon-size: 16px;
+  --unity-inspector-padding: 6px 8px;
+}
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+.unity-panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+}
+.unity-header {
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: var(--unity-header-height);
+  line-height: var(--unity-header-height);
+}
+.unity-toolbar {
+  background: var(--color-bg-toolbar);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-toolbar-height);
+  padding: 0 var(--space-2);
+}
+.unity-tab-bar {
+  background: var(--color-bg-tab-inactive);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-tab-height);
+}
+.unity-tab {
+  padding: 0 var(--space-3);
+  height: var(--unity-tab-height);
+  line-height: var(--unity-tab-height);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.unity-tab:hover { background: var(--color-bg-hover); }
+.unity-tab.active {
+  background: var(--color-bg-tab-active);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-brand);
+}
+.unity-input {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 2px 4px;
+  outline: none;
+}
+.unity-input:focus { border-color: var(--color-border-focus); }
+.unity-button {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.unity-button:hover { background: var(--color-bg-hover); }
+.engine-viewport-bg { background: var(--color-bg-viewport); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-border: var(--color-border);
+  }
+  @layer base {
+    body { background: var(--color-bg-base); color: var(--color-text-primary); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+
+<!-- Row 0: Menu Bar -->
+<div class="menu-bar">
+  <span class="brand">Shanyu</span>
+  <span>|</span>
+  <span>File</span><span>Edit</span><span>Assets</span><span>Window</span><span>Help</span>
+  <span style="flex:1"></span>
+  <span data-dom-id="nav-main-editor">Scene</span>
+  <span data-dom-id="nav-material-editor">Material</span>
+</div>
+
+<!-- Row 1: Toolbar -->
+<div class="toolbar">
+  <div class="title">Project Settings</div>
+  <div class="search-wrap">
+    <div class="search-box">
+      <svg viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+      <input type="text" id="searchInput" placeholder="Search settings...">
+    </div>
+  </div>
+  <button class="toolbar-btn" onclick="resetAll()">Reset All</button>
+  <button class="toolbar-btn" onclick="exportSettings()">Export Settings</button>
+</div>
+
+<!-- Row 2: Main Area -->
+<div class="main-area">
+
+  <!-- Left Panel: Category Navigation -->
+  <div class="cat-nav" id="catNav">
+    <!-- Editor (expanded) -->
+    <div class="cat-item" data-cat="editor" onclick="toggleCat(this)">
+      <span class="arrow">&#9660;</span> Editor
+    </div>
+    <div class="cat-children open" id="children-editor">
+      <div class="cat-item cat-child selected" data-key="editor-general" onclick="selectItem(this,'editor','general')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> General
+      </div>
+      <div class="cat-item cat-child" data-key="editor-colors" onclick="selectItem(this,'editor','colors')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Colors
+      </div>
+      <div class="cat-item cat-child" data-key="editor-external-tools" onclick="selectItem(this,'editor','external-tools')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> External Tools
+      </div>
+      <div class="cat-item cat-child" data-key="editor-key-bindings" onclick="selectItem(this,'editor','key-bindings')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Key Bindings
+      </div>
+    </div>
+
+    <!-- Rendering (expanded) -->
+    <div class="cat-item" data-cat="rendering" onclick="toggleCat(this)">
+      <span class="arrow">&#9660;</span> Rendering
+    </div>
+    <div class="cat-children open" id="children-rendering">
+      <div class="cat-item cat-child" data-key="rendering-general" onclick="selectItem(this,'rendering','general')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> General
+      </div>
+      <div class="cat-item cat-child" data-key="rendering-lighting" onclick="selectItem(this,'rendering','lighting')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Lighting
+      </div>
+      <div class="cat-item cat-child" data-key="rendering-quality" onclick="selectItem(this,'rendering','quality')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Quality
+      </div>
+      <div class="cat-item cat-child" data-key="rendering-post-processing" onclick="selectItem(this,'rendering','post-processing')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Post Processing
+      </div>
+      <div class="cat-item cat-child" data-key="rendering-shadow" onclick="selectItem(this,'rendering','shadow')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Shadow
+      </div>
+      <div class="cat-item cat-child" data-key="rendering-texture" onclick="selectItem(this,'rendering','texture')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> Texture
+      </div>
+    </div>
+
+    <!-- Physics (collapsed) -->
+    <div class="cat-item" data-cat="physics" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Physics
+    </div>
+    <div class="cat-children" id="children-physics">
+      <div class="cat-item cat-child" data-key="physics-general" onclick="selectItem(this,'physics','general')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> General
+      </div>
+    </div>
+
+    <!-- Audio (collapsed) -->
+    <div class="cat-item" data-cat="audio" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Audio
+    </div>
+    <div class="cat-children" id="children-audio">
+      <div class="cat-item cat-child" data-key="audio-general" onclick="selectItem(this,'audio','general')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> General
+      </div>
+    </div>
+
+    <!-- Scripting (collapsed) -->
+    <div class="cat-item" data-cat="scripting" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Scripting
+    </div>
+    <div class="cat-children" id="children-scripting">
+      <div class="cat-item cat-child" data-key="scripting-general" onclick="selectItem(this,'scripting','general')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> General
+      </div>
+    </div>
+
+    <!-- Input (collapsed) -->
+    <div class="cat-item" data-cat="input" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Input
+    </div>
+    <div class="cat-children" id="children-input"></div>
+
+    <!-- Network (collapsed) -->
+    <div class="cat-item" data-cat="network" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Network
+    </div>
+    <div class="cat-children" id="children-network"></div>
+
+    <!-- Player (collapsed) -->
+    <div class="cat-item" data-cat="player" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Player
+    </div>
+    <div class="cat-children" id="children-player">
+      <div class="cat-item cat-child" data-key="player-general" onclick="selectItem(this,'player','general')">
+        <span class="arrow" style="visibility:hidden">&#9654;</span> General
+      </div>
+    </div>
+
+    <!-- Publishing (collapsed) -->
+    <div class="cat-item" data-cat="publishing" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Publishing
+    </div>
+    <div class="cat-children" id="children-publishing"></div>
+
+    <!-- Tags and Layers (collapsed) -->
+    <div class="cat-item" data-cat="tags" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Tags and Layers
+    </div>
+    <div class="cat-children" id="children-tags"></div>
+
+    <!-- Time Manager (collapsed) -->
+    <div class="cat-item" data-cat="time" onclick="toggleCat(this)">
+      <span class="arrow">&#9654;</span> Time Manager
+    </div>
+    <div class="cat-children" id="children-time"></div>
+  </div>
+
+  <!-- Right Panel: Settings Content -->
+  <div class="settings-panel" id="settingsPanel">
+
+    <!-- ========== Editor - General ========== -->
+    <div class="settings-group active" id="group-editor-general">
+      <div class="section-header">General Settings</div>
+      <div class="setting-row" data-search="company name"><span class="setting-label">Company Name</span><div class="setting-value"><input class="s-input" type="text" value="Shanyu Games" data-default="Shanyu Games" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="product name"><span class="setting-label">Product Name</span><div class="setting-value"><input class="s-input" type="text" value="My Game Project" data-default="My Game Project" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="default scene path"><span class="setting-label">Default Scene Path</span><div class="setting-value"><input class="s-input" type="text" value="Assets/Scenes/" data-default="Assets/Scenes/" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="version number"><span class="setting-label">Version Number</span><div class="setting-value"><input class="s-input" type="text" value="0.1.0" data-default="0.1.0" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="use search"><span class="setting-label">Use Search</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="auto refresh"><span class="setting-label">Auto Refresh</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="ask before saving"><span class="setting-label">Ask Before Saving</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="enable asset pipeline v2"><span class="setting-label">Enable Asset Pipeline V2</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="max undo history"><span class="setting-label">Max Undo History</span><div class="setting-value"><input class="s-input-num" type="number" value="50" data-default="50" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="script templates path"><span class="setting-label">Script Templates Path</span><div class="setting-value"><input class="s-input" type="text" value="Assets/ScriptTemplates/" data-default="Assets/ScriptTemplates/" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="asset serialization mode"><span class="setting-label">Asset Serialization Mode</span><div class="setting-value"><select class="s-select" data-default="Force Text" onchange="markModified()"><option selected>Force Text</option><option>Force Binary</option><option>Mixed</option></select></div></div>
+      <div class="setting-row" data-search="version control mode"><span class="setting-label">Version Control Mode</span><div class="setting-value"><select class="s-select" data-default="Visible Meta Files" onchange="markModified()"><option selected>Visible Meta Files</option><option>Hidden Meta Files</option><option>Perforce</option></select></div></div>
+
+      <div class="section-header">External Tools</div>
+      <div class="setting-row" data-search="external script editor"><span class="setting-label">External Script Editor</span><div class="setting-value"><select class="s-select" data-default="Visual Studio Code" onchange="markModified()"><option selected>Visual Studio Code</option><option>Visual Studio 2022</option><option>Rider</option><option>Notepad++</option><option>None</option></select></div></div>
+      <div class="setting-row" data-search="external diff tool"><span class="setting-label">External Diff Tool</span><div class="setting-value"><select class="s-select" data-default="Beyond Compare" onchange="markModified()"><option selected>Beyond Compare</option><option>WinMerge</option><option>VS Code</option></select></div></div>
+      <div class="setting-row" data-search="image editor"><span class="setting-label">Image Editor</span><div class="setting-value"><select class="s-select" data-default="Photoshop" onchange="markModified()"><option selected>Photoshop</option><option>GIMP</option><option>Paint.NET</option></select></div></div>
+      <div class="setting-row" data-search="revision control"><span class="setting-label">Revision Control</span><div class="setting-value"><select class="s-select" data-default="Git" onchange="markModified()"><option selected>Git</option><option>SVN</option><option>Perforce</option><option>Plastic SCM</option></select></div></div>
+    </div>
+
+    <!-- ========== Editor - Colors ========== -->
+    <div class="settings-group" id="group-editor-colors">
+      <div class="section-header">Color Settings</div>
+      <div class="setting-row" data-search="playmode tint"><span class="setting-label">Playmode Tint</span><div class="setting-value"><div class="color-swatch" style="background:#2a1f1f"></div><input class="s-input color-hex" type="text" value="#2a1f1f" data-default="#2a1f1f" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="scene view background"><span class="setting-label">Scene View BG</span><div class="setting-value"><div class="color-swatch" style="background:#191919"></div><input class="s-input color-hex" type="text" value="#191919" data-default="#191919" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="grid color"><span class="setting-label">Grid Color</span><div class="setting-value"><div class="color-swatch" style="background:#444444"></div><input class="s-input color-hex" type="text" value="#444444" data-default="#444444" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="selection highlight"><span class="setting-label">Selection Highlight</span><div class="setting-value"><div class="color-swatch" style="background:#3d9eff"></div><input class="s-input color-hex" type="text" value="#3d9eff" data-default="#3d9eff" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="wireframe color"><span class="setting-label">Wireframe Color</span><div class="setting-value"><div class="color-swatch" style="background:#666666"></div><input class="s-input color-hex" type="text" value="#666666" data-default="#666666" onchange="markModified()"></div></div>
+    </div>
+
+    <!-- ========== Editor - External Tools (separate view) ========== -->
+    <div class="settings-group" id="group-editor-external-tools">
+      <div class="section-header">External Tools Preferences</div>
+      <div class="setting-row" data-search="script editor path"><span class="setting-label">Script Editor Path</span><div class="setting-value"><input class="s-input" type="text" value="C:\Program Files\VSCode\Code.exe" data-default="C:\Program Files\VSCode\Code.exe" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="wait for external editor"><span class="setting-label">Wait for Editor</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="open file on double click"><span class="setting-label">Open on DblClick</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+    </div>
+
+    <!-- ========== Editor - Key Bindings ========== -->
+    <div class="settings-group" id="group-editor-key-bindings">
+      <div class="section-header">Key Bindings</div>
+      <div class="setting-row" data-search="key binding scheme"><span class="setting-label">Binding Scheme</span><div class="setting-value"><select class="s-select" data-default="Default" onchange="markModified()"><option selected>Default</option><option>VS Code</option><option>JetBrains</option><option>Custom</option></select></div></div>
+      <div class="setting-row" data-search="hotkeys"><span class="setting-label">Custom Hotkeys</span><div class="setting-value"><button class="s-btn" onclick="alert('Key binding editor not implemented')">Edit...</button></div></div>
+    </div>
+
+    <!-- ========== Rendering - General ========== -->
+    <div class="settings-group" id="group-rendering-general">
+      <div class="section-header">Rendering General</div>
+      <div class="setting-row" data-search="graphics api"><span class="setting-label">Graphics API</span><div class="setting-value"><select class="s-select" data-default="DirectX 11" onchange="markModified()"><option selected>DirectX 11</option><option>DirectX 12</option><option>Vulkan</option><option>OpenGL Core</option><option>Metal</option></select></div></div>
+      <div class="setting-row" data-search="color space"><span class="setting-label">Color Space</span><div class="setting-value"><select class="s-select" data-default="Linear" onchange="markModified()"><option selected>Linear</option><option>Gamma</option></select></div></div>
+      <div class="setting-row" data-search="lightmap encoding"><span class="setting-label">Lightmap Encoding</span><div class="setting-value"><select class="s-select" data-default="Normal" onchange="markModified()"><option selected>Normal</option><option>High Quality</option></select></div></div>
+    </div>
+
+    <!-- ========== Rendering - Lighting ========== -->
+    <div class="settings-group" id="group-rendering-lighting">
+      <div class="section-header">Lighting Settings</div>
+      <div class="setting-row" data-search="realtime global illumination"><span class="setting-label">Realtime GI</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="baked global illumination"><span class="setting-label">Baked GI</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="auto generate"><span class="setting-label">Auto Generate</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="lightmap resolution"><span class="setting-label">Lightmap Resolution</span><div class="setting-value"><input class="s-input-num" type="number" value="1024" data-default="1024" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="max lightmap size"><span class="setting-label">Max Lightmap Size</span><div class="setting-value"><input class="s-input-num" type="number" value="4096" data-default="4096" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="lightmapper"><span class="setting-label">Lightmapper</span><div class="setting-value"><select class="s-select" data-default="GPU Progressive" onchange="markModified()"><option selected>GPU Progressive</option><option>CPU Progressive</option><option>Enlighten</option></select></div></div>
+      <div class="setting-row" data-search="ambient mode"><span class="setting-label">Ambient Mode</span><div class="setting-value"><select class="s-select" data-default="Skybox" onchange="markModified()"><option selected>Skybox</option><option>Trilight</option><option>Color</option></select></div></div>
+      <div class="setting-row" data-search="ambient intensity"><span class="setting-label">Ambient Intensity</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="3" step="0.1" value="1.0" data-default="1.0" oninput="updateSliderVal(this);markModified()"><span class="slider-val">1.0</span></div></div>
+      <div class="setting-row" data-search="ambient light color"><span class="setting-label">Ambient Light Color</span><div class="setting-value"><div class="color-swatch" style="background:#808080" id="ambientColorSwatch"></div><input class="s-input color-hex" type="text" value="#808080" data-default="#808080" onchange="markModified();document.getElementById('ambientColorSwatch').style.background=this.value"></div></div>
+      <div class="setting-row" data-search="default reflection mode"><span class="setting-label">Reflection Mode</span><div class="setting-value"><select class="s-select" data-default="Skybox" onchange="markModified()"><option selected>Skybox</option><option>Custom</option></select></div></div>
+      <div class="setting-row" data-search="shadowmask mode"><span class="setting-label">Shadowmask Mode</span><div class="setting-value"><select class="s-select" data-default="Distance Shadowmask" onchange="markModified()"><option>Disable</option><option selected>Distance Shadowmask</option></select></div></div>
+      <div class="setting-row" data-search="mixed lighting"><span class="setting-label">Mixed Lighting</span><div class="setting-value"><select class="s-select" data-default="Subtractive" onchange="markModified()"><option selected>Subtractive</option><option>Shadowmask</option><option>Shadows Only</option></select></div></div>
+    </div>
+
+    <!-- ========== Rendering - Quality ========== -->
+    <div class="settings-group" id="group-rendering-quality">
+      <div class="section-header">Quality Settings</div>
+      <div class="setting-row" data-search="current quality level"><span class="setting-label">Quality Level</span><div class="setting-value"><select class="s-select" data-default="Ultra" onchange="markModified()"><option>Very Low</option><option>Low</option><option>Medium</option><option>High</option><option>Very High</option><option selected>Ultra</option></select></div></div>
+      <div class="setting-row" data-search="pixel light count"><span class="setting-label">Pixel Light Count</span><div class="setting-value"><input class="s-input-num" type="number" value="4" data-default="4" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="hdr"><span class="setting-label">HDR</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="anti aliasing"><span class="setting-label">Anti Aliasing</span><div class="setting-value"><select class="s-select" data-default="4x" onchange="markModified()"><option>Disabled</option><option>2x</option><option selected>4x</option><option>8x</option></select></div></div>
+      <div class="setting-row" data-search="soft particles"><span class="setting-label">Soft Particles</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="realtime reflection probes"><span class="setting-label">Reflection Probes</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="vsync count"><span class="setting-label">VSync Count</span><div class="setting-value"><select class="s-select" data-default="Don't Sync" onchange="markModified()"><option selected>Don't Sync</option><option>Every V Blank</option><option>Every Second V Blank</option></select></div></div>
+      <div class="setting-row" data-search="shadow resolution"><span class="setting-label">Shadow Resolution</span><div class="setting-value"><select class="s-select" data-default="Medium" onchange="markModified()"><option>Low</option><option selected>Medium</option><option>High</option><option>Very High</option></select></div></div>
+      <div class="setting-row" data-search="shadow distance"><span class="setting-label">Shadow Distance</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="500" step="1" value="150" data-default="150" oninput="updateSliderVal(this);markModified()"><span class="slider-val">150</span></div></div>
+      <div class="setting-row" data-search="shadow cascades"><span class="setting-label">Shadow Cascades</span><div class="setting-value"><select class="s-select" data-default="4 Cascades" onchange="markModified()"><option>No Cascades</option><option>2 Cascades</option><option selected>4 Cascades</option></select></div></div>
+      <div class="setting-row" data-search="texture quality"><span class="setting-label">Texture Quality</span><div class="setting-value"><select class="s-select" data-default="Full Res" onchange="markModified()"><option selected>Full Res</option><option>Half Res</option><option>Quarter Res</option><option>Eighth Res</option></select></div></div>
+      <div class="setting-row" data-search="anisotropic textures"><span class="setting-label">Anisotropic Textures</span><div class="setting-value"><select class="s-select" data-default="Forced On" onchange="markModified()"><option>Disabled</option><option>Per Texture</option><option selected>Forced On</option></select></div></div>
+      <div class="setting-row" data-search="lod bias"><span class="setting-label">LOD Bias</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="3" step="0.1" value="1.0" data-default="1.0" oninput="updateSliderVal(this);markModified()"><span class="slider-val">1.0</span></div></div>
+      <div class="setting-row" data-search="particle raycast budget"><span class="setting-label">Particle Raycast</span><div class="setting-value"><input class="s-input-num" type="number" value="4096" data-default="4096" onchange="markModified()"></div></div>
+    </div>
+
+    <!-- ========== Rendering - Post Processing ========== -->
+    <div class="settings-group" id="group-rendering-post-processing">
+      <div class="section-header">Post Processing</div>
+      <div class="setting-row" data-search="bloom"><span class="setting-label">Bloom</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="bloom intensity"><span class="setting-label">Bloom Intensity</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="5" step="0.1" value="1.5" data-default="1.5" oninput="updateSliderVal(this);markModified()"><span class="slider-val">1.5</span></div></div>
+      <div class="setting-row" data-search="color grading"><span class="setting-label">Color Grading</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="depth of field"><span class="setting-label">Depth of Field</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="motion blur"><span class="setting-label">Motion Blur</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="screen space reflections"><span class="setting-label">SSR</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="ambient occlusion"><span class="setting-label">Ambient Occlusion</span><div class="setting-value"><select class="s-select" data-default="SSAO" onchange="markModified()"><option>Disabled</option><option selected>SSAO</option><option>GTAO</option></select></div></div>
+    </div>
+
+    <!-- ========== Rendering - Shadow ========== -->
+    <div class="settings-group" id="group-rendering-shadow">
+      <div class="section-header">Shadow Settings</div>
+      <div class="setting-row" data-search="shadow type"><span class="setting-label">Shadow Type</span><div class="setting-value"><select class="s-select" data-default="Soft Shadows" onchange="markModified()"><option>Hard Shadows</option><option selected>Soft Shadows</option><option>Stochastic</option></select></div></div>
+      <div class="setting-row" data-search="shadow normal bias"><span class="setting-label">Normal Bias</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="3" step="0.1" value="0.4" data-default="0.4" oninput="updateSliderVal(this);markModified()"><span class="slider-val">0.4</span></div></div>
+      <div class="setting-row" data-search="shadow bias"><span class="setting-label">Shadow Bias</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="2" step="0.01" value="0.05" data-default="0.05" oninput="updateSliderVal(this);markModified()"><span class="slider-val">0.05</span></div></div>
+    </div>
+
+    <!-- ========== Rendering - Texture ========== -->
+    <div class="settings-group" id="group-rendering-texture">
+      <div class="section-header">Texture Settings</div>
+      <div class="setting-row" data-search="max texture size"><span class="setting-label">Max Texture Size</span><div class="setting-value"><select class="s-select" data-default="4096" onchange="markModified()"><option>1024</option><option>2048</option><option selected>4096</option><option>8192</option></select></div></div>
+      <div class="setting-row" data-search="texture compression"><span class="setting-label">Compression</span><div class="setting-value"><select class="s-select" data-default="Normal Quality" onchange="markModified()"><option>None</option><option>Normal Quality</option><option>High Quality</option></select></div></div>
+      <div class="setting-row" data-search="mipmap streaming"><span class="setting-label">Mipmap Streaming</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+    </div>
+
+    <!-- ========== Physics - General ========== -->
+    <div class="settings-group" id="group-physics-general">
+      <div class="section-header">Physics Settings</div>
+      <div class="setting-row" data-search="gravity"><span class="setting-label">Gravity</span>
+        <div class="setting-value">
+          <div class="axis-group">
+            <span class="axis-label axis-x">X</span><input class="s-input-num" type="number" step="0.01" value="0.0" data-default="0.0" onchange="markModified()">
+            <span class="axis-label axis-y">Y</span><input class="s-input-num" type="number" step="0.01" value="-9.81" data-default="-9.81" onchange="markModified()">
+            <span class="axis-label axis-z">Z</span><input class="s-input-num" type="number" step="0.01" value="0.0" data-default="0.0" onchange="markModified()">
+          </div>
+        </div>
+      </div>
+      <div class="setting-row" data-search="default solver iterations"><span class="setting-label">Solver Iterations</span><div class="setting-value"><input class="s-input-num" type="number" value="6" data-default="6" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="default solver velocity iterations"><span class="setting-label">Velocity Iterations</span><div class="setting-value"><input class="s-input-num" type="number" value="1" data-default="1" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="fixed timestep"><span class="setting-label">Fixed Timestep</span><div class="setting-value"><input class="s-input-num" type="number" step="0.001" value="0.02" data-default="0.02" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="maximum allowed timestep"><span class="setting-label">Max Allowed Timestep</span><div class="setting-value"><input class="s-input-num" type="number" step="0.0001" value="0.3333333" data-default="0.3333333" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="raycast hit layermask"><span class="setting-label">Raycast Layermask</span><div class="setting-value"><input class="s-input" type="text" value="Everything" data-default="Everything" onchange="markModified()" style="width:100px"></div></div>
+      <div class="setting-row" data-search="layer collision matrix"><span class="setting-label">Layer Collision Matrix</span><div class="setting-value"><button class="s-btn" onclick="alert('Layer Collision Matrix editor not implemented')">Edit...</button></div></div>
+      <div class="setting-row" data-search="auto sync transforms"><span class="setting-label">Auto Sync Transforms</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="contact offset"><span class="setting-label">Contact Offset</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="1" step="0.001" value="0.01" data-default="0.01" oninput="updateSliderVal(this);markModified()"><span class="slider-val">0.01</span></div></div>
+    </div>
+
+    <!-- ========== Audio - General ========== -->
+    <div class="settings-group" id="group-audio-general">
+      <div class="section-header">Audio Settings</div>
+      <div class="setting-row" data-search="master volume">
+        <span class="setting-label">Master Volume</span>
+        <div class="setting-value">
+          <input type="range" class="s-slider" min="0" max="1" step="0.01" value="1.0" data-default="1.0" oninput="updateVolumeSlider(this);markModified()">
+          <span class="slider-val" data-pct="true">100%</span>
+        </div>
+      </div>
+      <div class="setting-row" data-search="music volume">
+        <span class="setting-label">Music Volume</span>
+        <div class="setting-value">
+          <input type="range" class="s-slider" min="0" max="1" step="0.01" value="0.7" data-default="0.7" oninput="updateVolumeSlider(this);markModified()">
+          <span class="slider-val" data-pct="true">70%</span>
+        </div>
+      </div>
+      <div class="setting-row" data-search="sfx volume">
+        <span class="setting-label">SFX Volume</span>
+        <div class="setting-value">
+          <input type="range" class="s-slider" min="0" max="1" step="0.01" value="0.8" data-default="0.8" oninput="updateVolumeSlider(this);markModified()">
+          <span class="slider-val" data-pct="true">80%</span>
+        </div>
+      </div>
+      <div class="setting-row" data-search="spatial blend"><span class="setting-label">Spatial Blend</span><div class="setting-value"><select class="s-select" data-default="3D" onchange="markModified()"><option>2D</option><option selected>3D</option></select></div></div>
+      <div class="setting-row" data-search="doppler factor"><span class="setting-label">Doppler Factor</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="5" step="0.1" value="1.0" data-default="1.0" oninput="updateSliderVal(this);markModified()"><span class="slider-val">1.0</span></div></div>
+      <div class="setting-row" data-search="default rolloff"><span class="setting-label">Default Rolloff</span><div class="setting-value"><select class="s-select" data-default="Logarithmic" onchange="markModified()"><option selected>Logarithmic</option><option>Linear</option><option>Custom</option></select></div></div>
+      <div class="setting-row" data-search="dsp buffer size"><span class="setting-label">DSP Buffer Size</span><div class="setting-value"><select class="s-select" data-default="512" onchange="markModified()"><option>128</option><option>256</option><option selected>512</option><option>1024</option><option>2048</option></select></div></div>
+    </div>
+
+    <!-- ========== Scripting - General ========== -->
+    <div class="settings-group" id="group-scripting-general">
+      <div class="section-header">Scripting Settings</div>
+      <div class="setting-row" data-search="runtime version"><span class="setting-label">Runtime Version</span><div class="setting-value"><select class="s-select" data-default=".NET Framework" onchange="markModified()"><option selected>.NET Framework</option><option>.NET 4.x</option><option>.NET Core</option></select></div></div>
+      <div class="setting-row" data-search="api compatibility level"><span class="setting-label">API Compat Level</span><div class="setting-value"><select class="s-select" data-default=".NET Standard 2.1" onchange="markModified()"><option>.NET 2.0</option><option>.NET 2.0 Subset</option><option>.NET 4.x</option><option selected>.NET Standard 2.1</option></select></div></div>
+      <div class="setting-row" data-search="hot reload"><span class="setting-label">Hot Reload</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="enable script debugging"><span class="setting-label">Script Debugging</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+    </div>
+    </div>
+
+    <!-- ========== Input - (placeholder) ========== -->
+    <div class="settings-group" id="group-input-general">
+      <div class="section-header">Input Settings</div>
+      <div class="setting-row" data-search="input manager"><span class="setting-label">Input Manager</span><div class="setting-value"><button class="s-btn" onclick="alert('Input Manager not implemented')">Open...</button></div></div>
+    </div>
+
+    <!-- ========== Network - (placeholder) ========== -->
+    <div class="settings-group" id="group-network-general">
+      <div class="section-header">Network Settings</div>
+      <div class="setting-row" data-search="network transport"><span class="setting-label">Transport</span><div class="setting-value"><select class="s-select" data-default="Unity Transport" onchange="markModified()"><option selected>Unity Transport</option><option>LiquidNet</option><option>Custom</option></select></div></div>
+      <div class="setting-row" data-search="max connections"><span class="setting-label">Max Connections</span><div class="setting-value"><input class="s-input-num" type="number" value="100" data-default="100" onchange="markModified()"></div></div>
+    </div>
+
+    <!-- ========== Player - General ========== -->
+    <div class="settings-group" id="group-player-general">
+      <div class="section-header">Company</div>
+      <div class="setting-row" data-search="company name"><span class="setting-label">Company Name</span><div class="setting-value"><input class="s-input" type="text" value="Shanyu Games" data-default="Shanyu Games" onchange="markModified()"></div></div>
+      <div class="section-header">Product</div>
+      <div class="setting-row" data-search="product name"><span class="setting-label">Product Name</span><div class="setting-value"><input class="s-input" type="text" value="My Game Project" data-default="My Game Project" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="version"><span class="setting-label">Version</span><div class="setting-value"><input class="s-input" type="text" value="0.1.0" data-default="0.1.0" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="build number"><span class="setting-label">Build Number</span><div class="setting-value"><input class="s-input" type="text" value="" data-default="" onchange="markModified()"></div></div>
+      <div class="section-header">Icon</div>
+      <div class="setting-row" data-search="default icon">
+        <span class="setting-label">Default Icon</span>
+        <div class="setting-value">
+          <div class="icon-placeholder">
+            <svg viewBox="0 0 24 24"><path d="M19 7v2.99s-1.99.01-2 0V7h-3s.01-1.99 0-2h3V2h2v3h3v2h-3zm-3 4V8h-3V5H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8h-3zM5 19l3-4 2 3 3-4 4 5H5z"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="section-header">Splash Image</div>
+      <div class="setting-row" data-search="show splash screen"><span class="setting-label">Show Splash Screen</span><div class="setting-value"><input type="checkbox" class="s-toggle" checked data-default="true" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="show engine logo"><span class="setting-label">Show Engine Logo</span><div class="setting-value"><input type="checkbox" class="s-toggle" data-default="false" onchange="markModified()"></div></div>
+    </div>
+
+    <!-- ========== Publishing - (placeholder) ========== -->
+    <div class="settings-group" id="group-publishing-general">
+      <div class="section-header">Publishing Settings</div>
+      <div class="setting-row" data-search="target platform"><span class="setting-label">Target Platform</span><div class="setting-value"><select class="s-select" data-default="Windows" onchange="markModified()"><option selected>Windows</option><option>macOS</option><option>Linux</option><option>Android</option><option>iOS</option><option>WebGL</option></select></div></div>
+      <div class="setting-row" data-search="build configuration"><span class="setting-label">Build Config</span><div class="setting-value"><select class="s-select" data-default="Release" onchange="markModified()"><option>Debug</option><option selected>Release</option></select></div></div>
+    </div>
+
+    <!-- ========== Tags and Layers - (placeholder) ========== -->
+    <div class="settings-group" id="group-tags-general">
+      <div class="section-header">Tags and Layers</div>
+      <div class="setting-row" data-search="tags"><span class="setting-label">Tags</span><div class="setting-value"><button class="s-btn" onclick="alert('Tags editor not implemented')">Edit...</button></div></div>
+      <div class="setting-row" data-search="layers"><span class="setting-label">Layers</span><div class="setting-value"><button class="s-btn" onclick="alert('Layers editor not implemented')">Edit...</button></div></div>
+      <div class="setting-row" data-search="sorting layers"><span class="setting-label">Sorting Layers</span><div class="setting-value"><button class="s-btn" onclick="alert('Sorting Layers editor not implemented')">Edit...</button></div></div>
+    </div>
+
+    <!-- ========== Time Manager - (placeholder) ========== -->
+    <div class="settings-group" id="group-time-general">
+      <div class="section-header">Time Manager</div>
+      <div class="setting-row" data-search="fixed timestep"><span class="setting-label">Fixed Timestep</span><div class="setting-value"><input class="s-input-num" type="number" step="0.001" value="0.02" data-default="0.02" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="maximum allowed timestep"><span class="setting-label">Max Allowed Timestep</span><div class="setting-value"><input class="s-input-num" type="number" step="0.0001" value="0.3333333" data-default="0.3333333" onchange="markModified()"></div></div>
+      <div class="setting-row" data-search="time scale"><span class="setting-label">Time Scale</span><div class="setting-value"><input type="range" class="s-slider" min="0" max="3" step="0.1" value="1.0" data-default="1.0" oninput="updateSliderVal(this);markModified()"><span class="slider-val">1.0</span></div></div>
+    </div>
+
+  </div><!-- /settings-panel -->
+</div><!-- /main-area -->
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <div class="left">Project Settings</div>
+  <div class="right">
+    <div class="modified-dot" id="modifiedDot"></div>
+    <span class="modified-text" id="modifiedText">Unsaved changes</span>
+  </div>
+</div>
+
+<script>
+// === Category Tree Navigation ===
+function toggleCat(el) {
+  var cat = el.getAttribute('data-cat');
+  var children = document.getElementById('children-' + cat);
+  if (!children) return;
+  var arrow = el.querySelector('.arrow');
+  if (children.classList.contains('open')) {
+    children.classList.remove('open');
+    arrow.innerHTML = '&#9654;';
+  } else {
+    children.classList.add('open');
+    arrow.innerHTML = '&#9660;';
+    // Auto-select first child if none selected under this category
+    var firstChild = children.querySelector('.cat-child');
+    if (firstChild && !children.querySelector('.cat-child.selected')) {
+      selectItem(firstChild, cat, firstChild.textContent.trim().toLowerCase().replace(/\s+/g,'-'));
+    }
+  }
+}
+
+function selectItem(el, cat, sub) {
+  // Deselect all
+  var allItems = document.querySelectorAll('.cat-item');
+  allItems.forEach(function(i) { i.classList.remove('selected'); });
+  // Select this one
+  el.classList.add('selected');
+  // Build group id
+  var key = cat + '-' + sub;
+  var groupId = 'group-' + key;
+  showGroup(groupId);
+}
+
+function showGroup(groupId) {
+  var groups = document.querySelectorAll('.settings-group');
+  groups.forEach(function(g) { g.classList.remove('active'); });
+  var target = document.getElementById(groupId);
+  if (target) {
+    target.classList.add('active');
+    // Clear any search filtering when switching
+    var rows = target.querySelectorAll('.setting-row');
+    rows.forEach(function(r) { r.classList.remove('hidden'); });
+  }
+}
+
+// === Slider value display ===
+function updateSliderVal(slider) {
+  var valSpan = slider.parentElement.querySelector('.slider-val');
+  if (valSpan) {
+    if (valSpan.getAttribute('data-pct') === 'true') {
+      var pct = Math.round(parseFloat(slider.value) * 100);
+      valSpan.textContent = pct + '%';
+    } else {
+      var step = parseFloat(slider.step) || 1;
+      if (step < 0.1) {
+        valSpan.textContent = parseFloat(slider.value).toFixed(2);
+      } else if (step < 1) {
+        valSpan.textContent = parseFloat(slider.value).toFixed(1);
+      } else {
+        valSpan.textContent = Math.round(parseFloat(slider.value));
+      }
+    }
+  }
+}
+
+function updateVolumeSlider(slider) {
+  var valSpan = slider.parentElement.querySelector('.slider-val');
+  if (valSpan) {
+    var pct = Math.round(parseFloat(slider.value) * 100);
+    valSpan.textContent = pct + '%';
+  }
+}
+
+// === Modified status ===
+function markModified() {
+  document.getElementById('modifiedDot').classList.add('show');
+  document.getElementById('modifiedText').classList.add('show');
+}
+
+function clearModified() {
+  document.getElementById('modifiedDot').classList.remove('show');
+  document.getElementById('modifiedText').classList.remove('show');
+}
+
+// === Reset All ===
+function resetAll() {
+  // Reset all inputs to their data-default values
+  var inputs = document.querySelectorAll('.s-input, .s-input-num, .color-hex');
+  inputs.forEach(function(inp) {
+    var def = inp.getAttribute('data-default');
+    if (def !== null) inp.value = def;
+  });
+  // Reset all selects
+  var selects = document.querySelectorAll('.s-select');
+  selects.forEach(function(sel) {
+    var def = sel.getAttribute('data-default');
+    if (def !== null) {
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === def || sel.options[i].textContent === def) {
+          sel.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  });
+  // Reset all checkboxes
+  var toggles = document.querySelectorAll('.s-toggle');
+  toggles.forEach(function(tog) {
+    var def = tog.getAttribute('data-default');
+    if (def === 'true') { tog.checked = true; } else { tog.checked = false; }
+  });
+  // Reset all sliders
+  var sliders = document.querySelectorAll('.s-slider');
+  sliders.forEach(function(sl) {
+    var def = sl.getAttribute('data-default');
+    if (def !== null) {
+      sl.value = def;
+      // Update adjacent display
+      var valSpan = sl.parentElement.querySelector('.slider-val');
+      if (valSpan) {
+        if (valSpan.getAttribute('data-pct') === 'true') {
+          valSpan.textContent = Math.round(parseFloat(def) * 100) + '%';
+        } else {
+          var step = parseFloat(sl.step) || 1;
+          if (step < 0.1) { valSpan.textContent = parseFloat(def).toFixed(2); }
+          else if (step < 1) { valSpan.textContent = parseFloat(def).toFixed(1); }
+          else { valSpan.textContent = Math.round(parseFloat(def)); }
+        }
+      }
+    }
+  });
+  clearModified();
+}
+
+// === Export Settings ===
+function exportSettings() {
+  alert('Settings exported to project settings file.');
+}
+
+// === Search Filtering ===
+(function() {
+  var searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', function() {
+    var query = this.value.trim().toLowerCase();
+    var allGroups = document.querySelectorAll('.settings-group');
+    
+    if (!query) {
+      // Show all rows in active group, hide others
+      allGroups.forEach(function(g) { g.classList.remove('active'); });
+      // Re-activate the currently selected nav item
+      var sel = document.querySelector('.cat-child.selected');
+      if (sel) {
+        var key = sel.getAttribute('data-key');
+        var grp = document.getElementById('group-' + key);
+        if (grp) grp.classList.add('active');
+      }
+      // Show all rows
+      var allRows = document.querySelectorAll('.setting-row');
+      allRows.forEach(function(r) { r.classList.remove('hidden'); });
+      return;
+    }
+
+    // Search across ALL groups
+    var firstMatch = null;
+    allGroups.forEach(function(group) {
+      var rows = group.querySelectorAll('.setting-row');
+      var groupHasMatch = false;
+      rows.forEach(function(row) {
+        var searchText = (row.getAttribute('data-search') || '') + ' ' + (row.textContent || '').toLowerCase();
+        if (searchText.indexOf(query) !== -1) {
+          row.classList.remove('hidden');
+          groupHasMatch = true;
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+      if (groupHasMatch && !firstMatch) {
+        firstMatch = group;
+      }
+    });
+
+    // Show the first matching group and hide all others
+    allGroups.forEach(function(g) { g.classList.remove('active'); });
+    if (firstMatch) {
+      firstMatch.classList.add('active');
+      // Also auto-select the corresponding nav item
+      var groupId = firstMatch.id; // e.g. "group-editor-general"
+      var key = groupId.replace('group-', '');
+      var navItem = document.querySelector('[data-key="' + key + '"]');
+      if (navItem) {
+        var allItems = document.querySelectorAll('.cat-item');
+        allItems.forEach(function(i) { i.classList.remove('selected'); });
+        navItem.classList.add('selected');
+        // Ensure parent category is expanded
+        var parentChildren = navItem.parentElement;
+        if (parentChildren && !parentChildren.classList.contains('open')) {
+          parentChildren.classList.add('open');
+          var parentCat = parentChildren.previousElementSibling;
+          if (parentCat) {
+            var arrow = parentCat.querySelector('.arrow');
+            if (arrow) arrow.innerHTML = '&#9660;';
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+
+    <style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1600px; height:900px; overflow:hidden; background:#191919; color:#ccc; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:12px; }
+
+  /* Menu Bar */
+  .menu-bar { height:20px; background:#2a2a2a; border-bottom:1px solid #111; display:flex; align-items:center; padding:0 8px; font-size:11px; user-select:none; }
+  .menu-bar span { padding:0 6px; cursor:pointer; color:#999; }
+  .menu-bar span:hover { color:#ccc; background:#363636; }
+  .menu-bar .brand { color:#3d9eff; font-weight:600; }
+
+  /* Toolbar */
+  .toolbar { height:30px; background:#323232; border-bottom:1px solid #111; display:flex; align-items:center; padding:0 8px; gap:8px; }
+  .toolbar .title { font-weight:700; color:#ccc; font-size:12px; white-space:nowrap; }
+  .search-wrap { flex:1; display:flex; justify-content:center; }
+  .search-box { width:300px; height:20px; background:#1c1c1c; border:1px solid #333; display:flex; align-items:center; padding:0 4px; }
+  .search-box svg { width:12px; height:12px; fill:#666; flex-shrink:0; }
+  .search-box input { flex:1; background:transparent; border:none; outline:none; color:#ccc; font-size:11px; padding:0 4px; }
+  .search-box input::placeholder { color:#555; }
+  .toolbar-btn { background:#333; border:1px solid #444; color:#ccc; font-size:10px; padding:3px 10px; cursor:pointer; white-space:nowrap; }
+  .toolbar-btn:hover { background:#404040; }
+
+  /* Main Area */
+  .main-area { display:flex; height:calc(900px - 20px - 30px - 22px); overflow:hidden; }
+
+  /* Left Panel - Category Nav */
+  .cat-nav { width:200px; min-width:200px; background:#2b2b2b; border-right:1px solid #111; overflow-y:auto; overflow-x:hidden; }
+  .cat-nav::-webkit-scrollbar { width:6px; }
+  .cat-nav::-webkit-scrollbar-track { background:#2b2b2b; }
+  .cat-nav::-webkit-scrollbar-thumb { background:#444; }
+  .cat-item { height:26px; line-height:26px; padding-left:8px; cursor:pointer; display:flex; align-items:center; font-size:11px; color:#ccc; user-select:none; white-space:nowrap; }
+  .cat-item:hover { background:#363636; }
+  .cat-item.selected { background:#2c5f8a; color:#fff; }
+  .cat-item .arrow { width:16px; text-align:center; font-size:9px; flex-shrink:0; color:#888; }
+  .cat-item.selected .arrow { color:#fff; }
+  .cat-child { padding-left:24px; }
+  .cat-children { display:none; }
+  .cat-children.open { display:block; }
+
+  /* Right Panel - Settings Content */
+  .settings-panel { flex:1; background:#2b2b2b; overflow-y:auto; overflow-x:hidden; padding:0; }
+  .settings-panel::-webkit-scrollbar { width:8px; }
+  .settings-panel::-webkit-scrollbar-track { background:#2b2b2b; }
+  .settings-panel::-webkit-scrollbar-thumb { background:#444; }
+
+  .settings-group { display:none; }
+  .settings-group.active { display:block; }
+
+  .section-header { height:20px; background:#333; line-height:20px; padding:0 8px; font-size:10px; font-weight:700; color:#bbb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #111; }
+
+  .setting-row { height:26px; line-height:26px; display:flex; align-items:center; padding:0 8px; border-bottom:1px solid #1a1a1a; }
+  .setting-row.hidden { display:none; }
+  .setting-label { width:120px; min-width:120px; font-size:11px; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .setting-value { flex:1; display:flex; align-items:center; height:26px; }
+
+  /* Inputs */
+  .s-input { background:#1c1c1c; border:1px solid #333; color:#ccc; font-size:11px; padding:2px 6px; outline:none; height:20px; flex:1; min-width:0; font-family:inherit; }
+  .s-input:focus { border-color:#3d9eff; }
+  .s-input-num { width:60px; background:#1c1c1c; border:1px solid #333; color:#ccc; font-size:11px; padding:2px 4px; outline:none; height:20px; text-align:right; font-family:inherit; }
+  .s-input-num:focus { border-color:#3d9eff; }
+  .s-select { background:#1c1c1c; border:1px solid #333; color:#ccc; font-size:11px; padding:2px 4px; outline:none; height:20px; cursor:pointer; font-family:inherit; flex:1; min-width:0; }
+  .s-select:focus { border-color:#3d9eff; }
+  .s-select option { background:#2b2b2b; color:#ccc; }
+
+  /* Toggle checkbox */
+  .s-toggle { appearance:none; -webkit-appearance:none; width:32px; height:16px; background:#444; border:1px solid #555; cursor:pointer; position:relative; transition:background 0.15s; flex-shrink:0; }
+  .s-toggle::after { content:''; position:absolute; top:1px; left:1px; width:12px; height:12px; background:#999; transition:left 0.15s, background 0.15s; }
+  .s-toggle:checked { background:#2c5f8a; border-color:#3d9eff; }
+  .s-toggle:checked::after { left:17px; background:#fff; }
+
+  /* Slider */
+  .s-slider { -webkit-appearance:none; appearance:none; flex:1; height:4px; background:#444; outline:none; cursor:pointer; }
+  .s-slider::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:#ccc; border:1px solid #888; cursor:pointer; }
+  .s-slider::-webkit-slider-thumb:hover { background:#fff; }
+  .slider-val { width:40px; text-align:right; font-size:11px; color:#ccc; padding-left:6px; flex-shrink:0; font-family:'Consolas','Courier New',monospace; }
+
+  /* Inline axis inputs */
+  .axis-group { display:flex; align-items:center; gap:4px; flex:1; }
+  .axis-label { font-size:10px; font-weight:700; width:12px; text-align:center; flex-shrink:0; }
+  .axis-x { color:#e74c4c; }
+  .axis-y { color:#49b86e; }
+  .axis-z { color:#3d9eff; }
+
+  /* Color swatch */
+  .color-swatch { width:20px; height:20px; border:1px solid #555; cursor:pointer; flex-shrink:0; }
+  .color-hex { width:60px; }
+
+  /* Icon placeholder */
+  .icon-placeholder { width:64px; height:64px; background:#1c1c1c; border:1px solid #444; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .icon-placeholder:hover { border-color:#3d9eff; }
+  .icon-placeholder svg { width:24px; height:24px; fill:#666; }
+
+  /* Small button */
+  .s-btn { background:#333; border:1px solid #444; color:#ccc; font-size:10px; padding:2px 8px; cursor:pointer; height:20px; }
+  .s-btn:hover { background:#404040; }
+
+  /* Status Bar */
+  .status-bar { height:22px; background:#2a2a2a; border-top:1px solid #111; display:flex; align-items:center; justify-content:space-between; padding:0 8px; font-size:10px; }
+  .status-bar .left { color:#3d9eff; }
+  .status-bar .right { display:flex; align-items:center; gap:4px; }
+  .modified-dot { width:8px; height:8px; background:#e8c44a; display:none; }
+  .modified-dot.show { display:block; }
+  .modified-text { color:#e8c44a; display:none; }
+  .modified-text.show { display:inline; }
+</style>
+</body>
+</html>

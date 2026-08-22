@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profiler - Shanyu Engine</title>
+    <style id="theme-vars">
+:root {
+  /* Unity 5 Dark Theme for Shanyu Engine */
+  --color-bg-base: #191919;
+  --color-bg-panel: #2b2b2b;
+  --color-bg-panel-solid: #2b2b2b;
+  --color-bg-elevated: #333333;
+  --color-bg-sunken: #0e0e0e;
+  --color-bg-viewport: #1c1c1c;
+  --color-bg-toolbar: #323232;
+  --color-bg-hover: #363636;
+  --color-bg-active: #404040;
+  --color-bg-selected: #2c5f8a;
+  --color-bg-selected-text: #ffffff;
+  --color-bg-input: #1c1c1c;
+  --color-bg-tab-active: #2b2b2b;
+  --color-bg-tab-inactive: #262626;
+  --color-bg-header: #2a2a2a;
+  --color-bg-pro: #2b2b2b;
+  --color-bg-pro-header: #333333;
+  --color-bg-dropdown: #2b2b2b;
+  --color-bg-playmode: #2a1f1f;
+  --color-text-primary: #cccccc;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-text-accent: #3d9eff;
+  --color-text-bright: #f0f0f0;
+  --color-brand: #3d9eff;
+  --color-brand-hover: #5bb0ff;
+  --color-brand-muted: rgba(61,158,255,0.2);
+  --color-brand-dark: #2870b3;
+  --state-success: #49b86e;
+  --state-warning: #e8c44a;
+  --state-error: #e74c4c;
+  --state-info: #3d9eff;
+  --color-border: #111111;
+  --color-border-light: #444444;
+  --color-border-subtle: #333333;
+  --color-border-focus: #3d9eff;
+  --color-border-pro: #111111;
+  --color-axis-x: #e74c4c;
+  --color-axis-y: #49b86e;
+  --color-axis-z: #3d9eff;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-full: 9999px;
+  --font-display: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --leading-tight: 1.2;
+  --leading-normal: 1.4;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-8: 16px;
+  --space-10: 20px;
+  --space-12: 24px;
+  --space-16: 32px;
+  --surface-panel: 1px solid var(--color-border);
+  --surface-elevated: 1px solid var(--color-border-light);
+  --surface-floating: 0 2px 8px rgba(0,0,0,0.5), 1px solid var(--color-border-light);
+  /* Unity-specific: inspector label width, toolbar height, etc. */
+  --unity-label-width: 110px;
+  --unity-toolbar-height: 30px;
+  --unity-menubar-height: 20px;
+  --unity-tab-height: 22px;
+  --unity-statusbar-height: 22px;
+  --unity-header-height: 22px;
+  --unity-indent: 16px;
+  --unity-icon-size: 16px;
+  --unity-inspector-padding: 6px 8px;
+}
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+.unity-panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+}
+.unity-header {
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: var(--unity-header-height);
+  line-height: var(--unity-header-height);
+}
+.unity-toolbar {
+  background: var(--color-bg-toolbar);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-toolbar-height);
+  padding: 0 var(--space-2);
+}
+.unity-tab-bar {
+  background: var(--color-bg-tab-inactive);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-tab-height);
+}
+.unity-tab {
+  padding: 0 var(--space-3);
+  height: var(--unity-tab-height);
+  line-height: var(--unity-tab-height);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.unity-tab:hover { background: var(--color-bg-hover); }
+.unity-tab.active {
+  background: var(--color-bg-tab-active);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-brand);
+}
+.unity-input {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 2px 4px;
+  outline: none;
+}
+.unity-input:focus { border-color: var(--color-border-focus); }
+.unity-button {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.unity-button:hover { background: var(--color-bg-hover); }
+.engine-viewport-bg { background: var(--color-bg-viewport); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-border: var(--color-border);
+  }
+  @layer base {
+    body { background: var(--color-bg-base); color: var(--color-text-primary); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+<div id="app">
+  <!-- Row 0: Menu Bar -->
+  <div class="menubar">
+    <div class="menubar-left">
+      <span class="brand">Shanyu</span>
+      <span>File</span><span>Edit</span><span>Profiler</span><span>Window</span><span>Help</span>
+    </div>
+    <div class="menubar-right">
+      <span data-dom-id="nav-main-editor">Scene</span>
+      <span data-dom-id="nav-material-editor">Material</span>
+    </div>
+  </div>
+
+  <!-- Row 1: Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <label>Profiler</label>
+      <button class="tb-btn record-btn" id="btnRecord" onclick="toggleRecord()">&#9679; Record</button>
+      <button class="tb-btn" id="btnStop" onclick="stopRecord()">&#9632; Stop</button>
+      <button class="tb-btn" onclick="clearData()">Clear</button>
+    </div>
+    <div class="toolbar-center" id="moduleTabs">
+      <div class="mod-tab active" data-module="CPU" onclick="switchModule('CPU',this)">CPU</div>
+      <div class="mod-tab" data-module="GPU" onclick="switchModule('GPU',this)">GPU</div>
+      <div class="mod-tab" data-module="Memory" onclick="switchModule('Memory',this)">Memory</div>
+      <div class="mod-tab" data-module="Audio" onclick="switchModule('Audio',this)">Audio</div>
+      <div class="mod-tab" data-module="Network" onclick="switchModule('Network',this)">Network</div>
+      <div class="mod-tab" data-module="Physics" onclick="switchModule('Physics',this)">Physics</div>
+    </div>
+    <div class="toolbar-right">
+      <label class="tb-toggle"><input type="checkbox" id="chkDeep"> Deep Profile</label>
+      <label class="tb-toggle"><input type="checkbox" id="chkEditor" checked> Editor</label>
+      <select class="tb-select" id="frameRange">
+        <option>Last 300 frames</option>
+        <option>Last 100 frames</option>
+        <option>Last 600 frames</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Row 2: Main Area -->
+  <div class="main-area">
+    <!-- Graph Area -->
+    <div class="graph-area">
+      <canvas id="graphCanvas"></canvas>
+    </div>
+
+    <!-- Table Area -->
+    <div class="table-area">
+      <div class="table-tabs">
+        <div class="table-tab active" onclick="switchTableTab(this)">Hierarchy</div>
+        <div class="table-tab" onclick="switchTableTab(this)">Raw Hierarchy</div>
+        <div class="table-tab" onclick="switchTableTab(this)">Timeline</div>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <table class="profiler-table" id="profilerTable">
+          <thead>
+            <tr>
+              <th></th>
+              <th data-col="time" onclick="sortTable('time',this)">Time(ms)</th>
+              <th data-col="self" onclick="sortTable('self',this)">Self(ms)</th>
+              <th data-col="calls" onclick="sortTable('calls',this)">Calls</th>
+              <th data-col="gc" onclick="sortTable('gc',this)">GC Alloc</th>
+              <th data-col="name" onclick="sortTable('name',this)">Name</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="statusbar">
+    <div class="statusbar-left">Profiler</div>
+    <div class="statusbar-center" id="statusCenter">Frame: 0 | Time: 0.00s | FPS: --</div>
+    <div class="statusbar-right" id="statusRight">Recorded: 0 frames | Memory: 0.0 MB</div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const BUFFER_SIZE = 300;
+let isRecording = false;
+let frameCount = 0;
+let elapsedTime = 0;
+let currentModule = 'CPU';
+let recordInterval = null;
+let selectedRow = null;
+let sortCol = null;
+let sortDir = 0; // 0=none, 1=asc, -1=desc
+
+// CPU module metrics
+const cpuMetrics = {
+  'FPS':          { color: '#cccccc', max: 120, data: new Array(BUFFER_SIZE).fill(60), rightAxis: true },
+  'Main Thread':  { color: '#3d9eff', max: 33,  data: new Array(BUFFER_SIZE).fill(15) },
+  'Render Thread':{ color: '#e74c4c', max: 33,  data: new Array(BUFFER_SIZE).fill(10) },
+  'Physics':      { color: '#49b86e', max: 16,  data: new Array(BUFFER_SIZE).fill(4) },
+  'Scripts':      { color: '#e8c44a', max: 16,  data: new Array(BUFFER_SIZE).fill(3) }
+};
+// Memory module metrics
+const memMetrics = {
+  'Total Allocated': { color: '#cccccc', max: 1024, data: new Array(BUFFER_SIZE).fill(256) },
+  'Texture Memory':  { color: '#3d9eff', max: 512,  data: new Array(BUFFER_SIZE).fill(80) },
+  'Mesh Memory':     { color: '#49b86e', max: 256,  data: new Array(BUFFER_SIZE).fill(40) },
+  'Audio Memory':    { color: '#e8c44a', max: 128,  data: new Array(BUFFER_SIZE).fill(12) },
+  'GC Allocated':    { color: '#e74c4c', max: 64,   data: new Array(BUFFER_SIZE).fill(4) }
+};
+// GPU module metrics
+const gpuMetrics = {
+  'Draw Calls':     { color: '#cccccc', max: 500,    data: new Array(BUFFER_SIZE).fill(120) },
+  'Triangles':      { color: '#3d9eff', max: 500000, data: new Array(BUFFER_SIZE).fill(80000) },
+  'SetPass Calls':  { color: '#49b86e', max: 200,    data: new Array(BUFFER_SIZE).fill(45) },
+  'Shadow Casters': { color: '#e74c4c', max: 100,    data: new Array(BUFFER_SIZE).fill(12) }
+};
+
+const modules = { CPU: cpuMetrics, Memory: memMetrics, GPU: gpuMetrics };
+
+// Table hierarchy data
+const hierarchyData = [
+  { id:0,  time:16.42, self:0.00,  calls:1,   gc:0,     name:'Total (root)',          indent:0, hasChildren:true,  children:[1,5,8,11,12], expanded:true },
+  { id:1,  time:8.23,  self:0.12,  calls:1,   gc:2100,  name:'Camera.Render',         indent:1, hasChildren:true,  children:[2,6,7], expanded:true, parent:0 },
+  { id:2,  time:4.56,  self:0.08,  calls:1,   gc:1200,  name:'DrawObjects',           indent:2, hasChildren:true,  children:[3,4,4.1], expanded:true, parent:1 },
+  { id:3,  time:1.82,  self:1.82,  calls:42,  gc:0,     name:'Render.OpaqueObjects',  indent:3, hasChildren:false, children:[], parent:2 },
+  { id:4,  time:1.45,  self:1.45,  calls:18,  gc:0,     name:'Render.TransparentObjects', indent:3, hasChildren:false, children:[], parent:2 },
+  { id:4.1,time:0.71,  self:0.71,  calls:12,  gc:0,     name:'Render.Skybox',         indent:3, hasChildren:false, children:[], parent:2 },
+  { id:5,  time:1.23,  self:1.23,  calls:8,   gc:0,     name:'PostProcessing.Render', indent:2, hasChildren:false, children:[], parent:1 },
+  { id:6,  time:1.32,  self:0.05,  calls:1,   gc:890,   name:'Culling',               indent:2, hasChildren:false, children:[], parent:1 },
+  { id:7,  time:4.12,  self:0.15,  calls:1,   gc:4200,  name:'Physics.FixedUpdate',   indent:1, hasChildren:true,  children:[7.1,7.2], expanded:true, parent:0 },
+  { id:7.1,time:2.34,  self:2.34,  calls:156, gc:0,     name:'Physics.Simulate',      indent:2, hasChildren:false, children:[], parent:7 },
+  { id:7.2,time:1.63,  self:1.63,  calls:48,  gc:0,     name:'Physics.Broadcast',     indent:2, hasChildren:false, children:[], parent:7 },
+  { id:8,  time:2.45,  self:0.08,  calls:1,   gc:1800,  name:'BehaviourUpdate',       indent:1, hasChildren:true,  children:[8.1,8.2,8.3], expanded:true, parent:0 },
+  { id:8.1,time:1.12,  self:1.12,  calls:24,  gc:0,     name:'PlayerController.Update', indent:2, hasChildren:false, children:[], parent:8 },
+  { id:8.2,time:0.85,  self:0.85,  calls:12,  gc:0,     name:'EnemyAI.Update',        indent:2, hasChildren:false, children:[], parent:8 },
+  { id:8.3,time:0.40,  self:0.40,  calls:8,   gc:0,     name:'UIManager.Update',       indent:2, hasChildren:false, children:[], parent:8 },
+  { id:9,  time:0.89,  self:0.89,  calls:3,   gc:0,     name:'Profiler.EndFrame',     indent:1, hasChildren:false, children:[], parent:0 },
+  { id:10, time:0.73,  self:0.73,  calls:2,   gc:0,     name:'GarbageCollect',        indent:1, hasChildren:false, children:[], parent:0 }
+];
+
+// ==================== GRAPH RENDERING ====================
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function getActiveMetrics() {
+  return modules[currentModule] || cpuMetrics;
+}
+
+function drawGraph() {
+  const W = canvas.width / window.devicePixelRatio;
+  const H = canvas.height / window.devicePixelRatio;
+  ctx.clearRect(0, 0, W, H);
+
+  const metrics = getActiveMetrics();
+  const entries = Object.entries(metrics);
+  if (!entries.length) return;
+
+  const padL = 48, padR = 48, padT = 28, padB = 22;
+  const gW = W - padL - padR;
+  const gH = H - padT - padB;
+
+  // Grid
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 1;
+  // Vertical lines every ~1s (at 60fps ~60px for 300 points across gW)
+  const pxPerSecond = gW / (BUFFER_SIZE / 60);
+  for (let s = 0; s <= BUFFER_SIZE / 60; s++) {
+    const x = padL + s * pxPerSecond;
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + gH); ctx.stroke();
+  }
+  // Horizontal lines
+  const hLines = 6;
+  for (let i = 0; i <= hLines; i++) {
+    const y = padT + (gH / hLines) * i;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + gW, y); ctx.stroke();
+  }
+
+  // Draw lines
+  for (const [name, m] of entries) {
+    if (m.rightAxis && currentModule === 'CPU') {
+      // FPS on right axis, draw inverted (higher = up)
+      drawLine(m.data, padL, padT, gW, gH, m.max, m.color, true);
+    } else {
+      drawLine(m.data, padL, padT, gW, gH, m.max, m.color, false);
+    }
+  }
+
+  // Left Y-axis labels (ms)
+  ctx.fillStyle = '#666';
+  ctx.font = '10px Consolas, monospace';
+  ctx.textAlign = 'right';
+  const maxMs = currentModule === 'CPU' ? 33 : (currentModule === 'Memory' ? 1024 : 500000);
+  const unit = currentModule === 'Memory' ? 'MB' : (currentModule === 'GPU' ? '' : 'ms');
+  for (let i = 0; i <= hLines; i++) {
+    const val = maxMs - (maxMs / hLines) * i;
+    let label = val >= 1000 ? (val/1000).toFixed(0)+'K' : val.toFixed(val < 10 ? 1 : 0);
+    ctx.fillText(label, padL - 4, padT + (gH / hLines) * i + 3);
+  }
+  ctx.save();
+  ctx.translate(10, padT + gH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText(unit, 0, 0);
+  ctx.restore();
+
+  // Right Y-axis labels (FPS for CPU, or second metric)
+  if (currentModule === 'CPU') {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#666';
+    for (let i = 0; i <= hLines; i++) {
+      const fps = Math.round((120 / hLines) * i);
+      ctx.fillText(fps.toString(), padL + gW + 4, padT + (gH / hLines) * (hLines - i) + 3);
+    }
+    ctx.save();
+    ctx.translate(W - 6, padT + gH / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('FPS', 0, 0);
+    ctx.restore();
+  }
+
+  // X-axis time labels
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#666';
+  const totalSec = BUFFER_SIZE / 60;
+  for (let s = 0; s <= totalSec; s += 1) {
+    const x = padL + (s / totalSec) * gW;
+    ctx.fillText('-' + (totalSec - s).toFixed(0) + 's', x, padT + gH + 14);
+  }
+
+  // Legend
+  let lx = padL + 8, ly = padT + 4;
+  ctx.font = '10px Segoe UI, sans-serif';
+  for (const [name, m] of entries) {
+    ctx.fillStyle = m.color;
+    ctx.fillRect(lx, ly, 12, 2);
+    lx += 16;
+    ctx.fillStyle = '#999';
+    ctx.textAlign = 'left';
+    ctx.fillText(name, lx, ly + 4);
+    lx += ctx.measureText(name).width + 14;
+  }
+}
+
+function drawLine(data, padL, padT, gW, gH, maxVal, color, invert) {
+  if (data.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  const step = gW / (data.length - 1);
+  for (let i = 0; i < data.length; i++) {
+    let v = Math.min(Math.max(data[i], 0), maxVal);
+    let y;
+    if (invert) {
+      y = padT + gH - (v / maxVal) * gH;
+    } else {
+      y = padT + gH - (v / maxVal) * gH;
+    }
+    const x = padL + i * step;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// ==================== DATA SIMULATION ====================
+let simTick = 0;
+
+function generateCPUPoint() {
+  simTick++;
+  const fpsBase = 60;
+  const fpsNoise = Math.sin(simTick * 0.07) * 3 + (Math.random() - 0.5) * 4;
+  const fpsDrop = Math.random() < 0.02 ? -15 - Math.random() * 10 : 0;
+  const fps = Math.max(30, Math.min(120, fpsBase + fpsNoise + fpsDrop));
+
+  const mainBase = 15 + Math.sin(simTick * 0.05) * 1.5;
+  const mainSpike = Math.random() < 0.05 ? 5 + Math.random() * 5 : 0;
+  const mainThread = Math.max(0, mainBase + mainSpike + (Math.random() - 0.5) * 2);
+
+  const renderBase = 10 + Math.sin(simTick * 0.03) * 1;
+  const renderThread = Math.max(0, renderBase + (Math.random() - 0.5) * 1.5);
+
+  const physicsBase = 4 + Math.sin(simTick * 0.08) * 0.8;
+  const physics = Math.max(0, physicsBase + (Math.random() - 0.5) * 1);
+
+  const scriptsBase = 3 + Math.sin(simTick * 0.06) * 0.6;
+  const scripts = Math.max(0, scriptsBase + (Math.random() - 0.5) * 0.8);
+
+  return { fps, mainThread, renderThread, physics, scripts };
+}
+
+function generateMemPoint() {
+  const trend = simTick * 0.02;
+  const gcDrop = (simTick % 180 < 5) ? -40 : 0;
+  const total = Math.max(100, 256 + trend + Math.sin(simTick * 0.02) * 30 + gcDrop + (Math.random()-0.5)*10);
+  const tex = Math.max(20, 80 + trend * 0.3 + Math.sin(simTick * 0.04) * 10 + (Math.random()-0.5)*5);
+  const mesh = Math.max(10, 40 + trend * 0.1 + Math.sin(simTick * 0.05) * 5 + (Math.random()-0.5)*3);
+  const audio = Math.max(5, 12 + Math.sin(simTick * 0.03) * 3 + (Math.random()-0.5)*2);
+  const gcVal = Math.max(0, 4 + Math.sin(simTick * 0.1) * 2 + (Math.random()-0.5)*3 + (simTick % 180 < 5 ? 30 : 0));
+  return { total, tex, mesh, audio, gcVal };
+}
+
+function generateGPUPoint() {
+  const drawCalls = Math.max(20, 120 + Math.sin(simTick * 0.04) * 30 + (Math.random()-0.5)*20);
+  const triangles = Math.max(10000, 80000 + Math.sin(simTick * 0.03) * 15000 + (Math.random()-0.5)*10000);
+  const setPass = Math.max(5, 45 + Math.sin(simTick * 0.05) * 10 + (Math.random()-0.5)*8);
+  const shadows = Math.max(0, 12 + Math.sin(simTick * 0.06) * 4 + (Math.random()-0.5)*3);
+  return { drawCalls, triangles, setPass, shadows };
+}
+
+function pushNewData() {
+  const cpu = generateCPUPoint();
+  cpuMetrics['FPS'].data.push(cpu.fps); cpuMetrics['FPS'].data.shift();
+  cpuMetrics['Main Thread'].data.push(cpu.mainThread); cpuMetrics['Main Thread'].data.shift();
+  cpuMetrics['Render Thread'].data.push(cpu.renderThread); cpuMetrics['Render Thread'].data.shift();
+  cpuMetrics['Physics'].data.push(cpu.physics); cpuMetrics['Physics'].data.shift();
+  cpuMetrics['Scripts'].data.push(cpu.scripts); cpuMetrics['Scripts'].data.shift();
+
+  const mem = generateMemPoint();
+  memMetrics['Total Allocated'].data.push(mem.total); memMetrics['Total Allocated'].data.shift();
+  memMetrics['Texture Memory'].data.push(mem.tex); memMetrics['Texture Memory'].data.shift();
+  memMetrics['Mesh Memory'].data.push(mem.mesh); memMetrics['Mesh Memory'].data.shift();
+  memMetrics['Audio Memory'].data.push(mem.audio); memMetrics['Audio Memory'].data.shift();
+  memMetrics['GC Allocated'].data.push(mem.gcVal); memMetrics['GC Allocated'].data.shift();
+
+  const gpu = generateGPUPoint();
+  gpuMetrics['Draw Calls'].data.push(gpu.drawCalls); gpuMetrics['Draw Calls'].data.shift();
+  gpuMetrics['Triangles'].data.push(gpu.triangles); gpuMetrics['Triangles'].data.shift();
+  gpuMetrics['SetPass Calls'].data.push(gpu.setPass); gpuMetrics['SetPass Calls'].data.shift();
+  gpuMetrics['Shadow Casters'].data.push(gpu.shadows); gpuMetrics['Shadow Casters'].data.shift();
+
+  frameCount++;
+  elapsedTime += 1/60;
+  updateStatusBar(cpu.fps, mem.total);
+}
+
+function updateStatusBar(fps, mem) {
+  document.getElementById('statusCenter').textContent =
+    `Frame: ${frameCount} | Time: ${elapsedTime.toFixed(2)}s | FPS: ${fps.toFixed(1)}`;
+  document.getElementById('statusRight').textContent =
+    `Recorded: ${frameCount} frames | Memory: ${mem.toFixed(1)} MB`;
+}
+
+// ==================== RECORDING ====================
+function toggleRecord() {
+  const btn = document.getElementById('btnRecord');
+  if (!isRecording) {
+    isRecording = true;
+    btn.classList.add('recording-pulse');
+    recordInterval = setInterval(pushNewData, 16);
+  } else {
+    stopRecord();
+  }
+}
+
+function stopRecord() {
+  isRecording = false;
+  const btn = document.getElementById('btnRecord');
+  btn.classList.remove('recording-pulse');
+  if (recordInterval) { clearInterval(recordInterval); recordInterval = null; }
+}
+
+function clearData() {
+  stopRecord();
+  frameCount = 0; elapsedTime = 0; simTick = 0;
+  for (const mod of Object.values(modules)) {
+    for (const m of Object.values(mod)) {
+      m.data.fill(currentModule === 'CPU' && m.max === 120 ? 60 :
+                  currentModule === 'Memory' && m.max === 1024 ? 256 :
+                  currentModule === 'Memory' && m.max === 512 ? 80 :
+                  currentModule === 'Memory' && m.max === 256 ? 40 :
+                  currentModule === 'Memory' && m.max === 128 ? 12 :
+                  currentModule === 'Memory' && m.max === 64 ? 4 :
+                  currentModule === 'GPU' && m.max === 500 ? 120 :
+                  currentModule === 'GPU' && m.max === 500000 ? 80000 :
+                  currentModule === 'GPU' && m.max === 200 ? 45 :
+                  currentModule === 'GPU' && m.max === 100 ? 12 : 15);
+    }
+  }
+  // Reset all module data properly
+  cpuMetrics['FPS'].data.fill(60);
+  cpuMetrics['Main Thread'].data.fill(15);
+  cpuMetrics['Render Thread'].data.fill(10);
+  cpuMetrics['Physics'].data.fill(4);
+  cpuMetrics['Scripts'].data.fill(3);
+  memMetrics['Total Allocated'].data.fill(256);
+  memMetrics['Texture Memory'].data.fill(80);
+  memMetrics['Mesh Memory'].data.fill(40);
+  memMetrics['Audio Memory'].data.fill(12);
+  memMetrics['GC Allocated'].data.fill(4);
+  gpuMetrics['Draw Calls'].data.fill(120);
+  gpuMetrics['Triangles'].data.fill(80000);
+  gpuMetrics['SetPass Calls'].data.fill(45);
+  gpuMetrics['Shadow Casters'].data.fill(12);
+  updateStatusBar(0, 0);
+  document.getElementById('statusCenter').textContent = 'Frame: 0 | Time: 0.00s | FPS: --';
+  document.getElementById('statusRight').textContent = 'Recorded: 0 frames | Memory: 0.0 MB';
+}
+
+// ==================== MODULE SWITCHING ====================
+function switchModule(mod, el) {
+  currentModule = mod;
+  document.querySelectorAll('.mod-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ==================== TABLE RENDERING ====================
+function getVisibleRows() {
+  const visible = [];
+  const childVisibleMap = {};
+  function isVisible(id) {
+    if (childVisibleMap[id] !== undefined) return childVisibleMap[id];
+    const row = hierarchyData.find(r => r.id === id);
+    if (!row) return false;
+    if (row.indent === 0) { childVisibleMap[id] = true; return true; }
+    const parentVis = isVisible(row.parent);
+    const parentRow = hierarchyData.find(r => r.id === row.parent);
+    childVisibleMap[id] = parentVis && parentRow && parentRow.expanded;
+    return childVisibleMap[id];
+  }
+  for (const row of hierarchyData) {
+    if (isVisible(row.id)) visible.push(row);
+  }
+  return visible;
+}
+
+function buildTable(rows) {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    const isHot = row.self > 1.0;
+    tr.className = (row.indent > 0 ? 'child-row indent-' + row.indent : 'parent-row') + (isHot ? ' hot-path' : '');
+    tr.dataset.id = row.id;
+
+    // Expand/collapse cell
+    const td0 = document.createElement('td');
+    if (row.hasChildren) {
+      td0.innerHTML = `<span class="expand-icon">${row.expanded ? '\u25BC' : '\u25B6'}</span>`;
+      td0.onclick = (e) => { e.stopPropagation(); toggleExpand(row.id); };
+    }
+    tr.appendChild(td0);
+
+    // Time
+    const tdTime = document.createElement('td');
+    tdTime.textContent = row.time.toFixed(2);
+    tr.appendChild(tdTime);
+
+    // Self
+    const tdSelf = document.createElement('td');
+    tdSelf.textContent = row.self.toFixed(2);
+    tdSelf.style.color = row.self > 1.0 ? '#e74c4c' : '#ccc';
+    tr.appendChild(tdSelf);
+
+    // Calls
+    const tdCalls = document.createElement('td');
+    tdCalls.textContent = row.calls;
+    tr.appendChild(tdCalls);
+
+    // GC Alloc
+    const tdGC = document.createElement('td');
+    tdGC.textContent = row.gc > 0 ? formatBytes(row.gc) : '0 B';
+    tr.appendChild(tdGC);
+
+    // Name
+    const tdName = document.createElement('td');
+    tdName.textContent = row.name;
+    tr.appendChild(tdName);
+
+    // Row click = select
+    tr.addEventListener('click', () => selectRow(tr));
+
+    tbody.appendChild(tr);
+  }
+}
+
+function formatBytes(b) {
+  if (b >= 1024) return (b / 1024).toFixed(1) + ' KB';
+  return b + ' B';
+}
+
+function toggleExpand(id) {
+  const row = hierarchyData.find(r => r.id === id);
+  if (row) {
+    row.expanded = !row.expanded;
+    renderTable();
+  }
+}
+
+function selectRow(tr) {
+  if (selectedRow) selectedRow.classList.remove('selected');
+  tr.classList.add('selected');
+  selectedRow = tr;
+}
+
+function renderTable() {
+  let rows = getVisibleRows();
+  // Sort
+  if (sortCol && sortDir !== 0) {
+    rows = [...rows].sort((a, b) => {
+      let va, vb;
+      switch(sortCol) {
+        case 'time': va = a.time; vb = b.time; break;
+        case 'self': va = a.self; vb = b.self; break;
+        case 'calls': va = a.calls; vb = b.calls; break;
+        case 'gc': va = a.gc; vb = b.gc; break;
+        case 'name': va = a.name; vb = b.name; break;
+        default: return 0;
+      }
+      if (typeof va === 'string') return sortDir === 1 ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortDir === 1 ? va - vb : vb - va;
+    });
+  }
+  buildTable(rows);
+}
+
+// ==================== TABLE SORTING ====================
+function sortTable(col, th) {
+  document.querySelectorAll('.profiler-table th').forEach(h => h.classList.remove('sort-asc','sort-desc'));
+  if (sortCol === col) {
+    sortDir = sortDir === 1 ? -1 : (sortDir === -1 ? 0 : 1);
+  } else {
+    sortCol = col;
+    sortDir = 1;
+  }
+  if (sortDir === 1) th.classList.add('sort-asc');
+  else if (sortDir === -1) th.classList.add('sort-desc');
+  renderTable();
+}
+
+// ==================== TABLE TABS ====================
+function switchTableTab(el) {
+  document.querySelectorAll('.table-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ==================== ANIMATION LOOP ====================
+function animate() {
+  drawGraph();
+  requestAnimationFrame(animate);
+}
+
+// ==================== INIT ====================
+renderTable();
+requestAnimationFrame(animate);
+</script>
+
+    <style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1600px; height: 900px; overflow: hidden;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: #191919; color: #cccccc; font-size: 12px;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  /* Record pulse */
+  @keyframes recordPulse {
+    0%, 100% { background: #e74c4c; }
+    50% { background: #ff6b6b; }
+  }
+  .recording-pulse { animation: recordPulse 1s ease-in-out infinite; }
+  /* Layout */
+  #app { display: flex; flex-direction: column; width: 1600px; height: 900px; }
+  /* Row 0: Menu bar */
+  .menubar {
+    height: 20px; min-height: 20px; background: #2a2a2a; border-bottom: 1px solid #111;
+    display: flex; align-items: center; padding: 0 6px; font-size: 11px; color: #999;
+    justify-content: space-between;
+  }
+  .menubar-left, .menubar-right { display: flex; align-items: center; gap: 2px; }
+  .menubar .brand { color: #3d9eff; font-weight: 600; margin-right: 8px; }
+  .menubar span { padding: 0 6px; cursor: pointer; }
+  .menubar span:hover { color: #ccc; background: #363636; }
+  /* Row 1: Toolbar */
+  .toolbar {
+    height: 30px; min-height: 30px; background: #323232; border-bottom: 1px solid #111;
+    display: flex; align-items: center; padding: 0 8px; font-size: 11px;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 8px; margin-right: 16px; }
+  .toolbar-center { display: flex; align-items: center; gap: 0; flex: 1; justify-content: center; }
+  .toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .toolbar label { font-weight: 600; color: #f0f0f0; font-size: 12px; }
+  .tb-btn {
+    background: #404040; border: 1px solid #444; color: #ccc; font-size: 11px;
+    padding: 2px 10px; cursor: pointer; height: 22px; line-height: 18px;
+  }
+  .tb-btn:hover { background: #555; }
+  .tb-btn.active, .tb-btn.on { background: #3d9eff; border-color: #3d9eff; color: #fff; }
+  .tb-btn.record-btn { border-color: #e74c4c; color: #fff; font-size: 11px; padding: 2px 8px; }
+  .tb-btn.record-btn.recording-pulse { color: #fff; }
+  .tb-toggle {
+    display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; color: #999;
+  }
+  .tb-toggle input[type="checkbox"] { accent-color: #3d9eff; cursor: pointer; }
+  .tb-select {
+    background: #1c1c1c; border: 1px solid #444; color: #ccc; font-size: 11px;
+    padding: 2px 4px; height: 22px; outline: none;
+  }
+  .tb-select:focus { border-color: #3d9eff; }
+  /* Module tabs */
+  .mod-tab {
+    padding: 0 10px; height: 22px; line-height: 22px; font-size: 11px;
+    color: #999; cursor: pointer; border: 1px solid transparent; border-bottom: none;
+    background: transparent;
+  }
+  .mod-tab:hover { color: #ccc; background: #363636; }
+  .mod-tab.active { color: #f0f0f0; background: #2b2b2b; border-color: #111; }
+  /* Row 2: Main area */
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  /* Graph area */
+  .graph-area {
+    height: 55%; min-height: 0; background: #0e0e0e; position: relative;
+    border-bottom: 1px solid #111;
+  }
+  .graph-area canvas { width: 100%; height: 100%; display: block; }
+  /* Table area */
+  .table-area { height: 45%; min-height: 0; display: flex; flex-direction: column; background: #2b2b2b; }
+  .table-tabs {
+    height: 22px; min-height: 22px; display: flex; align-items: center;
+    background: #262626; border-bottom: 1px solid #111; padding: 0 4px;
+  }
+  .table-tab {
+    padding: 0 8px; height: 22px; line-height: 22px; font-size: 10px;
+    color: #999; cursor: pointer;
+  }
+  .table-tab:hover { color: #ccc; background: #363636; }
+  .table-tab.active { color: #f0f0f0; background: #2b2b2b; border-bottom: 2px solid #3d9eff; }
+  .table-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; }
+  .table-wrap::-webkit-scrollbar { width: 10px; }
+  .table-wrap::-webkit-scrollbar-track { background: #1c1c1c; }
+  .table-wrap::-webkit-scrollbar-thumb { background: #444; }
+  .table-wrap::-webkit-scrollbar-thumb:hover { background: #555; }
+  table.profiler-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Consolas', 'Courier New', monospace; }
+  table.profiler-table thead { position: sticky; top: 0; z-index: 2; }
+  table.profiler-table th {
+    background: #323232; color: #ccc; font-weight: 500; text-align: right;
+    padding: 3px 8px; border-bottom: 1px solid #111; border-right: 1px solid #111;
+    cursor: pointer; white-space: nowrap; font-size: 10px;
+  }
+  table.profiler-table th:first-child { text-align: left; width: 16px; cursor: default; border-right: none; }
+  table.profiler-table th.sort-asc::after { content: ' \25B2'; color: #3d9eff; }
+  table.profiler-table th.sort-desc::after { content: ' \25BC'; color: #3d9eff; }
+  table.profiler-table th:last-child { text-align: left; cursor: pointer; }
+  table.profiler-table td {
+    padding: 2px 8px; border-bottom: 1px solid #1a1a1a; color: #ccc;
+    text-align: right; white-space: nowrap;
+  }
+  table.profiler-table td:first-child { text-align: center; width: 16px; color: #999; cursor: pointer; }
+  table.profiler-table td:last-child { text-align: left; }
+  table.profiler-table tr.parent-row { cursor: pointer; }
+  table.profiler-table tr.parent-row:hover td { background: #363636; }
+  table.profiler-table tr.parent-row.selected td { background: #2c5f8a; color: #fff; }
+  table.profiler-table tr.child-row:hover td { background: #363636; }
+  table.profiler-table tr.child-row.selected td { background: #2c5f8a; color: #fff; }
+  table.profiler-table tr.hot-path > td { background: rgba(231,76,76,0.12); }
+  table.profiler-table tr.hot-path.selected > td { background: #2c5f8a; }
+  .indent-1 td:last-child { padding-left: 32px; }
+  .indent-2 td:last-child { padding-left: 52px; }
+  .indent-3 td:last-child { padding-left: 72px; }
+  .expand-icon { display: inline-block; width: 10px; text-align: center; font-size: 9px; }
+  /* Status bar */
+  .statusbar {
+    height: 22px; min-height: 22px; background: #2a2a2a; border-top: 1px solid #111;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px; font-size: 10px; color: #999;
+  }
+  .statusbar-left { color: #3d9eff; font-weight: 600; }
+  .statusbar-center { font-family: 'Consolas', monospace; }
+  .statusbar-right { font-family: 'Consolas', monospace; }
+</style>
+</body>
+</html>

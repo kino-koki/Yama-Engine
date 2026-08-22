@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shanyu Engine - Sequence Editor</title>
+    <style id="theme-vars">
+:root {
+  /* Unity 5 Dark Theme for Shanyu Engine */
+  --color-bg-base: #191919;
+  --color-bg-panel: #2b2b2b;
+  --color-bg-panel-solid: #2b2b2b;
+  --color-bg-elevated: #333333;
+  --color-bg-sunken: #0e0e0e;
+  --color-bg-viewport: #1c1c1c;
+  --color-bg-toolbar: #323232;
+  --color-bg-hover: #363636;
+  --color-bg-active: #404040;
+  --color-bg-selected: #2c5f8a;
+  --color-bg-selected-text: #ffffff;
+  --color-bg-input: #1c1c1c;
+  --color-bg-tab-active: #2b2b2b;
+  --color-bg-tab-inactive: #262626;
+  --color-bg-header: #2a2a2a;
+  --color-bg-pro: #2b2b2b;
+  --color-bg-pro-header: #333333;
+  --color-bg-dropdown: #2b2b2b;
+  --color-bg-playmode: #2a1f1f;
+  --color-text-primary: #cccccc;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-text-accent: #3d9eff;
+  --color-text-bright: #f0f0f0;
+  --color-brand: #3d9eff;
+  --color-brand-hover: #5bb0ff;
+  --color-brand-muted: rgba(61,158,255,0.2);
+  --color-brand-dark: #2870b3;
+  --state-success: #49b86e;
+  --state-warning: #e8c44a;
+  --state-error: #e74c4c;
+  --state-info: #3d9eff;
+  --color-border: #111111;
+  --color-border-light: #444444;
+  --color-border-subtle: #333333;
+  --color-border-focus: #3d9eff;
+  --color-border-pro: #111111;
+  --color-axis-x: #e74c4c;
+  --color-axis-y: #49b86e;
+  --color-axis-z: #3d9eff;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-full: 9999px;
+  --font-display: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --leading-tight: 1.2;
+  --leading-normal: 1.4;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-8: 16px;
+  --space-10: 20px;
+  --space-12: 24px;
+  --space-16: 32px;
+  --surface-panel: 1px solid var(--color-border);
+  --surface-elevated: 1px solid var(--color-border-light);
+  --surface-floating: 0 2px 8px rgba(0,0,0,0.5), 1px solid var(--color-border-light);
+  /* Unity-specific: inspector label width, toolbar height, etc. */
+  --unity-label-width: 110px;
+  --unity-toolbar-height: 30px;
+  --unity-menubar-height: 20px;
+  --unity-tab-height: 22px;
+  --unity-statusbar-height: 22px;
+  --unity-header-height: 22px;
+  --unity-indent: 16px;
+  --unity-icon-size: 16px;
+  --unity-inspector-padding: 6px 8px;
+}
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+.unity-panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+}
+.unity-header {
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: var(--unity-header-height);
+  line-height: var(--unity-header-height);
+}
+.unity-toolbar {
+  background: var(--color-bg-toolbar);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-toolbar-height);
+  padding: 0 var(--space-2);
+}
+.unity-tab-bar {
+  background: var(--color-bg-tab-inactive);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-tab-height);
+}
+.unity-tab {
+  padding: 0 var(--space-3);
+  height: var(--unity-tab-height);
+  line-height: var(--unity-tab-height);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.unity-tab:hover { background: var(--color-bg-hover); }
+.unity-tab.active {
+  background: var(--color-bg-tab-active);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-brand);
+}
+.unity-input {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 2px 4px;
+  outline: none;
+}
+.unity-input:focus { border-color: var(--color-border-focus); }
+.unity-button {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.unity-button:hover { background: var(--color-bg-hover); }
+.engine-viewport-bg { background: var(--color-bg-viewport); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-border: var(--color-border);
+  }
+  @layer base {
+    body { background: var(--color-bg-base); color: var(--color-text-primary); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+  <!-- Row 0: Menu Bar -->
+  <div class="menu-bar">
+    <span class="brand">Shanyu</span>
+    <span class="menu-item">File</span>
+    <span class="menu-item">Edit</span>
+    <span class="menu-item">Sequence</span>
+    <span class="menu-item">Keyframe</span>
+    <span class="menu-item" data-dom-id="nav-main-editor">Scene</span>
+    <span class="menu-item" data-dom-id="nav-material-editor">Material</span>
+    <span class="menu-item">View</span>
+    <span class="menu-item">Help</span>
+    <div class="menu-right">
+      <span title="Play">&#9654;</span>
+      <span title="Pause">&#9208;</span>
+      <span title="Stop">&#9209;</span>
+    </div>
+  </div>
+
+  <!-- Row 1: Transport + Toolbar -->
+  <div class="transport-toolbar">
+    <div class="transport-group">
+      <button class="transport-btn" title="Skip to Start">&#124;&#9664;</button>
+      <button class="transport-btn" title="Previous Frame">&#9664;</button>
+      <button class="transport-btn active" title="Play">&#9654;</button>
+      <button class="transport-btn" title="Pause">&#9208;</button>
+      <button class="transport-btn" title="Stop">&#9209;</button>
+      <button class="transport-btn" title="Skip to End">&#9654;&#124;</button>
+      <button class="transport-btn" title="Next Frame">&#9654;&#124;</button>
+    </div>
+    <div class="separator-v"></div>
+    <div class="timecode-box">00:00:05:15</div>
+    <div class="frame-group">
+      <span class="frame-label">Frame:</span>
+      <input class="frame-input" type="text" value="165">
+    </div>
+    <div class="separator-v"></div>
+    <label class="snap-toggle"><input type="checkbox" checked> Snap</label>
+    <label class="snap-toggle"><input type="checkbox"> Snap to Frame</label>
+    <div class="toolbar-right">
+      <button class="toolbar-btn active-tab">Curves</button>
+      <button class="toolbar-btn">Dope Sheet</button>
+      <button class="toolbar-btn">+ Add Track</button>
+    </div>
+  </div>
+
+  <!-- Row 2: Main Area -->
+  <div class="main-area">
+
+    <!-- Left Column: Track List -->
+    <div class="track-list-panel">
+      <div class="track-tab-bar">
+        <span class="track-tab active">Tracks</span>
+        <span class="track-tab">Properties</span>
+      </div>
+      <div class="track-rows-container">
+        <!-- Track 1: Director -->
+        <div class="track-row" data-track="0">
+          <div class="track-strip" style="background:#e74c4c;"></div>
+          <div class="track-icon" style="color:#e74c4c;">&#9654;</div>
+          <span class="track-name">Director</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+        <!-- Track 2: Player Character (selected) -->
+        <div class="track-row selected" data-track="1">
+          <div class="track-strip" style="background:#3d9eff;"></div>
+          <div class="track-icon" style="color:#3d9eff;">&#9654;</div>
+          <span class="track-name">Player Character</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+        <!-- Track 3: Enemy AI -->
+        <div class="track-row" data-track="2">
+          <div class="track-strip" style="background:#e74c4c;"></div>
+          <div class="track-icon" style="color:#e74c4c;">&#9654;</div>
+          <span class="track-name">Enemy AI</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+        <!-- Track 4: Camera -->
+        <div class="track-row" data-track="3">
+          <div class="track-strip" style="background:#49b86e;"></div>
+          <div class="track-icon" style="color:#49b86e;">&#9654;</div>
+          <span class="track-name">Camera</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+        <!-- Track 5: Audio -->
+        <div class="track-row" data-track="4">
+          <div class="track-strip" style="background:#e8c44a;"></div>
+          <div class="track-icon" style="color:#e8c44a;">&#9654;</div>
+          <span class="track-name">Audio</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+        <!-- Track 6: Environment -->
+        <div class="track-row" data-track="5">
+          <div class="track-strip" style="background:#9b59b6;"></div>
+          <div class="track-icon" style="color:#9b59b6;">&#9654;</div>
+          <span class="track-name">Environment</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+        <!-- Track 7: Post Processing -->
+        <div class="track-row" data-track="6">
+          <div class="track-strip" style="background:#e67e22;"></div>
+          <div class="track-icon" style="color:#e67e22;">&#9654;</div>
+          <span class="track-name">Post Processing</span>
+          <div class="track-actions">
+            <span class="track-action-icon" title="Lock">&#128274;</span>
+            <span class="track-action-icon" title="Mute">&#128263;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical Splitter -->
+    <div class="vertical-splitter"></div>
+
+    <!-- Right Column: Timeline -->
+    <div class="timeline-panel">
+
+      <!-- Time Ruler -->
+      <div class="time-ruler" id="timeRuler">
+        <div class="ruler-scroll-area" id="rulerScroll">
+          <div class="ruler-canvas" id="rulerCanvas" style="min-width:1200px;">
+            <!-- Ticks generated by JS below -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline Tracks (scrollable) -->
+      <div class="timeline-scroll-container" id="timelineScroll">
+        <div class="timeline-content" id="timelineContent" style="min-width:1200px; min-height:210px; position:relative;">
+
+          <!-- Playhead at 3.5s = 420px -->
+          <div class="playhead" id="playhead" style="left:420px;">
+            <div class="playhead-triangle"></div>
+          </div>
+
+          <!-- Track 0: Director (row index 1 for nth-child) -->
+          <div class="timeline-track-row">
+            <!-- Clip: Cutscene_01 0s-8s => left:0, width:960px -->
+            <div class="clip" style="left:0px; width:960px; background:rgba(231,76,76,0.2); border:1px solid rgba(231,76,76,0.4);">
+              <span class="clip-label">Cutscene_01</span>
+            </div>
+            <!-- Keyframes at 0s, 2s, 4s, 6s, 8s -->
+            <div class="keyframe" style="left:0px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:240px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:480px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:720px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:960px; background:#e74c4c;"></div>
+          </div>
+
+          <!-- Track 1: Player Character -->
+          <div class="timeline-track-row selected">
+            <!-- Clip: Walk_Cycle 0s-4s => left:0, width:480px -->
+            <div class="clip" style="left:0px; width:480px; background:rgba(61,158,255,0.2); border:1px solid rgba(61,158,255,0.4);">
+              <span class="clip-label">Walk_Cycle</span>
+            </div>
+            <!-- Clip: Jump_Attack 4.5s-7s => left:540, width:300 -->
+            <div class="clip" style="left:540px; width:300px; background:rgba(61,158,255,0.2); border:1px solid rgba(61,158,255,0.4);">
+              <span class="clip-label">Jump_Attack</span>
+            </div>
+            <!-- Keyframes at 0s, 1s, 2s, 3s, 4s, 4.5s, 5.5s, 7s -->
+            <div class="keyframe" style="left:0px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:120px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:240px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:360px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:480px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:540px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:660px; background:#3d9eff;"></div>
+            <div class="keyframe" style="left:840px; background:#3d9eff;"></div>
+          </div>
+
+          <!-- Track 2: Enemy AI -->
+          <div class="timeline-track-row">
+            <!-- Clip: Patrol_Route 0s-6s => left:0, width:720px -->
+            <div class="clip" style="left:0px; width:720px; background:rgba(231,76,76,0.15); border:1px solid rgba(231,76,76,0.3);">
+              <span class="clip-label">Patrol_Route</span>
+            </div>
+            <!-- Clip: Chase_Player 6.5s-9s => left:780, width:300 -->
+            <div class="clip" style="left:780px; width:300px; background:rgba(231,76,76,0.15); border:1px solid rgba(231,76,76,0.3);">
+              <span class="clip-label">Chase_Player</span>
+            </div>
+            <!-- Keyframes at 0s, 2s, 4s, 6s, 6.5s, 8s, 9s -->
+            <div class="keyframe" style="left:0px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:240px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:480px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:720px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:780px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:960px; background:#e74c4c;"></div>
+            <div class="keyframe" style="left:1080px; background:#e74c4c;"></div>
+          </div>
+
+          <!-- Track 3: Camera -->
+          <div class="timeline-track-row">
+            <!-- Clip: Main_Camera 0s-5s => left:0, width:600 -->
+            <div class="clip" style="left:0px; width:600px; background:rgba(73,184,110,0.2); border:1px solid rgba(73,184,110,0.4);">
+              <span class="clip-label">Main_Camera</span>
+            </div>
+            <!-- Clip: Cinematic_Cam 5s-10s => left:600, width:600 -->
+            <div class="clip" style="left:600px; width:600px; background:rgba(73,184,110,0.2); border:1px solid rgba(73,184,110,0.4);">
+              <span class="clip-label">Cinematic_Cam</span>
+            </div>
+            <!-- Keyframes at 0s, 2.5s, 5s, 7.5s, 10s -->
+            <div class="keyframe" style="left:0px; background:#49b86e;"></div>
+            <div class="keyframe" style="left:300px; background:#49b86e;"></div>
+            <div class="keyframe" style="left:600px; background:#49b86e;"></div>
+            <div class="keyframe" style="left:900px; background:#49b86e;"></div>
+            <div class="keyframe" style="left:1200px; background:#49b86e;"></div>
+          </div>
+
+          <!-- Track 4: Audio -->
+          <div class="timeline-track-row">
+            <!-- Clip: BGM_Main 0s-10s => left:0, width:1200px -->
+            <div class="clip" style="left:0px; width:1200px; background:rgba(232,196,74,0.15); border:1px solid rgba(232,196,74,0.3);">
+              <span class="clip-label">BGM_Main</span>
+            </div>
+            <!-- Clip: SFX_Step 1s-1.3s => left:120, width:36 -->
+            <div class="clip" style="left:120px; width:36px; background:rgba(232,196,74,0.25); border:1px solid rgba(232,196,74,0.4);">
+              <span class="clip-label"></span>
+            </div>
+            <!-- Clip: SFX_Step 3s-3.3s => left:360, width:36 -->
+            <div class="clip" style="left:360px; width:36px; background:rgba(232,196,74,0.25); border:1px solid rgba(232,196,74,0.4);">
+              <span class="clip-label"></span>
+            </div>
+            <!-- Clip: SFX_Step 5s-5.3s => left:600, width:36 -->
+            <div class="clip" style="left:600px; width:36px; background:rgba(232,196,74,0.25); border:1px solid rgba(232,196,74,0.4);">
+              <span class="clip-label"></span>
+            </div>
+            <!-- Keyframes at clip starts/ends: 0s, 10s, and SFX starts/ends -->
+            <div class="keyframe" style="left:0px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:120px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:156px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:360px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:396px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:600px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:636px; background:#e8c44a;"></div>
+            <div class="keyframe" style="left:1200px; background:#e8c44a;"></div>
+          </div>
+
+          <!-- Track 5: Environment -->
+          <div class="timeline-track-row">
+            <!-- Clip: DayNight_Cycle 0s-10s => left:0, width:1200px -->
+            <div class="clip" style="left:0px; width:1200px; background:rgba(155,89,182,0.2); border:1px solid rgba(155,89,182,0.4);">
+              <span class="clip-label">DayNight_Cycle</span>
+            </div>
+            <!-- Keyframes at 0s, 5s, 10s -->
+            <div class="keyframe" style="left:0px; background:#9b59b6;"></div>
+            <div class="keyframe" style="left:600px; background:#9b59b6;"></div>
+            <div class="keyframe" style="left:1200px; background:#9b59b6;"></div>
+          </div>
+
+          <!-- Track 6: Post Processing -->
+          <div class="timeline-track-row">
+            <!-- Clip: Color_Grade 0s-10s => left:0, width:1200px -->
+            <div class="clip" style="left:0px; width:1200px; background:rgba(230,126,34,0.2); border:1px solid rgba(230,126,34,0.4);">
+              <span class="clip-label">Color_Grade</span>
+            </div>
+            <!-- Clip: Bloom 0s-10s (overlapping, slightly offset) => left:4, width:1200px -->
+            <div class="clip" style="left:4px; width:1196px; background:rgba(230,126,34,0.1); border:1px solid rgba(230,126,34,0.25);">
+              <span class="clip-label">Bloom</span>
+            </div>
+            <!-- Keyframes at 0s, 3s, 5s, 7s, 10s -->
+            <div class="keyframe" style="left:0px; background:#e67e22;"></div>
+            <div class="keyframe" style="left:360px; background:#e67e22;"></div>
+            <div class="keyframe" style="left:600px; background:#e67e22;"></div>
+            <div class="keyframe" style="left:840px; background:#e67e22;"></div>
+            <div class="keyframe" style="left:1200px; background:#e67e22;"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="status-left">Sequence: Main_Cutscene</span>
+    <span class="status-center">Duration: 00:00:10:00 | Tracks: 7 | Keyframes: 38</span>
+    <span class="status-right">30 FPS | Zoom: 100%</span>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // Configuration
+  var PPS = 120; // pixels per second
+  var TOTAL_SECONDS = 10;
+  var CANVAS_WIDTH = PPS * TOTAL_SECONDS; // 1200px
+
+  // Generate ruler ticks
+  var rulerCanvas = document.getElementById('rulerCanvas');
+  var html = '';
+
+  for (var t = 0; t <= TOTAL_SECONDS; t += 0.1) {
+    var px = t * PPS;
+    var isMajor = (Math.round(t * 10) % 10 === 0);
+    var isMedium = (Math.round(t * 10) % 5 === 0) && !isMajor;
+
+    if (isMajor) {
+      html += '<div class="ruler-tick major" style="left:' + px + 'px;"></div>';
+      var sec = Math.round(t);
+      html += '<div class="ruler-label" style="left:' + px + 'px;">0:' + (sec < 10 ? '0' + sec : sec) + '</div>';
+    } else if (isMedium) {
+      html += '<div class="ruler-tick medium" style="left:' + px + 'px;"></div>';
+    } else {
+      html += '<div class="ruler-tick minor" style="left:' + px + 'px;"></div>';
+    }
+  }
+  rulerCanvas.innerHTML = html;
+
+  // Sync ruler scroll with timeline scroll
+  var timelineScroll = document.getElementById('timelineScroll');
+  var rulerScroll = document.getElementById('rulerScroll');
+
+  timelineScroll.addEventListener('scroll', function() {
+    rulerScroll.scrollLeft = timelineScroll.scrollLeft;
+  });
+
+  // Playhead click-drag on ruler
+  var ruler = document.getElementById('timeRuler');
+  var playhead = document.getElementById('playhead');
+  var isDragging = false;
+
+  function updatePlayhead(e) {
+    var rect = rulerScroll.getBoundingClientRect();
+    var x = e.clientX - rect.left + rulerScroll.scrollLeft;
+    x = Math.max(0, Math.min(x, CANVAS_WIDTH));
+    playhead.style.left = x + 'px';
+  }
+
+  ruler.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    updatePlayhead(e);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (isDragging) updatePlayhead(e);
+  });
+  document.addEventListener('mouseup', function() {
+    isDragging = false;
+  });
+
+  // Track row selection sync
+  var trackRows = document.querySelectorAll('.track-rows-container .track-row');
+  var timelineRows = document.querySelectorAll('.timeline-track-row');
+
+  trackRows.forEach(function(row, i) {
+    row.addEventListener('click', function() {
+      trackRows.forEach(function(r) { r.classList.remove('selected'); });
+      timelineRows.forEach(function(r) { r.classList.remove('selected'); });
+      row.classList.add('selected');
+      if (timelineRows[i]) timelineRows[i].classList.add('selected');
+    });
+  });
+
+  // Click on timeline row also selects
+  timelineRows.forEach(function(row, i) {
+    row.addEventListener('click', function(e) {
+      // Only select if clicking on the row itself, not clips/keyframes
+      if (e.target === row) {
+        trackRows.forEach(function(r) { r.classList.remove('selected'); });
+        timelineRows.forEach(function(r) { r.classList.remove('selected'); });
+        row.classList.add('selected');
+        if (trackRows[i]) trackRows[i].classList.add('selected');
+      }
+    });
+  });
+})();
+</script>
+
+    <style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    overflow: hidden;
+    width: 1600px;
+    height: 900px;
+    background: var(--color-bg-base);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--color-bg-panel); }
+  ::-webkit-scrollbar-thumb { background: #444444; }
+  ::-webkit-scrollbar-thumb:hover { background: #555555; }
+  ::-webkit-scrollbar-corner { background: var(--color-bg-panel); }
+
+  /* Layout */
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    width: 1600px;
+    height: 900px;
+  }
+
+  /* Row 0: Menu Bar */
+  .menu-bar {
+    height: 20px;
+    min-height: 20px;
+    background: var(--color-bg-header);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    user-select: none;
+  }
+  .menu-bar .menu-item {
+    padding: 0 8px;
+    cursor: pointer;
+    line-height: 20px;
+  }
+  .menu-bar .menu-item:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+  .menu-bar .brand {
+    color: var(--color-brand);
+    font-weight: var(--weight-semibold);
+    padding: 0 10px 0 4px;
+    margin-right: 4px;
+    border-right: 1px solid var(--color-border-light);
+  }
+  .menu-bar .menu-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .menu-bar .menu-right span {
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 20px;
+  }
+  .menu-bar .menu-right span:hover {
+    color: var(--color-text-primary);
+  }
+
+  /* Row 1: Transport + Toolbar */
+  .transport-toolbar {
+    height: 30px;
+    min-height: 30px;
+    background: var(--color-bg-toolbar);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 0;
+    user-select: none;
+  }
+  .transport-group {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+  }
+  .transport-btn {
+    width: 26px;
+    height: 22px;
+    background: #333333;
+    border: 1px solid #444444;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    border-radius: 0;
+  }
+  .transport-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+  .transport-btn.active {
+    background: var(--color-bg-selected);
+    border-color: var(--color-brand);
+    color: var(--color-text-bright);
+  }
+  .separator-v {
+    width: 1px;
+    height: 18px;
+    background: #444444;
+    margin: 0 4px;
+  }
+  .timecode-box {
+    background: var(--color-bg-input);
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-brand);
+    height: 22px;
+    line-height: 18px;
+    border: 1px solid var(--color-border-subtle);
+    user-select: none;
+  }
+  .frame-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+  }
+  .frame-label {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+  }
+  .frame-input {
+    width: 40px;
+    height: 22px;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 0 4px;
+    outline: none;
+    border-radius: 0;
+    text-align: center;
+  }
+  .frame-input:focus {
+    border-color: var(--color-border-focus);
+  }
+  .snap-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 4px;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+  .snap-toggle input {
+    accent-color: var(--color-brand);
+    cursor: pointer;
+  }
+  .toolbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .toolbar-btn {
+    height: 22px;
+    padding: 0 10px;
+    background: #333333;
+    border: 1px solid #444444;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 0;
+  }
+  .toolbar-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+  .toolbar-btn.active-tab {
+    background: var(--color-bg-selected);
+    color: var(--color-text-bright);
+    border-color: var(--color-brand-dark);
+  }
+
+  /* Row 2: Main Area */
+  .main-area {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Left Column: Track List */
+  .track-list-panel {
+    width: 200px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    border-right: none;
+  }
+  .track-tab-bar {
+    height: 22px;
+    min-height: 22px;
+    background: var(--color-bg-tab-inactive);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: stretch;
+  }
+  .track-tab {
+    padding: 0 12px;
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    line-height: 22px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .track-tab:hover {
+    background: var(--color-bg-hover);
+  }
+  .track-tab.active {
+    background: var(--color-bg-tab-active);
+    color: var(--color-text-primary);
+    border-bottom: 2px solid var(--color-brand);
+  }
+  .track-rows-container {
+    flex: 1;
+    overflow-y: hidden;
+    background: var(--color-bg-panel);
+    border-right: 1px solid var(--color-border);
+  }
+  .track-row {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    padding: 0;
+  }
+  .track-row:hover {
+    background: var(--color-bg-hover);
+  }
+  .track-row.selected {
+    background: var(--color-bg-selected) !important;
+  }
+  .track-row.selected .track-name {
+    color: var(--color-bg-selected-text);
+  }
+  .track-strip {
+    width: 3px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  .track-icon {
+    width: 20px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .track-name {
+    flex: 1;
+    font-size: 11px;
+    color: var(--color-text-primary);
+    padding: 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 30px;
+  }
+  .track-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 6px;
+  }
+  .track-action-icon {
+    font-size: 9px;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    width: 16px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .track-action-icon:hover {
+    color: var(--color-text-primary);
+  }
+
+  /* Vertical Splitter */
+  .vertical-splitter {
+    width: 3px;
+    background: var(--color-border);
+    cursor: col-resize;
+    flex-shrink: 0;
+  }
+
+  /* Right Column: Timeline */
+  .timeline-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Time Ruler */
+  .time-ruler {
+    height: 22px;
+    min-height: 22px;
+    background: var(--color-bg-header);
+    border-bottom: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .ruler-scroll-area {
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+  }
+  .ruler-canvas {
+    height: 100%;
+    position: relative;
+    min-width: 1200px;
+  }
+  .ruler-tick {
+    position: absolute;
+    top: 0;
+    width: 1px;
+  }
+  .ruler-tick.major {
+    height: 8px;
+    background: #555555;
+    top: 14px;
+  }
+  .ruler-tick.medium {
+    height: 5px;
+    background: #444444;
+    top: 17px;
+  }
+  .ruler-tick.minor {
+    height: 2px;
+    background: #333333;
+    top: 20px;
+  }
+  .ruler-label {
+    position: absolute;
+    top: 1px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--color-text-secondary);
+    transform: translateX(-50%);
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* Timeline Tracks Area */
+  .timeline-scroll-container {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    background: var(--color-bg-base);
+  }
+  .timeline-content {
+    position: relative;
+    min-width: 1200px;
+    min-height: 210px;
+  }
+  .timeline-track-row {
+    height: 30px;
+    position: relative;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .timeline-track-row:nth-child(odd) {
+    background: #191919;
+  }
+  .timeline-track-row:nth-child(even) {
+    background: #1a1a1a;
+  }
+  .timeline-track-row.selected {
+    background: rgba(44,95,138,0.15) !important;
+  }
+
+  /* Clips */
+  .clip {
+    position: absolute;
+    top: 3px;
+    height: 24px;
+    border-radius: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .clip-label {
+    font-size: 10px;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
+    line-height: 24px;
+    pointer-events: none;
+    user-select: none;
+  }
+  .clip:hover {
+    filter: brightness(1.2);
+  }
+
+  /* Keyframe Diamonds */
+  .keyframe {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    transform: rotate(45deg);
+    top: 50%;
+    margin-top: -3.5px;
+    margin-left: -3.5px;
+    z-index: 2;
+    cursor: pointer;
+    border-radius: 0;
+  }
+  .keyframe:hover {
+    filter: brightness(1.4);
+  }
+
+  /* Playhead */
+  .playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e74c4c;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .playhead-triangle {
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 8px solid #e74c4c;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    height: 22px;
+    min-height: 22px;
+    background: var(--color-bg-header);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    user-select: none;
+  }
+  .status-left {
+    color: var(--color-brand);
+  }
+  .status-center {
+    flex: 1;
+    text-align: center;
+    color: var(--color-text-tertiary);
+  }
+  .status-right {
+    color: var(--color-text-tertiary);
+  }
+
+  /* Pixel-per-second: 10 seconds in 1200px = 120px per second */
+  .pps { /* pixels per second = 120 */ }
+</style>
+</body>
+</html>

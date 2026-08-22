@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Directory.Build.props - 将所有中间输出和 NuGet 资产统一重定向到仓库根目录下的 artifacts/
+     （相对路径，可移植；不再硬编码到 E: 盘，任意机器均可构建）-->
+<Project>
+  <PropertyGroup>
+    <!-- 中间输出目录：所有 obj 文件输出到 artifacts/obj/<项目名>/ -->
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</IntermediateOutputPath>
+    <!-- 最终输出目录：artifacts/bin/<项目名>/ -->
+    <OutputPath>$(MSBuildThisFileDirectory)artifacts\bin\$(MSBuildProjectName)\</OutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <!-- NuGet 资产文件路径 -->
+    <RestoreOutputPath>$(BaseIntermediateOutputPath)</RestoreOutputPath>
+    <RestoreAssetsFileFallback>$(BaseIntermediateOutputPath)project.assets.json</RestoreAssetsFileFallback>
+    <!-- NuGet 锁文件 -->
+    <NuGetLockFilePath>$(MSBuildThisFileDirectory)artifacts\nuget.lock</NuGetLockFilePath>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,96 @@
+{
+  "project": {
+    "name": "山雨引擎 Unity 5 UI",
+    "path": "f:\\《LUCKY OS》\\LuckyOS systems 1.0\\userspace\\Other\\游戏开发与建模引擎-山雨 Shanyu GamesEngine and Modeling\\shanyu-macos27-ui",
+    "operation": "create",
+    "deviceType": "desktop",
+    "language": "zh-CN",
+    "dashboardMode": false,
+    "designRead": "game engine editor / Unity 5 dark theme / flat professional / high-density interactive",
+    "designDials": { "layoutVariance": 1, "motionIntensity": 2, "visualDensity": 5 },
+    "styleDefinitionBrief": "Unity 5 flat dark theme: solid #2b2b2b panels, #3d9eff brand blue, zero rounded corners, dense professional layout, full JS interactivity",
+    "styleContinuityAnchors": {
+      "colorSystem": "dark #191919 base, #2b2b2b panels, #323232 toolbar, #3d9eff brand, selected #2c5f8a, axis X=#e74c4c Y=#49b86e Z=#3d9eff",
+      "shapeSystem": "ZERO rounded corners on panels/containers. Flat square everything. max 2px radius on small controls.",
+      "typographySystem": "Segoe UI for UI, Consolas for code. Body 12px, Labels 11px, Status 10px. Monospace for data values.",
+      "spacingSystem": "tight 2/4/6/8/10/12/16/20/24/32. Panel padding 6-8px. Tool buttons 26x26. Menu bar 20px height.",
+      "componentLanguage": "solid flat panels, #111 borders, #1c1c1c inputs, flat buttons #333 bg, tab bars with blue bottom border on active",
+      "surfaceAndDepth": "1px solid #111 borders only. No shadows on static elements. No blur. No transparency.",
+      "imageryAndIconography": "text-based icons and simple shapes, monochrome matching text color. No decorative images.",
+      "interactionTone": "JS-driven: collapsible sections, tab switching, panel resizing, drag interactions, real-time slider updates, tree expand/collapse, filter toggles."
+    },
+    "sharedProjectShellContract": {
+      "navigationShell": "Unity-style: 20px menu bar (#2a2a2a) + 30px toolbar (#323232). Play/Pause/Stop in menu bar.",
+      "primaryColorSystem": "brand #3d9eff, selected #2c5f8a, semantic green/yellow/red for console",
+      "typographySystem": "Segoe UI + Consolas. Labels 11px, body 12px, console 10px Consolas.",
+      "radiusScale": "0-2px on everything",
+      "surfaceDepthModel": "1px solid #111 borders. Flat solid colors. No shadows.",
+      "ctaStyle": "flat buttons, #2c5f8a bg for primary actions, #333 bg for secondary",
+      "alignmentRules": "tight spacing, 8px grid. Inspector label 110px width. Inputs 55px."
+    }
+  },
+  "designSource": {
+    "operatingMode": "free-explore",
+    "cssFilePath": "f:\\《LUCKY OS》\\LuckyOS systems 1.0\\userspace\\Other\\游戏开发与建模引擎-山雨 Shanyu GamesEngine and Modeling\\shanyu-macos27-ui\\colors_and_type.css",
+    "brandPrefix": "",
+    "themeMode": "dark",
+    "styleConstraints": { "radiusMax": 2, "staticShadowAlphaMax": 0 }
+  },
+  "pages": [
+    {
+      "nodeId": "page-main-editor", "slug": "main-editor", "title": "主编辑器",
+      "htmlSrc": "pages/main-editor.html", "pageIndex": 1, "pageType": "information-dense",
+      "businessScenario": "Primary level editing workspace",
+      "visualNorthStar": "Unity 5 Editor - flat dark, dense, professional",
+      "compositionPattern": "5-zone grid", "continuityAnchors": ["flat solid panels", "brand blue active states", "Segoe UI/Consolas", "#111 borders"]
+    },
+    {
+      "nodeId": "page-material-editor", "slug": "material-editor", "title": "材质编辑器",
+      "htmlSrc": "pages/material-editor.html", "pageIndex": 2, "pageType": "information-dense",
+      "businessScenario": "PBR material node editor",
+      "visualNorthStar": "Unity 5 Shader Graph / Material Inspector",
+      "compositionPattern": "3-column tool layout", "continuityAnchors": ["flat solid panels", "brand blue active states", "Segoe UI/Consolas", "#111 borders"]
+    },
+    {
+      "nodeId": "page-sequence-editor", "slug": "sequence-editor", "title": "序列编辑器",
+      "htmlSrc": "pages/sequence-editor.html", "pageIndex": 3, "pageType": "information-dense",
+      "businessScenario": "Timeline sequence editor",
+      "visualNorthStar": "Unity Timeline / Sequencer",
+      "compositionPattern": "timeline editor layout", "continuityAnchors": ["flat solid panels", "brand blue active states", "Segoe UI/Consolas", "#111 borders"]
+    },
+    {
+      "nodeId": "page-animation-editor", "slug": "animation-editor", "title": "动画编辑器",
+      "htmlSrc": "pages/animation-editor.html", "pageIndex": 4, "pageType": "interactive-tool",
+      "businessScenario": "Animation editor with dopesheet, curve editor, preview, and interactive timeline",
+      "visualNorthStar": "Unity Animation Window with Curve view, fully interactive playback and curve editing",
+      "compositionPattern": "animation tool: toolbar + left property list + right dopesheet/curves + bottom preview",
+      "continuityAnchors": ["flat solid panels", "brand blue active states", "Segoe UI/Consolas", "#111 borders"]
+    },
+    {
+      "nodeId": "page-particle-editor", "slug": "particle-editor", "title": "粒子系统编辑器",
+      "htmlSrc": "pages/particle-editor.html", "pageIndex": 5, "pageType": "interactive-tool",
+      "businessScenario": "Particle system editor with real-time parameter control and canvas preview",
+      "visualNorthStar": "Unity Particle System with live canvas preview and real-time sliders",
+      "compositionPattern": "3-column: left modules panel, center canvas preview, right parameter panel with live controls",
+      "continuityAnchors": ["flat solid panels", "brand blue active states", "Segoe UI/Consolas", "#111 borders"]
+    },
+    {
+      "nodeId": "page-project-settings", "slug": "project-settings", "title": "项目设置",
+      "htmlSrc": "pages/project-settings.html", "pageIndex": 6, "pageType": "settings-dense",
+      "businessScenario": "Project settings with category tabs, search, and interactive toggles/inputs",
+      "visualNorthStar": "Unity Project Settings - clean categorized settings with search and interactive controls",
+      "compositionPattern": "settings: left category tree, right settings panel with sections",
+      "continuityAnchors": ["flat solid panels", "brand blue active states", "Segoe UI/Consolas", "#111 borders"]
+    }
+  ],
+  "assets": [],
+  "wiringPlan": [],
+  "hiddenInteractionPlan": [
+    { "sourceNodeId": "page-main-editor", "domId": "nav-material-editor", "targetPageId": "page-material-editor", "hideEdge": true },
+    { "sourceNodeId": "page-main-editor", "domId": "nav-sequence-editor", "targetPageId": "page-sequence-editor", "hideEdge": true },
+    { "sourceNodeId": "page-material-editor", "domId": "nav-main-editor", "targetPageId": "page-main-editor", "hideEdge": true },
+    { "sourceNodeId": "page-material-editor", "domId": "nav-sequence-editor", "targetPageId": "page-sequence-editor", "hideEdge": true },
+    { "sourceNodeId": "page-sequence-editor", "domId": "nav-main-editor", "targetPageId": "page-main-editor", "hideEdge": true },
+    { "sourceNodeId": "page-sequence-editor", "domId": "nav-material-editor", "targetPageId": "page-material-editor", "hideEdge": true }
+  ]
+}

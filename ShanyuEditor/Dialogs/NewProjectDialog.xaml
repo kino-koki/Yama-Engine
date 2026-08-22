@@ -1,0 +1,80 @@
+<ContentDialog
+    x:Class="ShanyuEditor.Dialogs.NewProjectDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ShanyuEditor.Dialogs"
+    Title="New Project"
+    PrimaryButtonText="Create"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick">
+
+    <ContentDialog.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Themes/DarkTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </ContentDialog.Resources>
+
+    <ScrollViewer Width="500" MaxHeight="600">
+        <StackPanel Spacing="12" Padding="4">
+
+            <!-- Project Name -->
+            <TextBlock Text="Project Name" Foreground="{StaticResource ShanyuTextBrush}" FontSize="13" FontWeight="SemiBold"/>
+            <TextBox x:Name="ProjectNameBox" Text="New Shanyu Project" PlaceholderText="Enter project name"/>
+
+            <!-- Project Path -->
+            <TextBlock Text="Location" Foreground="{StaticResource ShanyuTextBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,4,0,0"/>
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" x:Name="ProjectPathBox" Text="C:\Projects" IsReadOnly="True"/>
+                <Button Grid.Column="1" Content="Browse..." Click="BrowsePath_Click" Margin="4,0,0,0" MinWidth="80"/>
+            </Grid>
+
+            <Border Height="1" Background="{StaticResource ShanyuBorderBrush}"/>
+
+            <!-- Template Selection -->
+            <TextBlock Text="Project Template" Foreground="{StaticResource ShanyuTextBrush}" FontSize="13" FontWeight="SemiBold"/>
+            <ListView x:Name="TemplateListView" SelectionMode="Single" SelectedIndex="0" Background="Transparent" BorderThickness="0">
+                <ListViewItem Padding="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Blank Project" Foreground="{StaticResource ShanyuTextBrush}" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="Empty project with basic scene setup" Foreground="{StaticResource ShanyuSubTextBrush}" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem Padding="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Third Person" Foreground="{StaticResource ShanyuTextBrush}" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="Third person character controller with camera follow" Foreground="{StaticResource ShanyuSubTextBrush}" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem Padding="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="First Person" Foreground="{StaticResource ShanyuTextBrush}" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="First person controller with collision and interaction" Foreground="{StaticResource ShanyuSubTextBrush}" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem Padding="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="2D Platform" Foreground="{StaticResource ShanyuTextBrush}" FontSize="12" FontWeight="SemiBold"/>
+                        <TextBlock Text="2D platformer template with physics and tilemap" Foreground="{StaticResource ShanyuSubTextBrush}" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ListViewItem>
+            </ListView>
+
+            <Border Height="1" Background="{StaticResource ShanyuBorderBrush}"/>
+
+            <!-- Engine Features -->
+            <TextBlock Text="Engine Features" Foreground="{StaticResource ShanyuTextBrush}" FontSize="13" FontWeight="SemiBold"/>
+            <StackPanel Spacing="6">
+                <CheckBox x:Name="EnablePhysics" Content="Physics Engine (Jolt Physics)" IsChecked="True"/>
+                <CheckBox x:Name="EnableAudio" Content="Audio System (OpenAL)" IsChecked="True"/>
+                <CheckBox x:Name="EnableNetworking" Content="Networking (Replication System)" IsChecked="False"/>
+                <CheckBox x:Name="EnableLocalization" Content="Localization (Multi-language Support)" IsChecked="False"/>
+                <CheckBox x:Name="EnableStreaming" Content="World Streaming" IsChecked="False"/>
+                <CheckBox x:Name="EnableFlowVFX" Content="FlowVFX VFX System" IsChecked="True"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

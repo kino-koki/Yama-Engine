@@ -1,0 +1,144 @@
+:root {
+  /* Unity 5 Dark Theme for Shanyu Engine */
+  --color-bg-base: #191919;
+  --color-bg-panel: #2b2b2b;
+  --color-bg-panel-solid: #2b2b2b;
+  --color-bg-elevated: #333333;
+  --color-bg-sunken: #0e0e0e;
+  --color-bg-viewport: #1c1c1c;
+  --color-bg-toolbar: #323232;
+  --color-bg-hover: #363636;
+  --color-bg-active: #404040;
+  --color-bg-selected: #2c5f8a;
+  --color-bg-selected-text: #ffffff;
+  --color-bg-input: #1c1c1c;
+  --color-bg-tab-active: #2b2b2b;
+  --color-bg-tab-inactive: #262626;
+  --color-bg-header: #2a2a2a;
+  --color-bg-pro: #2b2b2b;
+  --color-bg-pro-header: #333333;
+  --color-bg-dropdown: #2b2b2b;
+  --color-bg-playmode: #2a1f1f;
+  --color-text-primary: #cccccc;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-text-accent: #3d9eff;
+  --color-text-bright: #f0f0f0;
+  --color-brand: #3d9eff;
+  --color-brand-hover: #5bb0ff;
+  --color-brand-muted: rgba(61,158,255,0.2);
+  --color-brand-dark: #2870b3;
+  --state-success: #49b86e;
+  --state-warning: #e8c44a;
+  --state-error: #e74c4c;
+  --state-info: #3d9eff;
+  --color-border: #111111;
+  --color-border-light: #444444;
+  --color-border-subtle: #333333;
+  --color-border-focus: #3d9eff;
+  --color-border-pro: #111111;
+  --color-axis-x: #e74c4c;
+  --color-axis-y: #49b86e;
+  --color-axis-z: #3d9eff;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-full: 9999px;
+  --font-display: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --leading-tight: 1.2;
+  --leading-normal: 1.4;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-8: 16px;
+  --space-10: 20px;
+  --space-12: 24px;
+  --space-16: 32px;
+  --surface-panel: 1px solid var(--color-border);
+  --surface-elevated: 1px solid var(--color-border-light);
+  --surface-floating: 0 2px 8px rgba(0,0,0,0.5), 1px solid var(--color-border-light);
+  /* Unity-specific: inspector label width, toolbar height, etc. */
+  --unity-label-width: 110px;
+  --unity-toolbar-height: 30px;
+  --unity-menubar-height: 20px;
+  --unity-tab-height: 22px;
+  --unity-statusbar-height: 22px;
+  --unity-header-height: 22px;
+  --unity-indent: 16px;
+  --unity-icon-size: 16px;
+  --unity-inspector-padding: 6px 8px;
+}
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+.unity-panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+}
+.unity-header {
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: var(--unity-header-height);
+  line-height: var(--unity-header-height);
+}
+.unity-toolbar {
+  background: var(--color-bg-toolbar);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-toolbar-height);
+  padding: 0 var(--space-2);
+}
+.unity-tab-bar {
+  background: var(--color-bg-tab-inactive);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-tab-height);
+}
+.unity-tab {
+  padding: 0 var(--space-3);
+  height: var(--unity-tab-height);
+  line-height: var(--unity-tab-height);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.unity-tab:hover { background: var(--color-bg-hover); }
+.unity-tab.active {
+  background: var(--color-bg-tab-active);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-brand);
+}
+.unity-input {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 2px 4px;
+  outline: none;
+}
+.unity-input:focus { border-color: var(--color-border-focus); }
+.unity-button {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.unity-button:hover { background: var(--color-bg-hover); }
+.engine-viewport-bg { background: var(--color-bg-viewport); }

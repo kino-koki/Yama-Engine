@@ -1,0 +1,91 @@
+# ── 构建输出 ──
+bin/
+obj/
+out/
+build/
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.suo
+*.pdb
+*.dll.config
+*.exe.config
+
+# ── IDE ──
+.vs/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS ──
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ── NuGet ──
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# ── 运行时产物 ──
+Builds/
+*.shanyu.bak
+*.log
+
+# ── 可再生日录（不入库）──
+third_party/
+third_party/vcpkg/
+dotnet-sdk-cache/
+.dotnet-temp/
+.uploads/
+
+# ── 临时文件 ──
+*.tmp
+*.temp
+*.cache
+*.bak
+
+# ── 评估报告 HTML 产物 (开发期间不入库) ──
+shanyu-engine-evaluation/
+
+# ── Rust target ──
+ShanyuEngine.Rust/target/
+
+# ── C++ 构建中间文件 ──
+ShanyuEngineBridge/x64/
+ShanyuEngineBridge/Debug/
+ShanyuEngineBridge/Release/
+ShanyuEngine.Native/build/
+
+# ── Python 缓存 (DCC 插件) ──
+__pycache__/
+*.pyc
+.venv/
+
+# ── 用户配置 (本地覆盖) ──
+editor_layout.json
+editor_settings.json
+
+# ── 历史工作文件与缓存 ──
+_dup_backup/
+dotnet-sdk-cache/
+*.log
+all_errors.txt
+build_errors.txt
+build_log.txt
+build_out.txt
+cur_build.txt
+d3d12_errors.txt
+dotnet_install.log
+dup_err.txt
+dup_out.txt
+dup_report.txt
+eval_build_engine.txt
+py_test.txt
+test_write.txt

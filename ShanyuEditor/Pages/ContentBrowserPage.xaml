@@ -1,0 +1,188 @@
+<Page
+    x:Class="ShanyuEditor.Pages.ContentBrowserPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ShanyuEditor.Pages">
+
+    <Grid Background="{StaticResource ShanyuPanelBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="160"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 面板标题栏（跨全宽） -->
+        <Border Grid.Row="0" Grid.ColumnSpan="3"
+                Background="#FF1C1C20" Padding="8,4"
+                BorderBrush="{StaticResource ShanyuBorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Content Browser" Style="{StaticResource PanelHeaderStyle}"/>
+                <AutoSuggestBox x:Name="SearchBox"
+                                PlaceholderText="Search assets..."
+                                QueryIcon="Find"
+                                TextChanged="OnSearchTextChanged"
+                                Width="140"
+                                Margin="8,0,0,0"
+                                FontSize="11"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 左侧：目录树 -->
+        <Border Grid.Row="1" Grid.RowSpan="3" Grid.Column="0"
+                BorderBrush="{StaticResource ShanyuBorderBrush}" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Padding="4,2"
+                        BorderBrush="{StaticResource ShanyuBorderBrush}" BorderThickness="0,0,0,1">
+                    <TextBlock Text="Directories" FontSize="10"
+                               Foreground="{StaticResource ShanyuSubTextBrush}"
+                               FontWeight="SemiBold"/>
+                </Border>
+
+                <TreeView x:Name="DirectoryTree"
+                          Grid.Row="1"
+                          SelectionChanged="OnDirectorySelected">
+                    <TreeView.ItemTemplate>
+                        <DataTemplate x:DataType="local:DirectoryViewModel">
+                            <TreeViewItem>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="12"
+                                              Foreground="#FF4A90E2"/>
+                                    <TextBlock Text="{x:Bind Name}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource ShanyuTextBrush}"/>
+                                </StackPanel>
+                            </TreeViewItem>
+                        </DataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </Grid>
+        </Border>
+
+        <!-- 分割线 -->
+        <GridSplitter Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"
+                      Width="3" Background="{StaticResource ShanyuBorderBrush}"
+                      HorizontalAlignment="Center"/>
+
+        <!-- 右侧上方：面包屑 + 路径栏 -->
+        <Grid Grid.Row="1" Grid.Column="2"
+              BorderBrush="{StaticResource ShanyuBorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Padding="8,4" Spacing="4">
+                <FontIcon Glyph="&#xE8D3;" FontSize="12"
+                          Foreground="{StaticResource ShanyuSubTextBrush}"/>
+                <TextBlock x:Name="BreadcrumbText"
+                           Text="Root"
+                           FontSize="11"
+                           Foreground="{StaticResource ShanyuSubTextBrush}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 右侧主体：资产网格 -->
+        <GridView x:Name="AssetGrid"
+                  Grid.Row="2" Grid.Column="2"
+                  SelectionMode="Extended"
+                  DoubleTapped="OnAssetDoubleTapped"
+                  CanDragItems="True"
+                  AllowDrop="True"
+                  Padding="4">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="local:AssetItemViewModel">
+                    <Grid Width="90" Height="90" Padding="4"
+                          Background="#FF1D1D22"
+                          BorderBrush="{StaticResource ShanyuBorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="3">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 资产图标 -->
+                        <FontIcon Grid.Row="0"
+                                  Glyph="{x:Bind TypeGlyph}"
+                                  FontSize="28"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="{x:Bind TypeColor}"/>
+
+                        <!-- 资产名称 -->
+                        <TextBlock Grid.Row="1"
+                                   Text="{x:Bind Name}"
+                                   FontSize="10"
+                                   Foreground="{StaticResource ShanyuTextBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextAlignment="Center"
+                                   Margin="0,2,0,0"/>
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+
+            <GridView.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Text="Import..." Icon="Add" Click="OnContextImport"/>
+                    <MenuFlyoutItem Text="Rename" Icon="Rename" Click="OnContextRename"/>
+                    <MenuFlyoutItem Text="Duplicate" Icon="Copy" Click="OnContextDuplicate"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem Text="Open in Explorer" Click="OnContextOpenExplorer"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem Text="Delete" Icon="Delete" Click="OnContextDelete"/>
+                </MenuFlyout>
+            </GridView.ContextFlyout>
+        </GridView>
+
+        <!-- 右侧底部分割线 -->
+        <GridSplitter Grid.Row="3" Grid.Column="2"
+                      Height="3" HorizontalAlignment="Stretch"
+                      Background="{StaticResource ShanyuBorderBrush}"/>
+
+        <!-- 右侧底部：预览区域 -->
+        <Border Grid.Row="4" Grid.Column="2"
+                Height="100"
+                BorderBrush="{StaticResource ShanyuBorderBrush}" BorderThickness="0,1,0,0"
+                Padding="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="64"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 缩略图占位 -->
+                <Border Grid.Column="0" Background="#FF1D1D22"
+                        BorderBrush="{StaticResource ShanyuBorderBrush}"
+                        BorderThickness="1" CornerRadius="2">
+                    <FontIcon x:Name="PreviewIcon"
+                              Glyph="&#xE8B7;"
+                              FontSize="24"
+                              Foreground="{StaticResource ShanyuSubTextBrush}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- 预览信息 -->
+                <StackPanel Grid.Column="1" Margin="8,0,0,0" Spacing="2">
+                    <TextBlock x:Name="PreviewName" Text="No asset selected"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource ShanyuTextBrush}"/>
+                    <TextBlock x:Name="PreviewType" Text=""
+                               FontSize="10"
+                               Foreground="{StaticResource ShanyuSubTextBrush}"/>
+                    <TextBlock x:Name="PreviewInfo" Text=""
+                               FontSize="10"
+                               Foreground="{StaticResource ShanyuSubTextBrush}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

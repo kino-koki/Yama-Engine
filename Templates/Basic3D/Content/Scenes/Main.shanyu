@@ -1,0 +1,92 @@
+{
+  "Version": 1,
+  "Engine": "Shanyu Engine",
+  "SavedAtUtc": "2026-06-20T00:00:00Z",
+  "Objects": [
+    {
+      "Id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "Name": "Player Start Cube",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": { "X": 0, "Y": 0.5, "Z": 0 },
+      "Rotation": { "X": 0, "Y": 0, "Z": 0, "W": 1 },
+      "Scale": { "X": 1, "Y": 1, "Z": 1 },
+      "MeshAssetPath": "Box",
+      "MaterialAssetPath": "Content/Materials/Default.shmat",
+      "BaseColor": { "X": 0.25, "Y": 0.5, "Z": 1 },
+      "Metallic": 0,
+      "Roughness": 0.55,
+      "CastShadow": true,
+      "ReceiveShadow": true,
+      "Components": []
+    },
+    {
+      "Id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "Name": "Ground",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": { "X": 0, "Y": 0, "Z": 0 },
+      "Rotation": { "X": 0, "Y": 0, "Z": 0, "W": 1 },
+      "Scale": { "X": 1, "Y": 1, "Z": 1 },
+      "MeshAssetPath": "Plane",
+      "MaterialAssetPath": "Content/Materials/Default.shmat",
+      "BaseColor": { "X": 0.42, "Y": 0.56, "Z": 0.38 },
+      "Metallic": 0,
+      "Roughness": 0.9,
+      "CastShadow": false,
+      "ReceiveShadow": true,
+      "Components": []
+    },
+    {
+      "Id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "Name": "Sun Light",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": { "X": 4, "Y": 8, "Z": 5 },
+      "Rotation": { "X": 0, "Y": 0, "Z": 0, "W": 1 },
+      "Scale": { "X": 1, "Y": 1, "Z": 1 },
+      "MeshAssetPath": "Light_Directional",
+      "MaterialAssetPath": "",
+      "BaseColor": { "X": 1, "Y": 0.96, "Z": 0.86 },
+      "Metallic": 0,
+      "Roughness": 0.5,
+      "CastShadow": true,
+      "ReceiveShadow": true,
+      "Components": [
+        {
+          "Type": "Light",
+          "LightType": "Directional",
+          "Color": { "X": 1, "Y": 0.96, "Z": 0.86 },
+          "Intensity": 1.5,
+          "Range": 10,
+          "CastsShadows": true
+        }
+      ]
+    },
+    {
+      "Id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "Name": "Main Camera",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": { "X": 0, "Y": 2.5, "Z": 7 },
+      "Rotation": { "X": 0, "Y": 0, "Z": 0, "W": 1 },
+      "Scale": { "X": 1, "Y": 1, "Z": 1 },
+      "MeshAssetPath": "Camera_Gizmo",
+      "MaterialAssetPath": "",
+      "BaseColor": { "X": 0.4, "Y": 0.9, "Z": 0.95 },
+      "Metallic": 0,
+      "Roughness": 0.5,
+      "CastShadow": true,
+      "ReceiveShadow": true,
+      "Components": [
+        {
+          "Type": "Camera",
+          "IsMain": true,
+          "FieldOfView": 60,
+          "NearClip": 0.1,
+          "FarClip": 1000
+        }
+      ]
+    }
+  ]
+}

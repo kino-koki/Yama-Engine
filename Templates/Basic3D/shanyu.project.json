@@ -1,0 +1,18 @@
+{
+  "name": "Basic3D",
+  "engine": "Shanyu Engine",
+  "formatVersion": 1,
+  "template": "Basic 3D Project",
+  "startupScene": "Content/Scenes/Main.shanyu",
+  "folders": [
+    "Content/Scenes",
+    "Content/Assets",
+    "Content/Materials",
+    "Content/Scripts",
+    "Builds"
+  ],
+  "rendering": {
+    "pipeline": "ForwardPreview",
+    "defaultMaterial": "Content/Materials/Default.shmat"
+  }
+}

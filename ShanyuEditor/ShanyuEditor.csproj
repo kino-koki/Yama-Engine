@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <RootNamespace>ShanyuEditor</RootNamespace>
+    <UseWinUI>true</UseWinUI>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <WindowsPackageType>None</WindowsPackageType>
+    <GeneratePriFile>false</GeneratePriFile>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <EnableMsixTooling>false</EnableMsixTooling>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260529003" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
+    <!-- 编辑器通过 ShanyuEngine 的 Vulkan 后端渲染，不再直接依赖 D3D12 -->
+    <PackageReference Include="Silk.NET.Vulkan" Version="2.22.0" />
+    <PackageReference Include="Silk.NET.Core" Version="2.22.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ShanyuEngine\ShanyuEngine.csproj" />
+    <ProjectReference Include="..\BlenderBridge\BlenderBridge.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Exclude all XAML by default, then include explicitly -->
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Remove="**\*.xaml" />
+    <None Include="**\*.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Application & Window -->
+    <ApplicationDefinition Include="App.xaml" />
+    <Page Include="MainWindow.xaml" />
+
+    <!-- Theme -->
+    <Page Include="Themes\DarkTheme.xaml" />
+
+    <!-- Custom Controls -->
+    <Page Include="Controls\EngineViewport.xaml" />
+
+    <!-- Pages -->
+    <Page Include="Pages\OutlinerPage.xaml" />
+    <Page Include="Pages\ContentBrowserPage.xaml" />
+    <Page Include="Pages\InspectorPage.xaml" />
+    <Page Include="Pages\ConsolePage.xaml" />
+    <Page Include="Pages\MaterialEditorPage.xaml" />
+    <Page Include="Pages\SequenceEditorPage.xaml" />
+
+    <!-- Dialogs -->
+    <Page Include="Dialogs\NewProjectDialog.xaml" />
+    <Page Include="Dialogs\SettingsDialog.xaml" />
+  </ItemGroup>
+</Project>

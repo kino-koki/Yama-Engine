@@ -1,0 +1,7 @@
+{
+  "name": "Default",
+  "shader": "Shanyu/ForwardPreview",
+  "baseColor": { "x": 0.8, "y": 0.82, "z": 0.86 },
+  "metallic": 0.0,
+  "roughness": 0.55
+}
