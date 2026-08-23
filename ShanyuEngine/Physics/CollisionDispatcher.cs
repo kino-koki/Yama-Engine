@@ -788,12 +788,13 @@ namespace ShanyuEngine.Physics
         public static void ConvexConvexGjk(ref CollisionQueryInput input, ref CollisionQueryOutput output)
         {
             // GJK算法
-            Vector3 initDir = input.PosB - input.PosA;
+            CollisionQueryInput inp = input;
+            Vector3 initDir = inp.PosB - inp.PosA;
             if (initDir == Vector3.Zero) initDir = Vector3.UnitX;
 
             // 支持点函数
-            Vector3 SupportA(Vector3 d) => input.ShapeA.GetSupportPoint(d, input.PosA, input.RotA);
-            Vector3 SupportB(Vector3 d) => input.ShapeB.GetSupportPoint(d, input.PosB, input.RotB);
+            Vector3 SupportA(Vector3 d) => inp.ShapeA.GetSupportPoint(d, inp.PosA, inp.RotA);
+            Vector3 SupportB(Vector3 d) => inp.ShapeB.GetSupportPoint(d, inp.PosB, inp.RotB);
             Vector3 Support(Vector3 d) => SupportA(d) - SupportB(-d);
 
             // 简化GJK: 不完整实现，用迭代
@@ -1207,8 +1208,8 @@ namespace ShanyuEngine.Physics
     public sealed class CapsuleShape : ICollisionShape
     {
         public float Radius;
-        public float HalfHeight;  // 圆柱部分的一半高度(不含半球)
-        public Vector3 LocalCenter = Vector3.Zero;
+        public float HalfHeight;
+        public Vector3 LocalCenter;
 
         public CollisionShapeType Type => CollisionShapeType.Capsule;
         Vector3 ICollisionShape.LocalCenter => LocalCenter;
@@ -1253,6 +1254,23 @@ namespace ShanyuEngine.Physics
             t = 0; normal = Vector3.Zero;
             return false;
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     /// <summary>平面形状(无限大)。</summary>
@@ -1589,11 +1607,11 @@ namespace ShanyuEngine.Physics
     /// <summary>高度场形状(地形)。</summary>
     public sealed class HeightfieldShape : ICollisionShape
     {
-        public float[,] Heights;
+        public float[,]? Heights;
         public float CellSize;
-        public float HeightScale = 1f;
-        public Vector3 LocalCenter = Vector3.Zero;
         public Vector3 Origin;
+        public float HeightScale = 1.0f;
+        public Vector3 LocalCenter;
 
         public CollisionShapeType Type => CollisionShapeType.Heightfield;
         Vector3 ICollisionShape.LocalCenter => LocalCenter;
@@ -1651,6 +1669,7 @@ namespace ShanyuEngine.Physics
             // 简化: 把射线转到局部系
             Vector3 localOrigin = origin - position - Origin;
             // 遍历网格找交点
+
             int w = Heights.GetLength(0);
             int h = Heights.GetLength(1);
 
@@ -1706,5 +1725,22 @@ namespace ShanyuEngine.Physics
             t = f * Vector3.Dot(e2, q);
             return t > 0;
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }
