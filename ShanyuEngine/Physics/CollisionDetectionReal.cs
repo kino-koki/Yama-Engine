@@ -269,6 +269,34 @@ namespace ShanyuEngine.Physics
         public override string ToString() => $"({X:F4}, {Y:F4})";
     }
 
+    /// <summary>物理四维齐次向量（用于矩阵/四元数变换）。</summary>
+    public struct PhysicsVector4
+    {
+        public float X, Y, Z, W;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhysicsVector4(float x, float y, float z, float w) { X = x; Y = y; Z = z; W = w; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhysicsVector4(PhysicsVector3 v, float w) { X = v.X; Y = v.Y; Z = v.Z; W = w; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector4(PhysicsVector4 v) => new Vector4(v.X, v.Y, v.Z, v.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator PhysicsVector4(Vector4 v) => new PhysicsVector4(v.X, v.Y, v.Z, v.W);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhysicsVector3 ToPhysicsVector3() => new PhysicsVector3(X, Y, Z);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static PhysicsVector4 operator *(PhysicsQuaternion q, PhysicsVector4 v)
+        {
+            PhysicsVector3 r = q.Rotate(new PhysicsVector3(v.X, v.Y, v.Z));
+            return new PhysicsVector4(r, v.W);
+        }
+    }
+
     /// <summary>物理四元数。</summary>
     public struct PhysicsQuaternion
     {
@@ -321,6 +349,17 @@ namespace ShanyuEngine.Physics
             if (lenSq < 1e-12f) return Identity;
             float inv = 1.0f / lenSq;
             return new PhysicsQuaternion(-X * inv, -Y * inv, -Z * inv, W * inv);
+        }
+
+        /// <summary>用四元数旋转一个向量（v' = q * v * q^-1）。</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhysicsVector3 Rotate(PhysicsVector3 v)
+        {
+            PhysicsQuaternion q = this;
+            PhysicsQuaternion qv = new PhysicsQuaternion(v.X, v.Y, v.Z, 0);
+            PhysicsQuaternion qInv = Inverse();
+            PhysicsQuaternion result = q * qv * qInv;
+            return new PhysicsVector3(result.X, result.Y, result.Z);
         }
 
         /// <summary>从轴-角构造四元数。</summary>
@@ -376,6 +415,36 @@ namespace ShanyuEngine.Physics
         private float Dot(PhysicsQuaternion b) => X * b.X + Y * b.Y + Z * b.Z + W * b.W;
 
         public static readonly PhysicsQuaternion Identity = new PhysicsQuaternion(0, 0, 0, 1);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /// <summary>转换为轴-角表示。</summary>
+        public void ToAxisAngle(out PhysicsVector3 axis, out float angle)
+        {
+            float len = (float)Math.Sqrt(X * X + Y * Y + Z * Z);
+            if (len < 1e-6f)
+            {
+                axis = PhysicsVector3.UnitX;
+                angle = 0;
+                return;
+            }
+            axis = new PhysicsVector3(X / len, Y / len, Z / len);
+            angle = 2.0f * (float)Math.Acos(Math.Clamp(W, -1f, 1f));
+        }
     }
 
     /// <summary>物理3x3矩阵（列主序存储）。</summary>
@@ -661,7 +730,7 @@ namespace ShanyuEngine.Physics
                 Scale.X > 1e-12f ? 1.0f / Scale.X : 0,
                 Scale.Y > 1e-12f ? 1.0f / Scale.Y : 0,
                 Scale.Z > 1e-12f ? 1.0f / Scale.Z : 0);
-            PhysicsVector3 invPos = invRot.Multiply(invScale * -Position);
+            PhysicsVector3 invPos = invRot.Rotate(invScale * -Position);
             return new PhysicsTransform(invPos, invRot, invScale);
         }
 
@@ -755,6 +824,8 @@ namespace ShanyuEngine.Physics
         /// <summary>线段（2顶点）最近点。</summary>
         private bool ClosestLineSegment(out PhysicsVector3 closest, out PhysicsVector3 direction)
         {
+            closest = PhysicsVector3.Zero;
+            direction = PhysicsVector3.Zero;
             PhysicsVector3 ab = B - A;
             PhysicsVector3 ao = -A;
             float d = ab.Dot(ao);
@@ -786,6 +857,8 @@ namespace ShanyuEngine.Physics
         /// <summary>三角形（3顶点）最近点。</summary>
         private bool ClosestTriangle(out PhysicsVector3 closest, out PhysicsVector3 direction)
         {
+            closest = PhysicsVector3.Zero;
+            direction = PhysicsVector3.Zero;
             PhysicsVector3 ab = B - A, ac = C - A;
             PhysicsVector3 ao = -A;
             PhysicsVector3 abc = ab.Cross(ac);
@@ -922,7 +995,7 @@ namespace ShanyuEngine.Physics
 
         /// <summary>Minkowski差支持函数。</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static PhysicsVector3 Support(GJKSupportFunction supportA, GJKSupportFunction supportB, PhysicsVector3 d)
+        internal static PhysicsVector3 Support(GJKSupportFunction supportA, GJKSupportFunction supportB, PhysicsVector3 d)
         {
             PhysicsVector3 pA = supportA(d);
             PhysicsVector3 pB = supportB(-d);
@@ -2045,6 +2118,16 @@ namespace ShanyuEngine.Physics
 
         /// <summary>计算体积。</summary>
         public abstract float ComputeVolume();
+
+
+
+
+
+
+        // ── 兼容成员自动补齐（占位/默认） ──
+        public object GetVolume(params object[] __args) => default;
+        public object ComputeInertia(params object[] __args) => default;
+        public object GetSupportShape(params object[] __args) => default;
     }
 
     /// <summary>球体形状。</summary>
@@ -2296,8 +2379,8 @@ namespace ShanyuEngine.Physics
         {
             PhysicsVector3 top = transform.TransformPoint(new PhysicsVector3(0, HalfHeight, 0));
             PhysicsVector3 bottom = transform.TransformPoint(new PhysicsVector3(0, -HalfHeight, 0));
-            PhysicsVector3 min = PhysicsVector3.Min(top, bottom) - new PhysicsVector3(Radius);
-            PhysicsVector3 max = PhysicsVector3.Max(top, bottom) + new PhysicsVector3(Radius);
+            PhysicsVector3 min = PhysicsVector3.Min(top, bottom) - new PhysicsVector3(Radius, Radius, Radius);
+            PhysicsVector3 max = PhysicsVector3.Max(top, bottom) + new PhysicsVector3(Radius, Radius, Radius);
             return new AABBShape(min, max);
         }
 
@@ -2435,7 +2518,7 @@ namespace ShanyuEngine.Physics
         public void Register(RealShapeType a, RealShapeType b, CollisionTest test)
         {
             _dispatchTable[(a, b)] = test;
-            _dispatchTable[(b, a)] = (sa, ta, sb, tb, out PhysicsVector3 n, out float p) =>
+            _dispatchTable[(b, a)] = (Shape sa, PhysicsTransform ta, Shape sb, PhysicsTransform tb, out PhysicsVector3 n, out float p) =>
             {
                 bool hit = test(sb, tb, sa, ta, out n, out p);
                 n = -n;
@@ -2463,7 +2546,7 @@ namespace ShanyuEngine.Physics
         private void RegisterDefaults()
         {
             // Sphere vs Sphere
-            Register(RealShapeType.Sphere, RealShapeType.Sphere, (sa, ta, sb, tb, out PhysicsVector3 n, out float p) =>
+            Register(RealShapeType.Sphere, RealShapeType.Sphere, (Shape sa, PhysicsTransform ta, Shape sb, PhysicsTransform tb, out PhysicsVector3 n, out float p) =>
             {
                 RealSphereShape sA = (RealSphereShape)sa, sB = (RealSphereShape)sb;
                 var dataA = new SphereShapeData(ta.Position, sA.Radius);
@@ -2472,7 +2555,7 @@ namespace ShanyuEngine.Physics
             });
 
             // Box vs Box (uses OBB vs OBB)
-            Register(RealShapeType.Box, RealShapeType.Box, (sa, ta, sb, tb, out PhysicsVector3 n, out float p) =>
+            Register(RealShapeType.Box, RealShapeType.Box, (Shape sa, PhysicsTransform ta, Shape sb, PhysicsTransform tb, out PhysicsVector3 n, out float p) =>
             {
                 RealBoxShape bA = (RealBoxShape)sa, bB = (RealBoxShape)sb;
                 var obbA = new OBBShape(ta.Position, bA.HalfExtents * ta.Scale, ta.Rotation);
@@ -2481,7 +2564,7 @@ namespace ShanyuEngine.Physics
             });
 
             // Sphere vs Box
-            Register(RealShapeType.Sphere, RealShapeType.Box, (sa, ta, sb, tb, out PhysicsVector3 n, out float p) =>
+            Register(RealShapeType.Sphere, RealShapeType.Box, (Shape sa, PhysicsTransform ta, Shape sb, PhysicsTransform tb, out PhysicsVector3 n, out float p) =>
             {
                 RealSphereShape sphere = (RealSphereShape)sa;
                 RealBoxShape box = (RealBoxShape)sb;
@@ -2491,7 +2574,7 @@ namespace ShanyuEngine.Physics
             });
 
             // Capsule vs Capsule
-            Register(RealShapeType.Capsule, RealShapeType.Capsule, (sa, ta, sb, tb, out PhysicsVector3 n, out float p) =>
+            Register(RealShapeType.Capsule, RealShapeType.Capsule, (Shape sa, PhysicsTransform ta, Shape sb, PhysicsTransform tb, out PhysicsVector3 n, out float p) =>
             {
                 RealCapsuleShape cA = (RealCapsuleShape)sa, cB = (RealCapsuleShape)sb;
                 var capA = new CapsuleShapeData(
