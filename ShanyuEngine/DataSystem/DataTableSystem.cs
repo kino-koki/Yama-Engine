@@ -341,7 +341,6 @@ namespace ShanyuEngine.DataSystem
 
 
     public enum CurveInterpMode { Linear, Constant, Cubic, Auto }
-    public enum CurveExtrapolation { Clamp, LinearExtend, Cycle }
     public enum CurveType { FloatCurve, VectorCurve, SimpleCurve }
 
     /// <summary>Float curve data with keyframes and interpolation.</summary>
@@ -374,8 +373,6 @@ namespace ShanyuEngine.DataSystem
     //  Part 5: ConfigManager (Hierarchical Override: Default/Project/Platform/CommandLine)
     // ─────────────────────────────────────────────────────────────────────
 
-    public enum ConfigType { Engine, Game, Input, Graphics, Audio, Network, Physics, UI }
-    public enum ConfigFormat { Ini, Json, Toml }
     public enum ConfigLayer { Default = 0, Platform = 1, Project = 2, User = 3, CommandLine = 4 }
 
 

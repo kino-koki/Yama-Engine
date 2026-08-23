@@ -498,12 +498,12 @@ namespace ShanyuEngine.Editor
         //  日志
         // ─────────────────────────────────────────────────────────────────────────
 
-        private void OnScriptDebugLog(string message, ScriptAPI.Debug.LogLevel level)
+        private void OnScriptDebugLog(string message, LogLevel level)
         {
             var logLevel = level switch
             {
-                ScriptAPI.Debug.LogLevel.Warning => LogLevel.Warning,
-                ScriptAPI.Debug.LogLevel.Error => LogLevel.Error,
+                LogLevel.Warning => LogLevel.Warning,
+                LogLevel.Error => LogLevel.Error,
                 _ => LogLevel.Info,
             };
             OnLog?.Invoke(message, logLevel);

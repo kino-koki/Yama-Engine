@@ -1588,17 +1588,6 @@ namespace ShanyuEngine.RHI
 
     /// <summary>RHI 资源接口</summary>
 
-    /// <summary>RHI 纹理</summary>
-    public partial interface RHITexture : RHIResource
-    {
-        RHIFormat Format { get; }
-        int Width { get; }
-        int Height { get; }
-        int Depth { get; }
-        int MipLevels { get; }
-        int ArraySize { get; }
-    }
-
     /// <summary>命令列表接口</summary>
     public partial interface IRHICommandList
     {

@@ -28,6 +28,7 @@ using ShanyuEngine.Runtime.Physics;
 using ShanyuEngine.Scripting;
 using ShanyuEngine.Core;
 using ShanyuEngine.Rendering;
+using LogLevel = ShanyuEngine.Config.LogLevel;
 
 namespace ShanyuEngine.Editor
 {
@@ -67,7 +68,7 @@ namespace ShanyuEngine.Editor
         public event Action<PlayModeState, PlayModeState>? OnPieStateChanged;
 
         /// <summary>PIE 日志事件。参数：消息, 级别。</summary>
-        public event Action<string, EditorPlayModeController.LogLevel>? OnPieLog;
+        public event Action<string, LogLevel>? OnPieLog;
 
         /// <summary>热重载请求事件。参数：脚本状态快照。</summary>
         public event Action<ScriptStateSnapshot>? OnHotReloadRequested;
@@ -159,7 +160,7 @@ namespace ShanyuEngine.Editor
             RegisterConsoleCommands();
 
             _initialized = true;
-            Log("PIE Integration initialized.", EditorPlayModeController.LogLevel.Info);
+            Log("PIE Integration initialized.", LogLevel.Info);
         }
 
         // ================================================================================================
@@ -172,7 +173,7 @@ namespace ShanyuEngine.Editor
             _playModeController.OnStateChanged += (oldState, newState) =>
             {
                 OnPieStateChanged?.Invoke(oldState, newState);
-                Log($"PIE State: {oldState} -> {newState}", EditorPlayModeController.LogLevel.Info);
+                Log($"PIE State: {oldState} -> {newState}", LogLevel.Info);
             };
 
             _playModeController.OnLog += (msg, level) =>
@@ -193,28 +194,28 @@ namespace ShanyuEngine.Editor
             // ScriptEngine 事件
             _scriptEngine.OnCompileStarted += (source) =>
             {
-                Log($"Compiling scripts: {source.AssemblyName} ({source.Files.Count} files)", EditorPlayModeController.LogLevel.Info);
+                Log($"Compiling scripts: {source.AssemblyName} ({source.Files.Count} files)", LogLevel.Info);
             };
 
             _scriptEngine.OnCompileFinished += (result) =>
             {
                 if (result.Success)
                 {
-                    Log($"Compilation succeeded: {result.ScriptTypeCount} types in {result.CompileTime.TotalMilliseconds:0}ms", EditorPlayModeController.LogLevel.Info);
+                    Log($"Compilation succeeded: {result.ScriptTypeCount} types in {result.CompileTime.TotalMilliseconds:0}ms", LogLevel.Info);
                 }
                 else
                 {
-                    Log($"Compilation failed: {result.ErrorCount} errors, {result.WarningCount} warnings", EditorPlayModeController.LogLevel.Error);
+                    Log($"Compilation failed: {result.ErrorCount} errors, {result.WarningCount} warnings", LogLevel.Error);
                     foreach (var diag in result.GetErrors())
                     {
-                        Log($"  {diag}", EditorPlayModeController.LogLevel.Error);
+                        Log($"  {diag}", LogLevel.Error);
                     }
                 }
             };
 
             _scriptEngine.OnHotReloadStarted += () =>
             {
-                Log("Hot reload started...", EditorPlayModeController.LogLevel.Info);
+                Log("Hot reload started...", LogLevel.Info);
             };
 
             _scriptEngine.OnHotReloadFinished += (result) =>
@@ -222,11 +223,11 @@ namespace ShanyuEngine.Editor
                 if (result.Success)
                 {
                     var reloadMode = result.WasHotReload ? "hot-reload" : "cold-start";
-                    Log($"Hot reload complete: {result.ScriptTypeCount} types, {reloadMode}", EditorPlayModeController.LogLevel.Info);
+                    Log($"Hot reload complete: {result.ScriptTypeCount} types, {reloadMode}", LogLevel.Info);
                 }
                 else
                 {
-                    Log("Hot reload failed.", EditorPlayModeController.LogLevel.Error);
+                    Log("Hot reload failed.", LogLevel.Error);
                 }
             };
         }
@@ -320,7 +321,7 @@ namespace ShanyuEngine.Editor
         /// </summary>
         private void SyncEditorSceneToRuntime()
         {
-            Log("Syncing editor scene to runtime...", EditorPlayModeController.LogLevel.Info);
+            Log("Syncing editor scene to runtime...", LogLevel.Info);
 
             // 1. 清理旧的运行时状态
             _scriptEngine.Registry.DestroyAllInstances();
@@ -384,7 +385,7 @@ namespace ShanyuEngine.Editor
                 }
             }
 
-            Log($"Synced {entityIdMap.Count} entities to runtime.", EditorPlayModeController.LogLevel.Info);
+            Log($"Synced {entityIdMap.Count} entities to runtime.", LogLevel.Info);
         }
 
         private Shape? CreateCollisionShape(ColliderType type, Vector3 size)
@@ -514,7 +515,7 @@ namespace ShanyuEngine.Editor
                     case "pie.logstate":
                         if (value == "1")
                         {
-                            Log($"PIE State: {State}, Time: {PlayTimeSeconds:F2}s, Frame: {PlayFrameIndex}", EditorPlayModeController.LogLevel.Info);
+                            Log($"PIE State: {State}, Time: {PlayTimeSeconds:F2}s, Frame: {PlayFrameIndex}", LogLevel.Info);
                             cvars.TrySet("pie.logstate", "0");
                         }
                         break;
@@ -526,7 +527,7 @@ namespace ShanyuEngine.Editor
         //  日志
         // ================================================================================================
 
-        private void Log(string message, EditorPlayModeController.LogLevel level)
+        private void Log(string message, LogLevel level)
         {
             OnPieLog?.Invoke(message, level);
             _engineSystems.Log(message);

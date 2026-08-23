@@ -34,6 +34,22 @@ namespace ShanyuEngine.Config
         UI = 1 << 12
     }
 
+    /// <summary>
+    /// 引擎级日志级别。供 Logger / 各子系统统一引用（ShanyuEngine.Config.LogLevel）。
+    /// 数值顺序与严重程度递增一致，便于按阈值过滤。
+    /// </summary>
+    public enum LogLevel
+    {
+        None = 0,
+        Trace = 1,
+        Debug = 2,
+        Info = 3,
+        Warning = 4,
+        Error = 5,
+        Fatal = 6,
+        Assert = 7
+    }
+
     public class ConsoleVariable
     {
         public string Name;

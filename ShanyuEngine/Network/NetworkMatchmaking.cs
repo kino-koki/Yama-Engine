@@ -3,7 +3,6 @@ using System; using System.Collections.Generic; using System.Net; using System.N
 public enum MatchmakingRegion { Auto, USEast, USWest, Europe, Asia, China, SouthAmerica, Oceania }
 public enum MatchmakingMode { QuickPlay, Ranked, Casual, Custom, Training, CoOp, BattleRoyale }
 public enum GameMode { TeamDeathmatch, CaptureTheFlag, Domination, Payload, FreeForAll, Arena, BattleRoyale, Custom }
-public enum ConnectionState { Disconnected, Connecting, Connected, Matchmaking, InGame, Disconnecting }
 public enum SkillBucket { Bronze = 0, Silver = 1000, Gold = 2000, Platinum = 3000, Diamond = 4000, Master = 5000, Grandmaster = 6000 }
 
 public struct PlayerMatchData
