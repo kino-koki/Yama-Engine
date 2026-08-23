@@ -24,17 +24,6 @@ namespace ShanyuEngine.Physics
 {
     #region ======================== 刚体 ========================
 
-    /// <summary>刚体类型。</summary>
-    public enum BodyType
-    {
-        /// <summary>静态体（不受力影响，无限质量）。</summary>
-        Static,
-        /// <summary>动态体（完全物理模拟）。</summary>
-        Dynamic,
-        /// <summary>运动学体（用户控制运动，但参与碰撞）。</summary>
-        Kinematic,
-    }
-
     /// <summary>刚体状态。</summary>
     public enum BodyState
     {

@@ -21,14 +21,18 @@ namespace ShanyuEngine.Rendering
     //   4. 支持数千动态光源, 内存占用固定 (与分辨率无关的簇数量)。
     // ════════════════════════════════════════════════════════════════════════
 
-    /// <summary>光源类型。</summary>
+    /// <summary>光源类型。数值与底层光照数据布局对齐，可用于 (LightType) 强转。</summary>
     public enum LightType
     {
         Directional = 0,
         Point = 1,
         Spot = 2,
         Rectangle = 3,
-        Disk = 4
+        Disk = 4,
+        Area = 5,
+        Rect = 6,
+        Sphere = 7,
+        Tube = 8
     }
 
     /// <summary>GPU 光源数据结构 (与着色器布局严格一致)。</summary>

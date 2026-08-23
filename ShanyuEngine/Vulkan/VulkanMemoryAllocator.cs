@@ -1155,10 +1155,6 @@ namespace ShanyuEngine.Vulkan
     // 区域 6: 给 MemoryTypePool 加的扩展 (放这里避免改上面那个类)
     // ════════════════════════════════════════════════════════════════════════════
 
-    internal sealed unsafe class MemoryTypePool
-    {
-        // 占位：实际定义在前面
-    }
 }
 
 namespace ShanyuEngine.Vulkan

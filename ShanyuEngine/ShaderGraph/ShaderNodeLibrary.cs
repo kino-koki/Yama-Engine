@@ -540,9 +540,9 @@ namespace ShanyuEngine.ShaderGraph
         protected override string Op(string x) => $"cos({x})";
     }
 
-    public class TangentNode : UnaryMathNode
+    public class TanNode : UnaryMathNode
     {
-        public TangentNode() { NodeType = "Tangent"; Title = "Tangent"; }
+        public TanNode() { NodeType = "Tan"; Title = "Tan"; }
         protected override string Op(string x) => $"tan({x})";
     }
 
@@ -3029,7 +3029,7 @@ namespace ShanyuEngine.ShaderGraph
             Reg<FractionNode>("Math");
             Reg<SineNode>("Math");
             Reg<CosineNode>("Math");
-            Reg<TangentNode>("Math");
+            Reg<TanNode>("Math");
             Reg<ArcSineNode>("Math");
             Reg<ArcCosineNode>("Math");
             Reg<ArcTangentNode>("Math");

@@ -309,9 +309,6 @@ public sealed class VirtualTextureSystem
 
 #region Light Types & Manager
 
-public enum LightType { Directional, Point, Spot, Area, Rect, Sphere, Tube }
-
-
 public sealed class LightManager
 {
     private readonly List<LightData> _lights = new();
