@@ -146,6 +146,15 @@ try
     NpcBrainTests.TestSocialSimulationGeneratesEventForNearbySocialPair();
     NpcBrainTests.TestSocialSimulationRespectsRadiusAndActivity();
     NpcBrainTests.TestSocialSimulationCooldownSuppressesRepeat();
+    // ── 心智接入行为树/StateTree (NpcBrain → BT/StateTree 运行实例) ──
+    NpcBrainWiringTests.TestBTTaskNpcIntentExecutesGoToToCompletion();
+    NpcBrainWiringTests.TestBTTaskNpcIntentFailsWithoutBrain();
+    NpcBrainWiringTests.TestBTTaskNpcIntentTalkToSucceedsImmediately();
+    NpcBrainWiringTests.TestBTTaskNpcIntentFleeMovesAway();
+    NpcBrainWiringTests.TestBTServiceSyncsIntentToBlackboard();
+    NpcBrainWiringTests.TestStateTreeTaskNpcIntentExecutesGoTo();
+    NpcBrainWiringTests.TestStateTreeTaskNpcIntentFailsWithoutBrain();
+    NpcBrainWiringTests.TestFullChainLLMDecisionDrivesBehaviorTree();
     Console.WriteLine("All YamaEngine tests passed.");
 }
 
