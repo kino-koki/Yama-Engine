@@ -200,6 +200,13 @@ namespace YamaEngine.Build
                 var report = new Dictionary<string, object>
                 {
                     ["projectName"] = options.ProjectName ?? "",
+                    ["sceneName"] = sceneName,
+                    ["scenePath"] = "Content/" + sceneName + "Scene.yama",
+                    ["objectCount"] = db?.SceneObjects.Count ?? 0,
+                    ["assetCount"] = result.AssetCount,
+                    // BuildOptions 无运行时路径概念，故 runtime 从不内嵌（测试约定）。
+                    ["runtimeIncluded"] = false,
+                    ["engine"] = "Yama Engine",
                     ["warnings"] = warnings,
                     ["errors"] = errors,
                     ["missingReferences"] = missing,

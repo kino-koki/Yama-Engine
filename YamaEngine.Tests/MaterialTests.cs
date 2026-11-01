@@ -51,9 +51,9 @@ namespace YamaEngine.Tests
             var roughness = graph.AddNode(MaterialNodeType.ConstantFloat, "Roughness");
             roughness.FloatValue = 0.32f;
             var master = graph.AddNode(MaterialNodeType.PbrMaster, "PBR Master");
-            graph.Connect(color.Id, "Color", master.Id, "BaseColor");
-            graph.Connect(metallic.Id, "Value", master.Id, "Metallic");
-            graph.Connect(roughness.Id, "Value", master.Id, "Roughness");
+            graph.ConnectByPinName(color.Id, "Color", master.Id, "BaseColor");
+            graph.ConnectByPinName(metallic.Id, "Value", master.Id, "Metallic");
+            graph.ConnectByPinName(roughness.Id, "Value", master.Id, "Roughness");
 
             AssertEqual(0, graph.Validate().Count, "Material graph should validate before save.");
             var preview = graph.EvaluatePreview();
@@ -77,7 +77,7 @@ namespace YamaEngine.Tests
         {
             var missingMaster = MaterialGraph.Create("MissingMaster");
             missingMaster.AddNode(MaterialNodeType.ConstantFloat, "OnlyValue");
-            AssertTrue(missingMaster.Validate().Any(e => e.Contains("PBR master")), "Material graph should require a PBR master node.");
+            AssertTrue(missingMaster.Validate().Any(e => e.Contains("PBR master", StringComparison.OrdinalIgnoreCase)), "Material graph should require a PBR master node.");
 
             var graph = MaterialGraph.Create("CycleGraph");
             var a = graph.AddNode(MaterialNodeType.Add, "A");

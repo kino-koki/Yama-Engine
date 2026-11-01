@@ -762,16 +762,24 @@ namespace YamaEngine.Materials
             var master = Nodes.FirstOrDefault(n => n.Type == MaterialNodeType.PbrMaster);
             if (master == null) return result;
 
-            float ResolveInput(string pinId)
+            // 将引脚名称解析为 master 输入引脚的完整 Id（{masterId}_in_{name}），
+            // 以与 Connect/ConnectByPinName 存储的边引脚 Id 约定一致；
+            // 若传入的已是 Id（GetInput(...).Id 形式），GetInput 返回 null 时按原样回退。
+            string ResolveMasterPinId(string pinName)
+                => master.GetInput(pinName)?.Id ?? pinName;
+
+            float ResolveInput(string pinName)
             {
+                var pinId = ResolveMasterPinId(pinName);
                 var edge = Edges.LastOrDefault(e => e.ToNodeId == master.Id && e.ToPinId == pinId);
                 if (edge == null) return 0f;
                 var src = Nodes.FirstOrDefault(n => n.Id == edge.FromNodeId);
                 return src?.FloatValue ?? 0f;
             }
 
-            Vector4 ResolveColor(string pinId)
+            Vector4 ResolveColor(string pinName)
             {
+                var pinId = ResolveMasterPinId(pinName);
                 var edge = Edges.LastOrDefault(e => e.ToNodeId == master.Id && e.ToPinId == pinId);
                 if (edge == null) return new Vector4(0.8f, 0.8f, 0.8f, 1f);
                 var src = Nodes.FirstOrDefault(n => n.Id == edge.FromNodeId);
