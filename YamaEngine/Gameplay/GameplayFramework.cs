@@ -342,6 +342,9 @@ namespace YamaEngine.Gameplay
             if (controller == null) return;
             var pawn = DefaultPawnFactory?.Invoke()
                        ?? new Pawn { Name = "DefaultPawn", MoveSpeed = 5f };
+            // 生成的默认 Pawn 必须注册进世界，否则不会被 GameplayWorld.Tick 遍历，
+            // OnTick 永不执行，移动输入不生效（TestGameplayWorldSpawnsDefaultPlayer... 失败）。
+            world.RegisterActor(pawn);
             controller.Possess(pawn);
         }
     }

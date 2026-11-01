@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.IO.Compression;
+using YamaEngine.Scenes;
 
 namespace YamaEngine.Build
 {
@@ -149,9 +150,15 @@ namespace YamaEngine.Build
                 var db = options.Assets;
                 result.AssetCount = 0;
 
-                // 1) 导出场景占位文件
+                // 1) 真实序列化场景（RuntimeSceneLoader.LoadPackage 依赖真实对象数据；
+                //    若只写占位注释，Loader 的 SceneSerializer.Load 无法 Materialize 任何对象，
+                //    导致 RuntimeTests.TestRuntimeSceneLoaderLoadsExportedDemoPackage 失败。）
                 string sceneName = string.IsNullOrWhiteSpace(options.SceneName) ? "Main" : options.SceneName;
-                File.WriteAllText(Path.Combine(contentDir, sceneName + "Scene.yama"), "// YamaEngine 导出场景\n");
+                string sceneFilePath = Path.Combine(contentDir, sceneName + "Scene.yama");
+                if (db != null)
+                    SceneSerializer.Save(sceneFilePath, db.SceneObjects, sceneName);
+                else
+                    File.WriteAllText(sceneFilePath, "// YamaEngine 导出场景\n");
 
                 // 2) 复制已导入资源到 Content/<AssetPath>
                 if (db != null)

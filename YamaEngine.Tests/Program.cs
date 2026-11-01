@@ -66,6 +66,22 @@ try
     RenderTests.TestVirtualGeometryBuilderCreatesMeshClusters();
     RenderTests.TestVirtualGeometryLodSelectorChoosesLowerDetailAtDistance();
     RenderTests.TestVirtualGeometryDrawListUsesHzbOcclusion();
+    // ── UE4.7 级延迟渲染管线 (DeferredRenderPipeline) ──
+    DeferredRenderTests.TestGBufferPackDecodeRoundtrip();
+    DeferredRenderTests.TestGBufferNormalEncodingAxisAligned();
+    DeferredRenderTests.TestGBufferShadingModelPacked();
+    DeferredRenderTests.TestCascadePracticalSplitsMonotonic();
+    DeferredRenderTests.TestCascadeLinearEqualSpacing();
+    DeferredRenderTests.TestCascadePracticalLogWeightBoundaries();
+    DeferredRenderTests.TestSSAOKernelHemisphere();
+    DeferredRenderTests.TestDeferredLightDirectionalNonZero();
+    DeferredRenderTests.TestDeferredLightBackfaceZero();
+    DeferredRenderTests.TestDeferredLightMetalNoDiffuse();
+    DeferredRenderTests.TestDeferredPointLightAttenuation();
+    DeferredRenderTests.TestUnlitEmissiveIgnoresLight();
+    DeferredRenderTests.TestDefaultDeferredGraphHasFourPasses();
+    DeferredRenderTests.TestDefaultDeferredGraphResources();
+    DeferredRenderTests.TestDeferredGraphExecutesWithNullDevice();
     EditorTests.TestEditorCommandStackUndoRedoCreateAndDelete(tempRoot);
     EditorTests.TestEditorCommandStackUndoRedoMoveAndPropertyEdit(tempRoot);
     RuntimeTests.TestRuntimeSceneLoaderLoadsExportedDemoPackage(tempRoot);

@@ -31,7 +31,9 @@ namespace YamaEngine.Runtime
             _world = world ?? throw new ArgumentNullException(nameof(world));
             _renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
             _options = options ?? new RuntimeLoopOptions();
-            _renderGraph = renderGraph;
+            // 未提供渲染图时默认使用 5-pass 延迟渲染图，
+            // 使 RenderFrame 始终走 RenderGraph 提交路径（RenderGraphPassCount >= 5）。
+            _renderGraph = renderGraph ?? RenderGraph.CreateDefaultDeferredGraph(1280, 720);
         }
 
         public RuntimeTickResult Tick(float deltaTime)

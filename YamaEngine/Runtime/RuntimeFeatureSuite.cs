@@ -879,7 +879,10 @@ namespace YamaEngine.Runtime
     public sealed class RuntimeSaveGameStore
     {
         private static readonly byte[] Magic = Encoding.ASCII.GetBytes("SYRTSAVE");
-        private readonly JsonSerializerOptions _json = new() { WriteIndented = false };
+        // IncludeFields=true 是必须的：System.Numerics.Vector3/Quaternion 的 X/Y/Z(W) 是
+        // public 字段而非属性，System.Text.Json 默认只序列化属性，会把这些变换序列化为空对象，
+        // 导致存档往返后 Position/Rotation/Scale 全部归零（TestRuntimeSaveGameStoreRoundtrips...）。
+        private readonly JsonSerializerOptions _json = new() { WriteIndented = false, IncludeFields = true };
 
         public byte[] Write(RuntimeSaveSnapshot snapshot)
         {

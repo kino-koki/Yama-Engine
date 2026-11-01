@@ -797,7 +797,25 @@ namespace YamaEngine.Rendering
             graph.AddPass("PostProcess", RenderGraphPassType.Compute)
                 .Read(sceneColor, RenderGraphResourceAccess.ShaderRead)
                 .Write(finalOutput, RenderGraphResourceAccess.ShaderWrite)
+                // finalOutput 是最终画面输出，无人消费，必须标记为副作用，
+                // 否则 Compile() 的“无输出且无副作用”剔除规则会移除本 pass，
+                // 导致默认延迟图只剩 3 个传递（Shadow/GeometryBuffer/Lighting），
+                // 破坏 TestRenderGraphReportsResourceLifetimesAndStats 的 >=4 断言。
+                .SetHasSideEffects()
                 .SetExecute((cmd, ctx) => { /* Postprocess pass */ });
+
+            // Present pass：FinalOutput → BackBuffer（Imported）。这是帧的最后一站，
+            // 使默认延迟图含 5 个传递，满足 RuntimeGameLoop 默认提交的 >=5 契约
+            // （TestRuntimeGameLoopTicksComponentsAndRendersFrame）。
+            var backBuffer = graph.CreateResource(RenderGraphResourceDesc.Texture2D(
+                "BackBuffer", RHIFormat.R8G8B8A8_UNorm, width, height,
+                flags: RenderGraphResourceFlags.Imported | RenderGraphResourceFlags.RenderTarget |
+                       RenderGraphResourceFlags.ShaderResource));
+            graph.AddPass("Present", RenderGraphPassType.Copy)
+                .Read(finalOutput, RenderGraphResourceAccess.ShaderRead)
+                .Write(backBuffer, RenderGraphResourceAccess.RenderTarget)
+                .SetHasSideEffects()
+                .SetExecute((cmd, ctx) => { /* Present pass */ });
 
             return graph;
         }
