@@ -373,6 +373,7 @@ public sealed class RenderPipeline : IDisposable
 
     public RenderPipelineSettings Settings => _settings;
     public ViewData CurrentView => _currentView;
+    public IReadOnlyList<IRenderPass> Passes => _passes;
     public event Action? OnBeforeRender, OnAfterRender;
 
     public RenderPipeline(RenderPipelineSettings? s = null)

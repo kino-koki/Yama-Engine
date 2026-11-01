@@ -28,6 +28,7 @@ public enum GpuPassKind
     GBuffer, DeferredLighting, SSAO, SSAOBlur, SSR,
     BloomExtract, BloomBlur, Tonemap, ColorGrading,
     DepthOfField, MotionBlur, Vignette, ChromaticAberration,
+    IBL, Atmosphere, VolumetricFog, SSGI, ContactShadows, TAA, LensFlare,
     Composite, Present
 }
 
@@ -87,6 +88,15 @@ public sealed class GpuPipelineStats
     public bool HasDOF { get; set; }
     public bool HasMotionBlur { get; set; }
     public bool HasTonemap { get; set; }
+    public bool HasIBL { get; set; }
+    public bool HasAtmosphere { get; set; }
+    public bool HasVolumetricFog { get; set; }
+    public bool HasSSGI { get; set; }
+    public bool HasContactShadows { get; set; }
+    public bool HasTAA { get; set; }
+    public bool HasLensFlare { get; set; }
+    public bool HasVignette { get; set; }
+    public bool HasChromaticAberration { get; set; }
 
     public override string ToString() =>
         $"passes={PassCount} fullscreen={FullScreenPassCount} gbufferTargets={GbufferTargets}";
@@ -165,6 +175,14 @@ public static class GpuDeferredPipeline
     public const string BloomBTarget = "Bloom.B";
     public const string FinalTarget = "Scene.Final";
     public const string SSRRTarget = "Scene.SSR";
+    public const string IBLIrradianceTarget = "IBL.Irradiance";
+    public const string IBLPrefilterTarget = "IBL.Prefilter";
+    public const string IBLBrdfLUTTarget = "IBL.BrdfLUT";
+    public const string AtmosphereTarget = "Scene.Atmosphere";
+    public const string VolumetricFogTarget = "Scene.VolumetricFog";
+    public const string SSGITarget = "Scene.SSGI";
+    public const string ContactShadowTarget = "Scene.ContactShadow";
+    public const string TAATarget = "Scene.TAA";
 
     /// <summary>GBuffer MRT 8 目标（与 CPU DeferredRenderPipeline.PackGBuffer 对齐）。</summary>
     public static readonly GpuRenderTarget[] GbufferTargets =
@@ -194,6 +212,14 @@ public static class GpuDeferredPipeline
         plan.AddTarget(new GpuRenderTarget(BloomATarget, RHIFormat.R16G16B16A16_Float, 0.5f, 0.5f));
         plan.AddTarget(new GpuRenderTarget(BloomBTarget, RHIFormat.R16G16B16A16_Float, 0.25f, 0.25f));
         plan.AddTarget(new GpuRenderTarget(FinalTarget, RHIFormat.B8G8R8A8_UNorm_SRGB));
+        plan.AddTarget(new GpuRenderTarget(IBLIrradianceTarget, RHIFormat.R16G16B16A16_Float, 0.25f, 0.25f));
+        plan.AddTarget(new GpuRenderTarget(IBLPrefilterTarget, RHIFormat.R16G16B16A16_Float, 0.5f, 0.5f));
+        plan.AddTarget(new GpuRenderTarget(IBLBrdfLUTTarget, RHIFormat.R16G16_Float, 0.25f, 0.25f));
+        plan.AddTarget(new GpuRenderTarget(AtmosphereTarget, RHIFormat.R16G16B16A16_Float));
+        plan.AddTarget(new GpuRenderTarget(VolumetricFogTarget, RHIFormat.R16G16B16A16_Float, 0.5f, 0.5f));
+        plan.AddTarget(new GpuRenderTarget(SSGITarget, RHIFormat.R16G16B16A16_Float));
+        plan.AddTarget(new GpuRenderTarget(ContactShadowTarget, RHIFormat.R8_UNorm));
+        plan.AddTarget(new GpuRenderTarget(TAATarget, RHIFormat.R16G16B16A16_Float));
 
         plan.Stats.GbufferTargets = GbufferTargets.Length;
 
@@ -223,6 +249,89 @@ public static class GpuDeferredPipeline
             RasterizerState = RHIRasterizerDesc.NoCull,
             BlendState = RHIBlendDesc.Default
         });
+
+        // 3. IBL 环境光：辐照度卷积 + 镜面预滤波 + BRDF LUT + 环境注入
+        if ((s.FeatureFlags & RenderFeatureFlags.GlobalIllumination) != 0)
+        {
+            plan.Stats.HasIBL = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.IBL, Name = "IBL.Irradiance",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = IBLShadersGLSL.IrradianceFragmentShader,
+                ColorTargets = new[] { IBLIrradianceTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.IBL, Name = "IBL.Prefilter",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = IBLShadersGLSL.PrefilterFragmentShader,
+                ColorTargets = new[] { IBLPrefilterTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.IBL, Name = "IBL.BrdfLUT",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = IBLShadersGLSL.BrdfLutFragmentShader,
+                ColorTargets = new[] { IBLBrdfLUTTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.IBL, Name = "IBL.Ambient",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = IBLShadersGLSL.AmbientFragmentShader,
+                ColorTargets = new[] { HDRTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull,
+                BlendState = RHIBlendDesc.AdditiveBlend
+            });
+        }
+
+        // 4. 大气散射：天空 + 场景内散射注入
+        if ((s.FeatureFlags & RenderFeatureFlags.HDR) != 0)
+        {
+            plan.Stats.HasAtmosphere = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.Atmosphere, Name = "Atmosphere.Sky",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AtmosphereShadersGLSL.SkyFragmentShader,
+                ColorTargets = new[] { AtmosphereTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.Atmosphere, Name = "Atmosphere.Inscatter",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AtmosphereShadersGLSL.InscatterFragmentShader,
+                ColorTargets = new[] { HDRTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull,
+                BlendState = RHIBlendDesc.AdditiveBlend
+            });
+        }
+
+        // 5. 体积雾：在 HDR 上散射累积
+        if ((s.FeatureFlags & RenderFeatureFlags.VolumetricFog) != 0)
+        {
+            plan.Stats.HasVolumetricFog = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.VolumetricFog, Name = "VolumetricFog",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AtmosphereShadersGLSL.InscatterFragmentShader,
+                ColorTargets = new[] { VolumetricFogTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
 
         if ((s.FeatureFlags & RenderFeatureFlags.ScreenSpaceAO) != 0)
         {
@@ -260,6 +369,36 @@ public static class GpuDeferredPipeline
                 ColorTargets = new[] { SSRRTarget },
                 IsFullScreen = true,
                 DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
+
+        // 6. SSGI 屏幕空间全局光照（HDR 反弹）
+        if ((s.FeatureFlags & RenderFeatureFlags.ScreenSpaceGI) != 0)
+        {
+            plan.Stats.HasSSGI = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.SSGI, Name = "SSGI",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AdditionalEffectShadersGLSL.SsgiFragmentShader,
+                ColorTargets = new[] { SSGITarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
+
+        // 7. 接触阴影
+        if ((s.FeatureFlags & RenderFeatureFlags.ContactShadows) != 0)
+        {
+            plan.Stats.HasContactShadows = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.ContactShadows, Name = "ContactShadows",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AdditionalEffectShadersGLSL.ContactShadowsFragmentShader,
+                ColorTargets = new[] { ContactShadowTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
                 RasterizerState = RHIRasterizerDesc.NoCull
             });
         }
@@ -329,6 +468,21 @@ public static class GpuDeferredPipeline
             });
         }
 
+        // 8. TAA 时间抗锯齿
+        if ((s.FeatureFlags & RenderFeatureFlags.TemporalUpsampling) != 0)
+        {
+            plan.Stats.HasTAA = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.TAA, Name = "TAA",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AdditionalEffectShadersGLSL.TaaFragmentShader,
+                ColorTargets = new[] { TAATarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
+
         if ((s.FeatureFlags & RenderFeatureFlags.Tonemapping) != 0)
         {
             plan.Stats.HasTonemap = true;
@@ -337,6 +491,51 @@ public static class GpuDeferredPipeline
                 Kind = GpuPassKind.Tonemap, Name = "Tonemapping",
                 VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
                 FragmentShader = PostProcessStackGLSL.CompositeFragmentShader,
+                ColorTargets = new[] { FinalTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
+
+        // 9. 镜头光晕（在 LDR 上叠加）
+        if ((s.FeatureFlags & RenderFeatureFlags.LensFlare) != 0)
+        {
+            plan.Stats.HasLensFlare = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.LensFlare, Name = "LensFlare",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AdditionalEffectShadersGLSL.LensFlareFragmentShader,
+                ColorTargets = new[] { FinalTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
+
+        // 10. Vignette 暗角
+        if ((s.FeatureFlags & RenderFeatureFlags.Vignette) != 0)
+        {
+            plan.Stats.HasVignette = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.Vignette, Name = "Vignette",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AdditionalEffectShadersGLSL.VignetteFragmentShader,
+                ColorTargets = new[] { FinalTarget },
+                IsFullScreen = true, DepthState = RHIDepthDesc.None,
+                RasterizerState = RHIRasterizerDesc.NoCull
+            });
+        }
+
+        // 11. Chromatic Aberration 色差
+        if ((s.FeatureFlags & RenderFeatureFlags.ChromaticAberration) != 0)
+        {
+            plan.Stats.HasChromaticAberration = true;
+            plan.AddPass(new GpuPassRecord
+            {
+                Kind = GpuPassKind.ChromaticAberration, Name = "ChromaticAberration",
+                VertexShader = BuiltinShadersGLSL.FullScreenVertexShader,
+                FragmentShader = AdditionalEffectShadersGLSL.ChromaticAberrationFragmentShader,
                 ColorTargets = new[] { FinalTarget },
                 IsFullScreen = true, DepthState = RHIDepthDesc.None,
                 RasterizerState = RHIRasterizerDesc.NoCull
@@ -396,6 +595,15 @@ public static class GpuPipelineBridge
             case GpuPassKind.MotionBlur: Stats.HasMotionBlur = true; break;
             case GpuPassKind.Tonemap:
             case GpuPassKind.Composite: Stats.HasTonemap = true; break;
+            case GpuPassKind.IBL: Stats.HasIBL = true; break;
+            case GpuPassKind.Atmosphere: Stats.HasAtmosphere = true; break;
+            case GpuPassKind.VolumetricFog: Stats.HasVolumetricFog = true; break;
+            case GpuPassKind.SSGI: Stats.HasSSGI = true; break;
+            case GpuPassKind.ContactShadows: Stats.HasContactShadows = true; break;
+            case GpuPassKind.TAA: Stats.HasTAA = true; break;
+            case GpuPassKind.LensFlare: Stats.HasLensFlare = true; break;
+            case GpuPassKind.Vignette: Stats.HasVignette = true; break;
+            case GpuPassKind.ChromaticAberration: Stats.HasChromaticAberration = true; break;
         }
         return rec;
     }

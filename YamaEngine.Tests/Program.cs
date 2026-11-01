@@ -171,6 +171,16 @@ try
     GpuPipelineTests.TestGpuShaderCompilerDeterministic();
     GpuPipelineTests.TestGpuShaderCompilerRejectsEmpty();
     GpuPipelineTests.TestGpuPipelineBridgeExecutesPasses();
+    GapAuditTests.TestIblShadersValid();
+    GapAuditTests.TestAtmosphereShadersValid();
+    GapAuditTests.TestAdditionalEffectShadersValid();
+    GapAuditTests.TestAllFeaturePlanIncludesNewPasses();
+    GapAuditTests.TestDefaultPlanExcludesOptionalPasses();
+    GapAuditTests.TestBridgeStatsDetectNewPasses();
+    GapAuditTests.TestGapAuditAllFeaturesHighCoverage();
+    GapAuditTests.TestGapAuditIslandDetection();
+    GapAuditTests.TestGapAuditPassBridgeMatch();
+    GapAuditTests.TestGapAuditSummaryContainsMetrics();
     Console.WriteLine("All YamaEngine tests passed.");
 }
 
