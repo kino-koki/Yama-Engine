@@ -10,6 +10,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using YamaEngine.Assets;
 using YamaEngine.Core;
+// Assets 是 YamaEngine.Assets 命名空间（与 YamaEngine.Core.SceneObject 二义，需限定）
+using Assets = YamaEngine.Assets;
 
 namespace YamaEditor.Pages
 {
@@ -139,7 +141,7 @@ namespace YamaEditor.Pages
             systems.Selection.Select(vm.Actor);
             // 相机聚焦到 Actor 位置
             systems.ViewportCamera.Target = vm.Actor.Position;
-            systems.ViewportCamera.Distance = Math.Max(2f, vm.Actor.Bounds.Max - vm.Actor.Bounds.Min).Length() * 1.5f;
+            systems.ViewportCamera.Distance = Math.Max(2f, (vm.Actor.Bounds.Max - vm.Actor.Bounds.Min).Length()) * 1.5f;
         }
 
         // ══════════════════════════════════════════════════════════
@@ -175,9 +177,9 @@ namespace YamaEditor.Pages
             var textBox = new TextBox { Text = vm.Name };
             dialog.Content = textBox;
 
-            async void Handler(ContentDialog contentDialog, ContentDialogResult result)
+            void Handler(ContentDialog contentDialog, ContentDialogButtonClickEventArgs args)
             {
-                if (result == ContentDialogResult.Primary && vm.Actor != null)
+                if (vm.Actor != null)
                 {
                     vm.Actor.Name = textBox.Text;
                     vm.Name = textBox.Text;
@@ -205,7 +207,7 @@ namespace YamaEditor.Pages
                 IsVisible = vm.Actor.IsVisible
             };
 
-            systems.Assets.SceneObjects.Add(copy);
+            systems.Assets.AddObject(copy);
             PopulateHierarchy();
             Debug.WriteLine($"[Outliner] Duplicated: {vm.Name}");
         }
@@ -236,7 +238,7 @@ namespace YamaEditor.Pages
             // 从父级移除
             if (vm.Actor.Parent != null)
                 vm.Actor.Parent.Children.Remove(vm.Actor);
-            systems.Assets.SceneObjects.Remove(vm.Actor);
+            systems.Assets.RemoveObject(vm.Actor);
             systems.Selection.Clear();
             PopulateHierarchy();
             Debug.WriteLine($"[Outliner] Deleted: {vm.Name}");
@@ -245,7 +247,7 @@ namespace YamaEditor.Pages
         // ══════════════════════════════════════════════════════════
         //  拖放
         // ══════════════════════════════════════════════════════════
-        private void OnTreeDragStarting(object sender, DragItemsStartingEventArgs e)
+        private void OnTreeDragStarting(TreeView sender, TreeViewDragItemsStartingEventArgs e)
         {
             if (e.Items.FirstOrDefault() is ActorViewModel vm)
             {
@@ -253,7 +255,7 @@ namespace YamaEditor.Pages
             }
         }
 
-        private void OnTreeDragCompleted(object sender, DragItemsCompletedEventArgs e)
+        private void OnTreeDragCompleted(TreeView sender, TreeViewDragItemsCompletedEventArgs e)
         {
             // 拖放完成后刷新层级
             PopulateHierarchy();

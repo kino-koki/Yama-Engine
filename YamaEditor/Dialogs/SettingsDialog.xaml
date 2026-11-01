@@ -54,7 +54,7 @@
                     <!-- Shadow Settings -->
                     <TextBlock Text="Shadows" Foreground="{StaticResource YamaSubTextBrush}" FontSize="11" FontWeight="SemiBold" Margin="0,4,0,0"/>
                     <CheckBox x:Name="EnableShadows" Content="Enable Shadows" IsChecked="True" Margin="0,2"/>
-                    <ComboBox x:Name="ShadowQuality" SelectedIndex="2" Margin="0,2" IsEnabled="{x:Bind EnableShadows.IsChecked, Mode=OneWay}">
+                    <ComboBox x:Name="ShadowQuality" SelectedIndex="2" Margin="0,2" IsEnabled="{x:Bind ShadowsEnabled, Mode=OneWay}">
                         <ComboBoxItem Content="Low (512)"/>
                         <ComboBoxItem Content="Medium (1024)"/>
                         <ComboBoxItem Content="High (2048)"/>

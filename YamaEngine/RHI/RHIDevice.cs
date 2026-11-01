@@ -159,6 +159,13 @@ namespace YamaEngine.RHI
         public abstract void CopyTextureRegion(RHITexture dst, uint dstSubresource, uint dstX, uint dstY, uint dstZ,
             RHIBuffer src, ulong srcOffset, uint srcRowPitch, uint srcSlicePitch, uint srcWidth, uint srcHeight);
 
+        // 高层便利：用托管数组直接更新子资源（后端可覆盖；Vulkan 已实现，D3D12 默认抛异常兜底）
+        public virtual void UpdateSubresources<T>(RHIResource dst, int subresource, T[] data) where T : struct
+        {
+            throw new NotSupportedException(
+                $"UpdateSubresources<{typeof(T).Name}> is not supported by {GetType().Name}.");
+        }
+
         // Clear
         public abstract void ClearRenderTargetView(RHIDescriptorHandle rtvHandle, in Vector4 clearColor);
         public abstract void ClearDepthStencilView(RHIDescriptorHandle dsvHandle, bool clearDepth, bool clearStencil, float depth, byte stencil);

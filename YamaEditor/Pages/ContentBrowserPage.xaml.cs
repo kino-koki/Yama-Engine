@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 using YamaEngine.Assets;
 
 namespace YamaEditor.Pages
@@ -84,7 +85,7 @@ namespace YamaEditor.Pages
             return vm;
         }
 
-        private void OnDirectorySelected(object sender, SelectionChangedEventArgs e)
+        private void OnDirectorySelected(TreeView sender, TreeViewSelectionChangedEventArgs e)
         {
             if (DirectoryTree.SelectedItem is not DirectoryViewModel dir) return;
             _currentDirectory = dir.FullPath;
@@ -241,8 +242,9 @@ namespace YamaEditor.Pages
             try
             {
                 var scriptText = File.ReadAllText(scriptPath);
-                var tempObj = new YamaEngine.Assets.SceneObject("Script: " + Path.GetFileName(scriptPath))
+                var tempObj = new YamaEngine.Assets.SceneObject
                 {
+                    Name = "Script: " + Path.GetFileName(scriptPath),
                     IsVisible = false
                 };
                 var scriptComp = new YamaEngine.Assets.ScriptComponent
@@ -251,7 +253,8 @@ namespace YamaEditor.Pages
                     ScriptText = scriptText
                 };
                 tempObj.Components.Add(scriptComp);
-                App.Systems?.Inspector.InspectObject(tempObj);
+                if (Application.Current is App app && app.MainWindow is MainWindow mw)
+                    mw.InspectorPage.InspectObject(tempObj);
             }
             catch (Exception ex)
             {
@@ -283,10 +286,9 @@ namespace YamaEditor.Pages
             var textBox = new TextBox { Text = item.Name };
             dialog.Content = textBox;
 
-            async void Handler(ContentDialog d, ContentDialogResult result)
+            void Handler(ContentDialog d, ContentDialogButtonClickEventArgs args)
             {
-                if (result == ContentDialogResult.Primary)
-                    item.Name = textBox.Text;
+                item.Name = textBox.Text;
                 d.PrimaryButtonClick -= Handler;
             }
 
@@ -296,17 +298,13 @@ namespace YamaEditor.Pages
 
         private void OnContextDuplicate(object sender, RoutedEventArgs e)
         {
-            if (AssetGrid.SelectedItem is not AssetItemViewModel item)
-                Debug.WriteLine($"[ContentBrowser] Duplicate: {item.Name}");
+            if (AssetGrid.SelectedItem is not AssetItemViewModel item) return;
+            Debug.WriteLine($"[ContentBrowser] Duplicate: {item.Name}");
         }
 
         private void OnContextDelete(object sender, RoutedEventArgs e)
         {
-            if (AssetGrid.SelectedItem is not AssetItemViewModel item)
-            {
-                Debug.WriteLine($"[ContentBrowser] Delete: {item.Name}");
-                return;
-            }
+            if (AssetGrid.SelectedItem is not AssetItemViewModel item) return;
 
             _allAssetItems.Remove(item);
             _assetItems.Remove(item);

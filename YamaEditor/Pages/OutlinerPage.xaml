@@ -33,13 +33,13 @@
                    CanDragItems="True"
                    CanReorderItems="True"
                    AllowDrop="True"
-                   SelectionMode="Extended"
+                   SelectionMode="Multiple"
                    DoubleTapped="OnTreeDoubleTapped"
                    DragItemsStarting="OnTreeDragStarting"
                    DragItemsCompleted="OnTreeDragCompleted">
             <TreeView.ItemTemplate>
                 <DataTemplate x:DataType="local:ActorViewModel">
-                    <TreeViewItem ExpanderStyle="{StaticResource YamaTreeExpanderStyle}">
+                    <TreeViewItem>
                         <StackPanel Orientation="Horizontal" Spacing="6" Padding="2,2">
                             <!-- 可见性切换 -->
                             <FontIcon x:Name="VisibilityIcon"

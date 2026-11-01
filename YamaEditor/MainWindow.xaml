@@ -5,22 +5,17 @@
     xmlns:local="using:YamaEditor"
     xmlns:controls="using:YamaEditor.Controls"
     xmlns:pages="using:YamaEditor.Pages"
-    Title="Yama Engine Editor"
-    Width="1600" Height="900"
-    MinWidth="1200" MinHeight="700"
-    WindowStartupLocation="CenterScreen"
-    ExtendsContentIntoTitleBar="True">
-
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
-                <ResourceDictionary Source="Controls/EngineViewport.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
+    Title="Yama Engine Editor">
 
     <Grid x:Name="RootGrid" Background="{StaticResource YamaBackgroundBrush}">
+        <Grid.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+                    <ResourceDictionary Source="Controls/EngineViewport.xaml"/>
+                </ResourceDictionary.MergedDictionaries>
+            </ResourceDictionary>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <!-- Row 0: 自定义标题栏 -->
             <RowDefinition Height="32"/>
@@ -227,10 +222,9 @@
             </Border>
 
             <!-- 分割线 -->
-            <GridSplitter Grid.Row="1" Height="4"
+            <controls:GridSplitter Grid.Row="1" Height="4"
                           HorizontalAlignment="Stretch"
-                          Background="{StaticResource YamaBorderBrush}"
-                          Padding="0,1"/>
+                          Background="{StaticResource YamaBorderBrush}"/>
 
             <!-- 下半：Content Browser -->
             <Border Grid.Row="2">
@@ -239,7 +233,7 @@
         </Grid>
 
         <!-- 左侧分割线 -->
-        <GridSplitter Grid.Row="2" Grid.Column="0"
+        <controls:GridSplitter Grid.Row="2" Grid.Column="0"
                       Width="3" HorizontalAlignment="Right"
                       Background="{StaticResource YamaBorderBrush}"/>
 
@@ -284,13 +278,13 @@
         </Grid>
 
         <!-- 右侧分割线 -->
-        <GridSplitter Grid.Row="2" Grid.Column="1"
+        <controls:GridSplitter Grid.Row="2" Grid.Column="1"
                       Width="3" HorizontalAlignment="Right"
                       Background="{StaticResource YamaBorderBrush}"/>
 
         <!-- 右侧面板：Inspector -->
         <Border Grid.Row="2" Grid.Column="2">
-            <pages:InspectorPage x:Name="InspectorPage"/>
+            <pages:InspectorPage x:Name="InspectorPage" x:FieldModifier="public"/>
         </Border>
 
         <!-- ══════════════════════════════════════════════════════
@@ -298,7 +292,7 @@
              ══════════════════════════════════════════════════════ -->
 
         <!-- 控制台上部分割线 -->
-        <GridSplitter Grid.Row="2" Grid.ColumnSpan="3"
+        <controls:GridSplitter Grid.Row="2" Grid.ColumnSpan="3"
                       Height="3" HorizontalAlignment="Stretch"
                       Background="{StaticResource YamaBorderBrush}"/>
 

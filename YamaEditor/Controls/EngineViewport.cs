@@ -231,8 +231,8 @@ namespace YamaEditor.Controls
         private void OnSwapChainPanelPointerPressed(object sender, PointerRoutedEventArgs e)
         {
             var point = e.GetCurrentPoint(_swapChainPanel);
-            _lastPointerX = point.Position.X;
-            _lastPointerY = point.Position.Y;
+            _lastPointerX = (float)point.Position.X;
+            _lastPointerY = (float)point.Position.Y;
 
             if (point.Properties.IsRightButtonPressed)
                 _isOrbiting = true;
@@ -260,10 +260,10 @@ namespace YamaEditor.Controls
         private void OnSwapChainPanelPointerMoved(object sender, PointerRoutedEventArgs e)
         {
             var point = e.GetCurrentPoint(_swapChainPanel);
-            float dx = point.Position.X - _lastPointerX;
-            float dy = point.Position.Y - _lastPointerY;
-            _lastPointerX = point.Position.X;
-            _lastPointerY = point.Position.Y;
+            float dx = (float)point.Position.X - _lastPointerX;
+            float dy = (float)point.Position.Y - _lastPointerY;
+            _lastPointerX = (float)point.Position.X;
+            _lastPointerY = (float)point.Position.Y;
 
             var camera = _sceneRenderer?.Camera;
             if (camera == null) return;

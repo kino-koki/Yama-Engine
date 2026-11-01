@@ -28,7 +28,7 @@ namespace YamaEditor.Dialogs
         public NewProjectDialog()
         {
             this.InitializeComponent();
-            this.XamlRoot = App.Window?.Content?.XamlRoot;
+            this.XamlRoot = (Application.Current as App)?.MainWindow?.Content?.XamlRoot;
         }
 
         public NewProjectDialog(XamlRoot xamlRoot)
@@ -45,8 +45,8 @@ namespace YamaEditor.Dialogs
             folderPicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             folderPicker.FileTypeFilter.Add("*");
 
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window);
-            WinRT.InitializeWithWindow.Initialize(folderPicker, hwnd);
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle((Application.Current as App)!.MainWindow);
+            WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
 
             var folder = await folderPicker.PickSingleFolderAsync();
             if (folder != null)

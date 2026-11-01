@@ -758,7 +758,7 @@ namespace YamaEngine.RHI.Vulkan
         }
 
         /// <summary>Vulkan 扩展：更新子资源数据</summary>
-        public new void UpdateSubresources<T>(RHIResource dst, int subresource, T[] data) where T : struct
+        public override void UpdateSubresources<T>(RHIResource dst, int subresource, T[] data) where T : struct
         {
             if (data == null || data.Length == 0) return;
 

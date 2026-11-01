@@ -28,6 +28,9 @@ namespace YamaEditor
 
             // 窗口初始化
             AppWindow.Title = "Yama Engine - Industrial Game Development Platform";
+            // WinUI 3 的 Window 无 Width/Height 属性，尺寸经 AppWindow 设置
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1600, 900));
+            ExtendsContentIntoTitleBar = true; // XBF 不识别 XAML 属性，改在代码设置
             SetTitleBar(TitleBar);
 
             // 引擎 Tick 循环（约 60fps）
@@ -38,8 +41,8 @@ namespace YamaEditor
             _statusTick.Interval = TimeSpan.FromMilliseconds(250);
             _statusTick.Tick += OnStatusTick;
 
-            // 键盘快捷键
-            this.KeyDown += OnKeyDown;
+            // 键盘快捷键（WinUI 3 的 Window 无 KeyDown 事件，挂到根 Grid）
+            RootGrid.KeyDown += OnKeyDown;
 
             // 窗口关闭时清理
             this.Closed += OnWindowClosed;
@@ -132,8 +135,10 @@ namespace YamaEditor
             switch (tag)
             {
                 case "Edit.SelectAll":
-                    App.Systems?.Assets?.SceneObjects.ForEach(obj =>
-                        App.Systems?.Selection.Select(obj, additive: true));
+                    var allObjects = App.Systems?.Assets?.SceneObjects;
+                    if (allObjects != null)
+                        foreach (var obj in allObjects)
+                            App.Systems?.Selection.Select(obj, additive: true);
                     break;
 
                 case "Edit.DeselectAll":

@@ -56,7 +56,7 @@ namespace YamaEditor.Dialogs
         {
             this.InitializeComponent();
             PopulateShortcuts();
-            this.XamlRoot = App.Window?.Content?.XamlRoot;
+            this.XamlRoot = (Application.Current as App)?.MainWindow?.Content?.XamlRoot;
         }
 
         public SettingsDialog(XamlRoot xamlRoot)

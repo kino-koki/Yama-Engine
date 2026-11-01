@@ -4,6 +4,8 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>YamaEditor</RootNamespace>
     <UseWinUI>true</UseWinUI>
+    <!-- 使用自定义 Program.Main 入口，禁用 WinUI 自动生成的入口点 -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultPageItems>false</EnableDefaultPageItems>

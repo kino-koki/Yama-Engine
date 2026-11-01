@@ -455,7 +455,7 @@ namespace YamaEditor.Controls
         }
 
         /// <summary>注册自定义网格，返回网格 ID。</summary>
-        public int RegisterMesh(string name, MeshData mesh)
+        private int RegisterMesh(string name, MeshData mesh)
         {
             int id = _meshes.Count;
             _meshes.Add(mesh);

@@ -7,6 +7,7 @@ using YamaEngine.Projects;
 using YamaEngine.ECS;
 using YamaEngine.Assets;
 using YamaEngine.Editor;
+using GizmoMode = YamaEngine.Core.GizmoMode;
 
 namespace YamaEditor
 {

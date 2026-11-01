@@ -6,8 +6,11 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Storage.Pickers;
 using YamaEngine.Assets;
 using YamaEngine.Core;
+// Assets 是 YamaEngine.Assets 命名空间（与 YamaEngine.Core.SceneObject 二义，需限定）
+using Assets = YamaEngine.Assets;
 
 namespace YamaEditor.Pages
 {
@@ -99,7 +102,7 @@ namespace YamaEditor.Pages
 
         // ── Inspect Object ──────────────────────────────────────────────────
 
-        private void InspectObject(Assets.SceneObject? obj)
+        public void InspectObject(Assets.SceneObject? obj)
         {
             _inspectedObject = obj;
 
@@ -135,7 +138,6 @@ namespace YamaEditor.Pages
             // Rendering
             CastShadow.IsChecked = obj.CastShadow;
             ReceiveShadow.IsChecked = obj.ReceiveShadow;
-            IsStatic.IsChecked = obj.IsStatic;
 
             // Material
             MetallicSlider.Value = obj.Metallic;
@@ -230,6 +232,14 @@ namespace YamaEditor.Pages
             }
         }
 
+        /// <summary>
+        /// 刷新组件列表 UI。Components 为 ObservableCollection，绑定会自动刷新，
+        /// 此方法保留为扩展点（例如将来需要按类型重新排序/重建时在此实现）。
+        /// </summary>
+        private void RefreshComponentList()
+        {
+        }
+
         private void RemoveComponent_Click(object sender, RoutedEventArgs e)
         {
             Debug.WriteLine("[Inspector] Remove component requested");
@@ -287,7 +297,7 @@ namespace YamaEditor.Pages
             picker.FileTypeFilter.Add(".bmp");
             picker.FileTypeFilter.Add(".dds");
 
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(((App)Application.Current).MainWindow);
             WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
 
             _ = Task.Run(async () =>
