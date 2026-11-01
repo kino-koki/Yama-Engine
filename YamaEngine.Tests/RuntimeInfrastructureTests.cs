@@ -125,7 +125,7 @@ namespace YamaEngine.Tests
                 if (attempts == 1) throw new InvalidOperationException("first fail");
             }, retries: 1);
 
-            var report = runner.Run(new AutomationRunFilter(includeTags: new[] { "smoke" }));
+            var report = runner.Run(new AutomationRunFilter { IncludeTags = new[] { "smoke" } });
 
             AssertEqual(1, report.Results.Count, "Automation runner should select tagged tests.");
             AssertTrue(report.Results[0].Passed, "Retry should allow transient failure to pass.");

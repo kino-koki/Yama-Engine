@@ -8,6 +8,9 @@ using YamaEngine.Assets;
 using YamaEngine.Modeling;
 using YamaEngine.Skinning;
 using static YamaEngine.Tests.TestHelpers;
+// Skeleton 存在于 Animation 与 Skinning 两个命名空间；本测试主要用 Skinning（序列化/蒙皮），
+// 仅 AnimationClip.Sample / Animator 相关调用显式使用 YamaEngine.Animation.Skeleton。
+using Skeleton = YamaEngine.Skinning.Skeleton;
 
 namespace YamaEngine.Tests
 {
@@ -83,7 +86,7 @@ namespace YamaEngine.Tests
 
         public static void TestAnimationClipSamplesBoneKeyframes()
         {
-            var skeleton = Skeleton.CreateBiped("AnimBiped");
+            var skeleton = YamaEngine.Animation.Skeleton.CreateBiped("AnimBiped");
             var clip = new AnimationClip { Name = "HipLift", LengthSeconds = 1.0f, Looping = false };
             clip.AddTranslationKey("Hips", 0.0f, Vector3.Zero);
             clip.AddTranslationKey("Hips", 1.0f, new Vector3(0, 2, 0));
@@ -106,8 +109,8 @@ namespace YamaEngine.Tests
             clip.Write(clipPath);
 
             var loaded = AnimationClip.Read(clipPath);
-            var pose = loaded.Sample(Skeleton.CreateBiped("AnimBiped"), 1.5f);
-            var hips = Skeleton.CreateBiped("AnimBiped").FindBone("Hips");
+            var pose = loaded.Sample(YamaEngine.Animation.Skeleton.CreateBiped("AnimBiped"), 1.5f);
+            var hips = YamaEngine.Animation.Skeleton.CreateBiped("AnimBiped").FindBone("Hips");
 
             AssertEqual("Walk", loaded.Name, "AnimationClip name should roundtrip.");
             AssertTrue(loaded.Looping, "AnimationClip looping flag should roundtrip.");
@@ -118,7 +121,7 @@ namespace YamaEngine.Tests
 
         public static void TestAnimatorCrossFadesBetweenStates()
         {
-            var skeleton = Skeleton.CreateBiped("AnimBiped");
+            var skeleton = YamaEngine.Animation.Skeleton.CreateBiped("AnimBiped");
             var idle = new AnimationClip { Name = "Idle", LengthSeconds = 1.0f, Looping = true };
             idle.AddTranslationKey("Hips", 0.0f, Vector3.Zero);
             idle.AddTranslationKey("Hips", 1.0f, Vector3.Zero);

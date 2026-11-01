@@ -770,8 +770,17 @@ namespace YamaEngine.Materials
                 return src?.FloatValue ?? 0f;
             }
 
+            Vector4 ResolveColor(string pinId)
+            {
+                var edge = Edges.LastOrDefault(e => e.ToNodeId == master.Id && e.ToPinId == pinId);
+                if (edge == null) return new Vector4(0.8f, 0.8f, 0.8f, 1f);
+                var src = Nodes.FirstOrDefault(n => n.Id == edge.FromNodeId);
+                return src?.VectorValue ?? new Vector4(0.8f, 0.8f, 0.8f, 1f);
+            }
+
             result.Metallic = ResolveInput("Metallic");
             result.Roughness = ResolveInput("Roughness");
+            result.BaseColor = ResolveColor("BaseColor");
             return result;
         }
 
@@ -1255,5 +1264,6 @@ namespace YamaEngine.Materials
     {
         public float Metallic;
         public float Roughness;
+        public Vector4 BaseColor = new Vector4(0.8f, 0.8f, 0.8f, 1f);
     }
 }

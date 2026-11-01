@@ -16,6 +16,7 @@ using YamaEngine.Rendering;
 using YamaEngine.Runtime;
 using YamaEngine.Scenes;
 using YamaEngine.Skinning;
+using YamaEngine.Tests;
 
 var tempRoot = Path.Combine(Path.GetTempPath(), "YamaEngineTests", Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(tempRoot);

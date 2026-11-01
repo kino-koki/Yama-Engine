@@ -12,8 +12,8 @@ namespace YamaEngine.Cel2D
         /// <summary>跟随目标世界位置。</summary>
         public Vector2 Target { get; set; }
 
-        /// <summary>当前相机中心（世界坐标）。</summary>
-        public Vector2 Position { get; private set; }
+        /// <summary>当前相机中心（世界坐标）。字段：类内直接写回成员。</summary>
+        public Vector2 Position;
 
         /// <summary>视口尺寸（像素）。</summary>
         public Vector2 ViewportSize { get; set; } = new Vector2(1280.0f, 720.0f);
@@ -116,7 +116,7 @@ namespace YamaEngine.Cel2D
             {
                 // 直接平滑插值。
                 float t = 1.0f - MathF.Pow(1.0f - Smoothing, deltaTime * 60.0f);
-                Position = Vector2.Lerp(Position, desired, MathF.Clamp(t, 0.0f, 1.0f));
+                Position = Vector2.Lerp(Position, desired, Math.Clamp(t, 0.0f, 1.0f));
             }
 
             if (ClampToBounds)

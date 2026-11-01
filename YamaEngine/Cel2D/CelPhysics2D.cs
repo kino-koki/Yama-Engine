@@ -220,8 +220,8 @@ namespace YamaEngine.Cel2D
         public float LinearDamping { get; set; }
         public float AngularDamping { get; set; }
 
-        public Vector2 Force { get; private set; }
-        public float Torque { get; private set; }
+        public Vector2 Force { get; internal set; }
+        public float Torque { get; internal set; }
 
         public object? Tag { get; set; }
 
@@ -384,8 +384,8 @@ namespace YamaEngine.Cel2D
             // 把圆心变换到盒局部空间。
             Vector2 local = CelBody2D.Rotate(circle.Position - box.Position, -box.Rotation);
             Vector2 clamped = new Vector2(
-                MathF.Clamp(local.X, -boxShape.HalfWidth, boxShape.HalfWidth),
-                MathF.Clamp(local.Y, -boxShape.HalfHeight, boxShape.HalfHeight));
+                Math.Clamp(local.X, -boxShape.HalfWidth, boxShape.HalfWidth),
+                Math.Clamp(local.Y, -boxShape.HalfHeight, boxShape.HalfHeight));
             Vector2 diff = local - clamped;
             float dist = diff.Length();
 
@@ -751,7 +751,7 @@ namespace YamaEngine.Cel2D
                 Vector2 ab = b - a;
                 Vector2 ap = p - a;
                 float len2 = ab.LengthSquared();
-                float t = len2 > 1e-9f ? MathF.Clamp(Vector2.Dot(ap, ab) / len2, 0.0f, 1.0f) : 0.0f;
+                float t = len2 > 1e-9f ? Math.Clamp(Vector2.Dot(ap, ab) / len2, 0.0f, 1.0f) : 0.0f;
                 Vector2 proj = a + ab * t;
                 float d = Vector2.Distance(p, proj);
                 if (d < dist)
@@ -808,7 +808,7 @@ namespace YamaEngine.Cel2D
             if (a <= 1e-9f)
             {
                 t = 0.0f;
-                float s = MathF.Clamp(f / e, 0.0f, 1.0f);
+                float s = Math.Clamp(f / e, 0.0f, 1.0f);
                 pa = a0; pb = b0 + d2 * s;
                 return;
             }
@@ -816,10 +816,10 @@ namespace YamaEngine.Cel2D
             float c = Vector2.Dot(d1, r);
             float b = Vector2.Dot(d1, d2);
             float denom = a * e - b * b;
-            float sVal = denom > 1e-9f ? MathF.Clamp((b * f - c * e) / denom, 0.0f, 1.0f) : 0.0f;
+            float sVal = denom > 1e-9f ? Math.Clamp((b * f - c * e) / denom, 0.0f, 1.0f) : 0.0f;
             t = (b * sVal + f) / e;
-            if (t < 0.0f) { t = 0.0f; sVal = MathF.Clamp(-c / a, 0.0f, 1.0f); }
-            else if (t > 1.0f) { t = 1.0f; sVal = MathF.Clamp((b - c) / a, 0.0f, 1.0f); }
+            if (t < 0.0f) { t = 0.0f; sVal = Math.Clamp(-c / a, 0.0f, 1.0f); }
+            else if (t > 1.0f) { t = 1.0f; sVal = Math.Clamp((b - c) / a, 0.0f, 1.0f); }
 
             pa = a0 + d1 * sVal;
             pb = b0 + d2 * t;
@@ -985,7 +985,7 @@ namespace YamaEngine.Cel2D
                 float jt = -Vector2.Dot(rv, tangent) / invMassSum;
                 float friction = MathF.Sqrt(a.Friction * b.Friction);
                 float maxFriction = j * friction;
-                jt = MathF.Clamp(jt, -maxFriction, maxFriction);
+                jt = Math.Clamp(jt, -maxFriction, maxFriction);
                 Vector2 frictionImpulse = tangent * jt;
                 a.LinearVelocity -= frictionImpulse * a.InverseMass;
                 b.LinearVelocity += frictionImpulse * b.InverseMass;

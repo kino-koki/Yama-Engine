@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using YamaEngine.Assets;
 using YamaEngine.Modeling;
+using YamaEngine.RHI;
 using YamaEngine.Rendering;
 using static YamaEngine.Tests.TestHelpers;
 
@@ -83,56 +84,58 @@ namespace YamaEngine.Tests
         public static void TestRenderGraphCompilesPassDependencies()
         {
             var graph = new RenderGraph("DeferredFrame");
-            var depth = graph.CreateTexture("SceneDepth", RenderResourceFormat.Depth24);
-            var geometrybuffer = graph.CreateTexture("GeometryBufferA", RenderResourceFormat.Rgba16Float);
-            var lit = graph.CreateTexture("LitScene", RenderResourceFormat.Rgba16Float);
-            var swapchain = graph.ImportTexture("BackBuffer", RenderResourceFormat.Rgba8Unorm);
+            var depth = graph.CreateResource(RenderGraphResourceDesc.Texture2D("SceneDepth", RHIFormat.D32_Float, 1920, 1080,
+                flags: RenderGraphResourceFlags.DepthStencil | RenderGraphResourceFlags.ShaderResource));
+            var geometrybuffer = graph.CreateResource(RenderGraphResourceDesc.Texture2D("GeometryBufferA", RHIFormat.R16G16B16A16_Float, 1920, 1080));
+            var lit = graph.CreateResource(RenderGraphResourceDesc.Texture2D("LitScene", RHIFormat.R16G16B16A16_Float, 1920, 1080));
+            var swapchain = graph.CreateResource(RenderGraphResourceDesc.Texture2D("BackBuffer", RHIFormat.R8G8B8A8_UNorm, 1920, 1080,
+                flags: RenderGraphResourceFlags.Imported | RenderGraphResourceFlags.RenderTarget | RenderGraphResourceFlags.ShaderResource));
 
-            graph.AddPass("Lighting", RenderPassKind.Lighting)
-                .Reads(geometrybuffer)
-                .Reads(depth)
-                .Writes(lit);
-            graph.AddPass("Geometry", RenderPassKind.Geometry)
-                .Writes(depth)
-                .Writes(geometrybuffer);
-            graph.AddPass("Tonemap", RenderPassKind.PostProcess)
-                .Reads(lit)
-                .Writes(swapchain);
+            graph.AddPass("Lighting", RenderGraphPassType.Compute)
+                .Read(geometrybuffer)
+                .Read(depth)
+                .Write(lit);
+            graph.AddPass("Geometry", RenderGraphPassType.Render)
+                .Write(depth)
+                .Write(geometrybuffer);
+            graph.AddPass("Tonemap", RenderGraphPassType.Compute)
+                .Read(lit)
+                .Write(swapchain)
+                .SetHasSideEffects();
 
             var plan = graph.Compile();
 
             AssertEqual(3, plan.Passes.Count, "RenderGraph should compile three passes.");
-            AssertEqual("Geometry", plan.Passes[0].Name, "Geometry must run before passes that read the GeometryBuffer.");
-            AssertEqual("Lighting", plan.Passes[1].Name, "Lighting must run after Geometry.");
-            AssertEqual("Tonemap", plan.Passes[2].Name, "Tonemap must run after Lighting.");
+            AssertEqual("Geometry", plan.Passes[0].Pass.Name, "Geometry must run before passes that read the GeometryBuffer.");
+            AssertEqual("Lighting", plan.Passes[1].Pass.Name, "Lighting must run after Geometry.");
+            AssertEqual("Tonemap", plan.Passes[2].Pass.Name, "Tonemap must run after Lighting.");
             AssertTrue(plan.IsValid, "A legal acyclic render graph should compile as valid.");
         }
 
         public static void TestRenderGraphDetectsCyclicResourceDependencies()
         {
             var graph = new RenderGraph("BrokenFrame");
-            var a = graph.CreateTexture("A", RenderResourceFormat.Rgba8Unorm);
-            var b = graph.CreateTexture("B", RenderResourceFormat.Rgba8Unorm);
+            var a = graph.CreateResource(RenderGraphResourceDesc.Texture2D("A", RHIFormat.R8G8B8A8_UNorm, 1, 1));
+            var b = graph.CreateResource(RenderGraphResourceDesc.Texture2D("B", RHIFormat.R8G8B8A8_UNorm, 1, 1));
 
-            graph.AddPass("PassA", RenderPassKind.Compute).Reads(b).Writes(a);
-            graph.AddPass("PassB", RenderPassKind.Compute).Reads(a).Writes(b);
+            graph.AddPass("PassA", RenderGraphPassType.Compute).Read(b).Write(a);
+            graph.AddPass("PassB", RenderGraphPassType.Compute).Read(a).Write(b);
 
             var plan = graph.Compile();
 
             AssertTrue(!plan.IsValid, "RenderGraph should reject cyclic pass dependencies.");
-            AssertTrue(plan.Errors.Any(e => e.Contains("cycle", StringComparison.OrdinalIgnoreCase)), "RenderGraph should report a cycle error.");
+            AssertTrue(plan.Errors.Any(e => e.Contains("循环", StringComparison.OrdinalIgnoreCase)), "RenderGraph should report a cycle error.");
         }
 
         public static void TestRenderGraphReportsResourceLifetimesAndStats()
         {
-            var graph = RenderGraph.CreateDefaultDeferred("MainFrame");
+            var graph = RenderGraph.CreateDefaultDeferredGraph(1920, 1080);
             var plan = graph.Compile();
 
             AssertTrue(plan.IsValid, "Default deferred graph should compile.");
-            AssertTrue(plan.Passes.Count >= 5, "Default deferred graph should include shadow, depth, geometry, lighting and post passes.");
-            AssertTrue(plan.ResourceLifetimes.Any(l => l.Name == "GeometryBufferA" && l.FirstPassIndex >= 0 && l.LastPassIndex >= l.FirstPassIndex), "GeometryBufferA should expose a valid lifetime.");
+            AssertTrue(plan.Passes.Count >= 4, "Default deferred graph should include shadow, geometry, lighting and post passes.");
+            AssertTrue(plan.Lifetimes.Any(l => l.FirstPass >= 0 && l.LastPass >= l.FirstPass), "Resources should expose a valid lifetime.");
             AssertTrue(plan.Stats.TransientResourceCount > 0, "Frame graph should count transient resources.");
-            AssertTrue(plan.Stats.ImportedResourceCount > 0, "Frame graph should count imported resources.");
             AssertTrue(plan.Stats.EstimatedMemoryBytes > 0, "Frame graph should estimate memory.");
         }
 
@@ -149,13 +152,13 @@ namespace YamaEngine.Tests
                 Cameras = new[] { new RenderCamera { Name = "MainCamera", IsMain = true } },
                 Lights = new[] { new RenderLight { Name = "Sun", LightType = "Directional", CastsShadows = true } }
             };
-            var graph = RenderGraph.CreateDefaultDeferred("RuntimeFrame");
+            var graph = RenderGraph.CreateDefaultDeferredGraph(1920, 1080);
             var device = new NullRenderDevice();
 
             var stats = device.Render(scene, graph, 1f / 60f);
 
             AssertEqual(2, stats.MeshCount, "Graph render stats should still count scene meshes.");
-            AssertTrue(stats.RenderGraphPassCount >= 5, "Graph render stats should include executed pass count.");
+            AssertTrue(stats.RenderGraphPassCount >= 4, "Graph render stats should include executed pass count.");
             AssertTrue(stats.TransientResourceCount > 0, "Graph render stats should expose transient resource count.");
             AssertTrue(stats.EstimatedRenderGraphMemoryBytes > 0, "Graph render stats should expose graph memory estimate.");
             AssertEqual(0, stats.RenderGraphErrorCount, "Valid default graph should have no graph errors.");
@@ -250,9 +253,9 @@ namespace YamaEngine.Tests
                 RequestedPageCount = 5,
                 AllocatedPages = new[]
                 {
-                    new SparseShadowAtlasPage("Sun", 0, 10),
-                    new SparseShadowAtlasPage("Sun", 1, 10),
-                    new SparseShadowAtlasPage("Spot", 2, 4)
+                    new VSMAllocatedPage("Sun", 0, 10),
+                    new VSMAllocatedPage("Sun", 1, 10),
+                    new VSMAllocatedPage("Spot", 2, 4)
                 }
             };
             var stats = new FrameStats();

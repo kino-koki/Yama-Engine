@@ -233,10 +233,10 @@ namespace YamaEngine.Cel2D
                 if (time >= a.Time && time <= b.Time)
                 {
                     float span = MathF.Max(b.Time - a.Time, 0.0001f);
-                    float t = Clamp01((time - a.Time) / span);
+                    float t = CelMath2D.Clamp01((time - a.Time) / span);
                     return new CelBoneLocalTransform(
                         Vector2.Lerp(a.Position, b.Position, t),
-                        LerpAngle(a.Rotation, b.Rotation, t),
+                        CelMath2D.LerpAngle(a.Rotation, b.Rotation, t),
                         Vector2.Lerp(a.Scale, b.Scale, t));
                 }
             }

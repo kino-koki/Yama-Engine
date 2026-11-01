@@ -260,8 +260,8 @@ namespace YamaEngine.Rendering
         /// <summary>编译统计摘要。</summary>
         public RenderGraphStats Stats => new RenderGraphStats
         {
-            TransientResourceCount = Lifetimes.Count,
-            ImportedResourceCount = 0,
+            TransientResourceCount = Lifetimes.Count(l => !l.IsImported),
+            ImportedResourceCount = Lifetimes.Count(l => l.IsImported),
             EstimatedMemoryBytes = EstimatedMemoryBytes
         };
 
@@ -282,7 +282,7 @@ namespace YamaEngine.Rendering
     /// </summary>
     public sealed class RenderGraph
     {
-        private readonly RHIDevice _device;
+        private readonly RHIDevice? _device;
         private readonly List<RenderGraphResourceDesc> _resourceDescs = new();
         private readonly List<RenderGraphResourceHandle> _resourceHandles = new();
         private readonly List<RenderGraphPass> _passes = new();
@@ -301,13 +301,19 @@ namespace YamaEngine.Rendering
         public int PassCount => _passes.Count;
         public int ResourceCount => _resourceDescs.Count;
 
-        public RenderGraph(RHIDevice device, string name)
+        public RenderGraph(RHIDevice? device, string name)
         {
             _device = device;
             Name = string.IsNullOrWhiteSpace(name) ? "FrameGraph" : name;
         }
 
         public RenderGraph(RHIDevice device) : this(device, "RenderGraph") { }
+
+        /// <summary>
+        /// 编译专用构造：不绑定物理设备，仅用于图构建/拓扑编译/静态分析/单元测试。
+        /// 调用 <see cref="Execute"/> 前必须使用带设备的重载。
+        /// </summary>
+        public RenderGraph(string name) : this((RHIDevice?)null, name) { }
 
         /// <summary>绑定交换链的后台缓冲作为渲染目标资源。</summary>
         public void SetBackBuffer(RHITexture backBuffer)
@@ -576,6 +582,8 @@ namespace YamaEngine.Rendering
         /// <summary>执行编译后的 RenderGraph。</summary>
         public void Execute(RHICommandList cmdList)
         {
+            if (_device == null)
+                throw new InvalidOperationException("RenderGraph: 未绑定物理设备，编译专用图不可执行。");
             if (!_isCompiled || _lastCompilation == null || !_lastCompilation.Success)
                 throw new InvalidOperationException("RenderGraph 未编译或编译失败, 无法执行。");
 
@@ -697,7 +705,7 @@ namespace YamaEngine.Rendering
                     Flags = RHIBufferFlags.ShaderResource | RHIBufferFlags.UnorderedAccess,
                     HeapType = RHIResourceHeapType.Default
                 };
-                return _device.CreateBuffer(bd, desc.Name);
+                return _device!.CreateBuffer(bd, desc.Name);
             }
             else
             {
@@ -722,7 +730,7 @@ namespace YamaEngine.Rendering
                     SampleCount = desc.SampleCount,
                     Flags = flags
                 };
-                return _device.CreateTexture(td, desc.Name);
+                return _device!.CreateTexture(td, desc.Name);
             }
         }
 
@@ -740,11 +748,16 @@ namespace YamaEngine.Rendering
             return bytes;
         }
 
-        /// <summary>创建默认延迟渲染图。</summary>
+        /// <summary>创建默认延迟渲染图（绑定物理设备，可执行）。</summary>
         public static RenderGraph CreateDefaultDeferredGraph(RHIDevice device, int width, int height)
-        {
-            var graph = new RenderGraph(device, "DefaultDeferred");
+            => CreateDefaultDeferredGraphCore(new RenderGraph(device, "DefaultDeferred"), width, height);
 
+        /// <summary>创建默认延迟渲染图（编译专用，不绑定物理设备，仅供分析/测试）。</summary>
+        public static RenderGraph CreateDefaultDeferredGraph(int width, int height)
+            => CreateDefaultDeferredGraphCore(new RenderGraph("DefaultDeferred"), width, height);
+
+        private static RenderGraph CreateDefaultDeferredGraphCore(RenderGraph graph, int width, int height)
+        {
             var shadowMap = graph.CreateResource(RenderGraphResourceDesc.Texture2D("ShadowMap", RHIFormat.D32_Float, 2048, 2048,
                 flags: RenderGraphResourceFlags.DepthStencil | RenderGraphResourceFlags.ShaderResource));
             var depth = graph.CreateResource(RenderGraphResourceDesc.Texture2D("SceneDepth", RHIFormat.D32_Float, width, height,

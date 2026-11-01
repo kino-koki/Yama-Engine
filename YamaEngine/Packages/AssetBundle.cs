@@ -79,7 +79,7 @@ namespace YamaEngine.Packages
         /// <summary>加载资源为指定类型。</summary>
         public T? Load<T>(string name) where T : class
         {
-            if (!_assets.TryGetValue(name, out var r) || r.Handle is T t)
+            if (_assets.TryGetValue(name, out var r) && r.Handle is T t)
                 return t;
             return null;
         }
@@ -148,8 +148,8 @@ namespace YamaEngine.Packages
         /// </summary>
         public AssetRef? Resolve(string name, string? bundleName = null)
         {
-            if (bundleName != null && _bundles.TryGetValue(bundleName, out var b))
-                return b.Get(name);
+            if (bundleName != null && _bundles.TryGetValue(bundleName, out var bundle))
+                return bundle.Get(name);
             foreach (var b in _bundles.Values)
             {
                 var r = b.Get(name);

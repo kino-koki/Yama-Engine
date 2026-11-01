@@ -135,6 +135,38 @@ namespace YamaEngine.CodeEditing
             Modified = true;
         }
 
+        /// <summary>
+        /// 全文档查找并替换（按字面量），返回替换次数。用于脚本快速编辑。
+        /// </summary>
+        public int Replace(string oldText, string newText)
+        {
+            if (string.IsNullOrEmpty(oldText))
+                throw new ArgumentException("oldText must not be empty.", nameof(oldText));
+            if (newText == null) throw new ArgumentNullException(nameof(newText));
+
+            string full = Text;
+            int count = CountOccurrences(full, oldText);
+            if (count == 0)
+                return 0;
+
+            PushSnapshot();
+            var updated = full.Replace(oldText, newText);
+            _lines = SplitLines(updated);
+            Modified = true;
+            return count;
+        }
+
+        private static int CountOccurrences(string text, string needle)
+        {
+            int count = 0, idx = 0;
+            while ((idx = text.IndexOf(needle, idx, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                idx += needle.Length;
+            }
+            return count;
+        }
+
         private void InsertCore(TextPosition pos, string text)
         {
             var norm = text.Replace("\r\n", "\n").Replace('\r', '\n');

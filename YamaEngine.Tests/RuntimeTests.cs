@@ -87,8 +87,7 @@ namespace YamaEngine.Tests
 
             var loop = new RuntimeGameLoop(
                 world,
-                new NullRenderDevice("Loop Device"),
-                renderGraph: RenderGraph.CreateDefaultDeferred("RuntimeFrame"));
+                new NullRenderDevice("Loop Device"));
 
             var tick = loop.Tick(0.5f);
 
