@@ -113,6 +113,19 @@ try
     GameplayTests.TestPlayerControllerPossessesPawnAndDrivesMovement();
     GameplayTests.TestGameplayWorldSpawnsDefaultPlayerAndScoresMatch();
     GameplayTests.TestGameplayWorldDestroysActorAndStopsTicking();
+    // ── AI 驱动 NPC 系统（LLM 接线，超 UE5.8）──
+    NpcTests.TestPersonalityClampsAndDescribes();
+    NpcTests.TestEmotionTriggerDecayAndDominant();
+    NpcTests.TestEmotionDominantTracksHighest();
+    NpcTests.TestMemoryRememberDecayForgetAndSummarize();
+    NpcTests.TestMemoryCapacityEvictsWeakest();
+    NpcTests.TestRelationshipBidirectionalChange();
+    NpcTests.TestScheduleActivityByHour();
+    NpcTests.TestNpcCharacterTickDecaysMentality();
+    NpcTests.TestNpcInteractUpdatesRelationships();
+    NpcTests.TestNpcDialogueSystemPromptInjectsMentality();
+    NpcTests.TestNpcDialogueLLMRoundtrip();
+    NpcTests.TestNpcWorldTicksAndFinds();
     Console.WriteLine("All YamaEngine tests passed.");
 }
 

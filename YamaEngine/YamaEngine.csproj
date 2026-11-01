@@ -91,6 +91,7 @@
     <Compile Include="Runtime\**\*.cs" />
     <Compile Include="Gameplay\**\*.cs" />
     <Compile Include="Character\**\*.cs" />
+    <Compile Include="NPC\**\*.cs" />
     <Compile Include="Input\**\*.cs" />
     <Compile Include="Config\**\*.cs" />
     <Compile Include="World\**\*.cs" />
