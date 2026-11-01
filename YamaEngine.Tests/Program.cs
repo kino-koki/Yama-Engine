@@ -126,6 +126,26 @@ try
     NpcTests.TestNpcDialogueSystemPromptInjectsMentality();
     NpcTests.TestNpcDialogueLLMRoundtrip();
     NpcTests.TestNpcWorldTicksAndFinds();
+    // ── LLM 引导行为驱动的 AI NPC (NpcBrain: 意图/决策/任务/群体社交) ──
+    NpcBrainTests.TestParseIntentPlainJson();
+    NpcBrainTests.TestParseIntentMarkdownCodeBlock();
+    NpcBrainTests.TestParseIntentInvalidReturnsNull();
+    NpcBrainTests.TestBuildIntentPromptInjectsMentality();
+    NpcBrainTests.TestDecideAsyncAppliesIntentFromLLM();
+    NpcBrainTests.TestDecideAsyncFallsBackToHeuristicOnBadJson();
+    NpcBrainTests.TestDecideAsyncNoFallbackReturnsNull();
+    NpcBrainTests.TestApplyHeuristicRespectsCustomSchedule();
+    NpcBrainTests.TestTickGoToMovesNpcTowardsGoal();
+    NpcBrainTests.TestTickFleeMovesAwayFromThreat();
+    NpcBrainTests.TestTickTalkToKeepsPosition();
+    NpcBrainTests.TestStopClearsExecution();
+    NpcBrainTests.TestQuestActivateAdvanceComplete();
+    NpcBrainTests.TestQuestFail();
+    NpcBrainTests.TestQuestSystemReportProgressTriggersEvent();
+    NpcBrainTests.TestQuestSystemIgnoresMismatchedTarget();
+    NpcBrainTests.TestSocialSimulationGeneratesEventForNearbySocialPair();
+    NpcBrainTests.TestSocialSimulationRespectsRadiusAndActivity();
+    NpcBrainTests.TestSocialSimulationCooldownSuppressesRepeat();
     Console.WriteLine("All YamaEngine tests passed.");
 }
 

@@ -426,6 +426,9 @@ public sealed class NpcCharacter
 /// <summary>NPC 世界：管理所有 NPC 的注册与逐帧 Tick。</summary>
 public sealed class NpcWorld
 {
+    /// <summary>默认起始游戏内小时（决策/日程用）。</summary>
+    public const float DefaultHour = 8f;
+
     private readonly List<NpcCharacter> _characters = new();
     public IReadOnlyList<NpcCharacter> Characters => _characters;
     public float TimeHours { get; private set; } = 8f; // 游戏内小时
