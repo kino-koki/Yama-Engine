@@ -215,7 +215,7 @@ internal static class Program
     {
         string dir = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
         return Directory.Exists(dir)
-            ? Directory.GetDirectories(dir).Select(Path.GetFileName)!
+            ? Directory.GetDirectories(dir).Select(d => Path.GetFileName(d)!)
             : Enumerable.Empty<string>();
     }
 

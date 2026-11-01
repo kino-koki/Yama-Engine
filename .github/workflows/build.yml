@@ -8,16 +8,17 @@ on:
 
 jobs:
   build:
-    name: Build + Test (.NET 8 / Windows)
+    name: Build + Test + Smoke (.NET 10 / Windows)
     runs-on: windows-2022
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK 8.0.422
+      # 项目统一为 net10.0（global.json 锁定 SDK 10.0.203）。
+      - name: Setup .NET SDK 10.0.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.422'
+          dotnet-version: '10.0.x'
 
       # YamaEditor 是 WinUI 3 工程，依赖 Windows App SDK 1.8。
       # windows-2022 镜像通常已含相关目标；若 dotnet build 报缺少 WindowsAppSDK 的
@@ -31,13 +32,14 @@ jobs:
       - name: Test
         run: dotnet test YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug --no-build
 
+      # 无头引擎回归门禁：YamaCLI smoke 引导 EngineSystems 并 Tick 60 帧（不碰 GPU）。
+      # smoke 失败时返回非 0，作为 CI 红灯条件；任何引擎引导/音频/物理子系统回归都会在此暴露。
+      - name: Headless Engine Smoke (regression gate)
+        run: dotnet run --project YamaCLI/YamaCLI.csproj -c Debug -- smoke 60
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: artifacts/
-
-      # 注意：本工作流由"地基阶段"新增。首次在你自己的仓库运行时，
-      # 真实编译错误清单会从 build 步骤输出，并随 artifacts 上传——这正是
-      # 将"真实错误清单"固化为 CI 单一事实来源的关键一步（见 FOUNDATION_STATUS.md）。
