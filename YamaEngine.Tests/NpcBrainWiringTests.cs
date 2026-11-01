@@ -156,6 +156,56 @@ public static class NpcBrainWiringTests
 
     // ── 全链路集成：LLM决策 → NpcBrain → 行为树 ────────────────────
 
+    // ── 真实 LLM 端点配置工厂 ─────────────────────────────────────
+
+    public static void TestLLMConfigFactoryDeepSeekSetsEndpoint()
+    {
+        var cfg = LLMConfigFactory.DeepSeek("sk-test");
+        AssertTrue(cfg.Platform == LLMPlatform.OpenAI, "DeepSeek 应走 OpenAI 兼容平台。");
+        AssertTrue(cfg.Endpoint == "https://api.deepseek.com", "DeepSeek 应设置官方端点。");
+        AssertTrue(cfg.Model == "deepseek-chat", "DeepSeek 应使用默认模型。");
+        AssertTrue(cfg.ApiKey == "sk-test", "DeepSeek 应保留 API Key。");
+    }
+
+    public static void TestLLMConfigFactoryLocalOllama()
+    {
+        var cfg = LLMConfigFactory.LocalOllama("llama3");
+        AssertTrue(cfg.Platform == LLMPlatform.Ollama, "Ollama 平台应正确。");
+        AssertTrue(cfg.Endpoint == "http://localhost:11434/api", "Ollama 应使用本地端点。");
+        AssertTrue(cfg.ApiKey == "", "本地 Ollama 无需 Key。");
+        AssertTrue(cfg.FallbackToLocal, "本地 Ollama 应可回退本地规则。");
+    }
+
+    public static void TestLLMConfigFactoryFromEnvironment()
+    {
+        // 未设置端点 → null
+        var saved = Environment.GetEnvironmentVariable("YAMA_LLM_ENDPOINT");
+        Environment.SetEnvironmentVariable("YAMA_LLM_ENDPOINT", null);
+        AssertTrue(LLMConfigFactory.FromEnvironment() == null, "无端点时应返回 null。");
+
+        // 设置端点 → 返回配置
+        Environment.SetEnvironmentVariable("YAMA_LLM_ENDPOINT", "http://localhost:11434/api");
+        Environment.SetEnvironmentVariable("YAMA_LLM_API_KEY", "");
+        Environment.SetEnvironmentVariable("YAMA_LLM_MODEL", "qwen2.5");
+        Environment.SetEnvironmentVariable("YAMA_LLM_PLATFORM", "Ollama");
+        var cfg = LLMConfigFactory.FromEnvironment();
+        AssertTrue(cfg != null, "有端点时应返回配置。");
+        AssertTrue(cfg!.Platform == LLMPlatform.Ollama, "环境变量应指定平台。");
+        AssertTrue(cfg.Model == "qwen2.5", "环境变量应指定模型。");
+        AssertTrue(cfg.Endpoint == "http://localhost:11434/api", "环境变量应指定端点。");
+
+        // 恢复环境
+        Environment.SetEnvironmentVariable("YAMA_LLM_ENDPOINT", saved);
+    }
+
+    public static void TestLLMConfigFactoryCreateClientIsReady()
+    {
+        var cfg = LLMConfigFactory.DeepSeek("sk-test");
+        var client = LLMConfigFactory.CreateClient(cfg);
+        AssertTrue(client != null, "应创建就绪客户端。");
+        AssertTrue(client.Config == cfg, "客户端应持有配置。");
+    }
+
     public static void TestFullChainLLMDecisionDrivesBehaviorTree()
     {
         var npc = new NpcCharacter { Name = "商队护卫", Position = new Vector3(0, 0, 0) };

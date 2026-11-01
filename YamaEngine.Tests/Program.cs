@@ -155,6 +155,11 @@ try
     NpcBrainWiringTests.TestStateTreeTaskNpcIntentExecutesGoTo();
     NpcBrainWiringTests.TestStateTreeTaskNpcIntentFailsWithoutBrain();
     NpcBrainWiringTests.TestFullChainLLMDecisionDrivesBehaviorTree();
+    // ── 真实 LLM 端点配置工厂 (LLMConfigFactory) ──
+    NpcBrainWiringTests.TestLLMConfigFactoryDeepSeekSetsEndpoint();
+    NpcBrainWiringTests.TestLLMConfigFactoryLocalOllama();
+    NpcBrainWiringTests.TestLLMConfigFactoryFromEnvironment();
+    NpcBrainWiringTests.TestLLMConfigFactoryCreateClientIsReady();
     Console.WriteLine("All YamaEngine tests passed.");
 }
 
