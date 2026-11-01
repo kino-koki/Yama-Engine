@@ -119,7 +119,8 @@ namespace YamaEngine.Audio
 
         public AudioSystem()
         {
-            foreach (AudioBus bus in Enum.GetValues(typeof(AudioBus)))
+            // AudioBus 是类（非枚举）——遍历预定义静态总线，而非 Enum.GetValues
+            foreach (AudioBus bus in new[] { AudioBus.Master, AudioBus.Music, AudioBus.SFX, AudioBus.Voice, AudioBus.Ambient, AudioBus.UI })
                 _buses[bus] = new AudioBusState { Bus = bus };
 
             _listeners.Add(new AudioListener { Position = Vector3.Zero, Rotation = Quaternion.Identity });
