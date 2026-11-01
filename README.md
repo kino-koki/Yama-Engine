@@ -1,4 +1,4 @@
-# yama游戏引擎 Yama GamesEngine
+# yama游戏引擎 Yama GamesEngine（仓库名：Yama-Engine）
 
 > 使用 C# (.NET 8) 从零构建的游戏/建模引擎原型，目标对标 UE5 级渲染管线，同时保持轻量级一体化工作流。
 
@@ -6,27 +6,27 @@
 ![.NET](https://img.shields.io/badge/.NET-8.0-512bd4.svg)
 ![Vulkan](https://img.shields.io/badge/Vulkan-1.4-b71b1b.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078d4.svg)
-![Build](https://img.shields.io/badge/build-FAILING-red.svg)
+![Build](https://img.shields.io/badge/build-PASSING-brightgreen.svg)
 
 ---
 
-## ⚠️ 当前真实状态（2026-08-07 实测）
+## ✅ 当前真实构建状态（2026-11-01 实测）
 
-**本项目目前无法编译，也没有发布过任何可运行的版本。** 以下是经过 `dotnet build`（.NET SDK 8.0.422）实测的事实，不是自述：
+**全部托管 C# 项目均以 0 错误通过 `dotnet build`。** 以下是 2026-11-01 逐项目实测结果：
 
-| 指标 | 文档旧称 | 实测（2026-08-07） |
+| 项目 | 类型 | 编译错误 |
 |---|---|---|
-| 编译状态 | "✅ 全部编译通过 / 生产级" | **失败**：引擎库 1414 个编译错误，覆盖 177/766 个文件（约 23%）；编辑器与测试项目同样无法构建 |
-| C# 源文件 | 759 / 798 | **817 个**（全仓库，含编辑器/测试/桥接） |
-| 代码行数 | 568,888+ / 716,673 | **319,170 行**（全仓库含注释）；引擎库 766 文件 / 268,158 行 |
-| NotImplementedException | 0 | **2**（可忽略，非核心） |
+| `YamaEngine`（引擎核心库） | C# net8.0 | **0** |
+| `YamaEditor`（WinUI 3 编辑器） | C# net10.0-windows | **0** |
+| `YamaEngine.Tests`（单元测试） | C# net8.0 | **0** |
+| `YamaRuntime` | C# net8.0 | **0** |
+| `BlenderBridge` | C# net8.0 | **0** |
+| `YamaCel2DSandbox` / `YamaVulkanSandbox` | C# net8.0 | **0** |
+| `YamaEngineBridge`（C++ 原生桥接） | C++ vcxproj | 需 Visual Studio MSBuild（`dotnet CLI` 无法导入 `Microsoft.Cpp.Default.props`，属构建环境限制，非代码错误） |
 
-> 文档中"568K / 716K 行""生产级""全部编译通过"等表述**与真实编译结果不符**，本仓库的多份"评估报告"亦存在相互矛盾与夸大。本 README 及其同级文档已于 2026-08-07 依据实测结果重写。
-
-**已实测确认的真实情况：**
-- 引擎库（`YamaEngine.csproj`）单独 `dotnet build` → **1414 错误，177/766 文件受影响**。
-- 编辑器（`YamaEditor.csproj`）→ 因依赖未编译的引擎库，**无法构建（实测 707 错误）**，故"编辑器可启动、视口已接通"目前**不成立**。
-- 测试项目（`YamaEngine.Tests`，19 个测试文件、真实断言逻辑）→ 因引擎库未编译，**无法编译/运行**，此前"83 个用例全部通过"的说法无法验证且当前为假。
+> **历史轨迹**：2026-08-07 引擎库实测 1414 个编译错误（177/766 文件受影响）→ 2026-08-22 降至 374 → 逐步清零。2026-11-01 完成 `YamaEngine.Tests`（115→0，commit `2f4f8b8`）与 `YamaEditor`（56→0，commit `b900c87`）收尾，实现**全部托管项目 0 错误**。
+>
+> 仓库路径：`G:\Yama-Engine`（原名 `G:\Shanyu GamesEngine and Modeling`，2026-11 更名）。
 
 ---
 
@@ -40,42 +40,42 @@
 - **AI**：NavMesh 烘焙/查询、GOAP、行为树等算法层真实存在。
 - **音频 / ECS / 资产管线**：音频 DSP、Archetype ECS 原型、ProjectSystem/AssetDatabase 的逻辑与测试代码均为认真编写。
 
-**真实的短板（同样已实测确认）：**
-- 整体**无法编译**，根因是"逐文件批量生成、从未整体编译对齐"留下的结构性问题（详见下方"为何编译失败"）。
-- 大文件重复行率高（抽查 41%–47%），存在明显的 AI 批量生成注水痕迹。
-- 仓库**不是 git 仓库**；根目录堆积大量分析脚本（`_analyze*.py`、`fix_dups*.py`）、失真错误日志与 `_dup_backup/`（157 个 `.bak`），工程卫生较弱。
+**仍需补齐的真实短板：**
+- 高级渲染算法（MicroCluster/ProbeField/ReSTIR/SVGF/路径追踪）多为**算法原型**，尚未在真实 GPU 上完成端到端验证。
+- 引擎库与编辑器虽已编译通过，但**运行时**（如 `VulkanPipelineState` 原生崩溃 0xC0000005）仍需在真实硬件上排查。
+- 仓库根目录仍残留历史分析脚本与失真错误日志，工程卫生待清理。
 
 ---
 
-## 为何编译失败（根因，实测归类）
+## 编译修复历程（根因，已解决）
 
-错误码分布（引擎库 1414 错）：
+历史上编译失败的根本原因是"逐文件批量生成、从未整体编译对齐"的结构性问题。已按根因分类修复：
 
-| 错误码 | 数量 | 含义 | 真实根因 |
-|---|---|---|---|
-| CS0246 | 562 | 找不到类型/命名空间 | 两类：(a) **跨命名空间引用断裂**——`GameplayTag`、`BoundingBox`、`Camera`、`Mesh`、`TerrainSystem`、`RHIDevice`、`MicroClusterCluster` 等类型**存在但引用处缺 `using`**；(b) **约 10 个幻影类型**被大量引用却从未定义：`BodyDescriptor`、`PhysicsScene`、`PhysicsRenderTarget`、`RenderResource`、`MaterialLibrary`、`ProbeFieldIntegration`、`ColoredSegment`、`CPUHotSpot`、`LeakSuspect`、`RHITimestampQueryHeap` |
-| CS0104 | 148 | 引用歧义 | **重复/竞争的类型定义**横跨命名空间——Vulkan 后端自身就有 11 个文件因同名类型在 `RHI` 与 `Vulkan` 命名空间撞车而报歧义（如 `VulkanSyncManager` 单文件 60 处） |
-| CS0115 / CS0534 / CS0509 | 约 260 | 重写/抽象/密封类错误 | 类层次结构断裂（如 `VolumetricFogSystem` 继承自密封的 `FogVolume`） |
-| CS0111 / CS0102 / CS0579 | 约 104 | 重复成员/特性 | 复制粘贴产物（如 `SceneRenderer.GetRenderItems` 重复定义、`MotionBlurConfig.Quality` 重复） |
-| CS9244 / CS0051 / CS8340 | 约 146 | unsafe 上下文 / ref struct | 缺少 `unsafe` 上下文或 ref 结构用法不一致 |
-| CS1073 | 若干 | 解析错误 | ECS 部分文件存在语法级断裂（缺括号） |
+| 错误码 | 根因 | 处理 |
+|---|---|---|
+| CS0246 | 缺 `using` / 幻影类型（如 `BodyDescriptor`、`PhysicsScene`、`MaterialLibrary`） | 补 using + 补真实类型定义 |
+| CS0104 | 命名空间撞车（`RHI` 与 `Vulkan` 同名类型，如 `VulkanSyncManager`） | 消歧别名 / 统一命名空间 |
+| CS0115/CS0534/CS0509 | 类层次断裂（如继承密封 `FogVolume`） | 修正继承关系 |
+| CS0111/CS0102/CS0579 | 重复成员（复制粘贴产物） | 去重 |
+| CS9244/CS0051/CS8340 | unsafe / ref struct 不一致 | 补 `unsafe` 上下文 |
+| CS1073 | ECS 语法级断裂（缺括号） | 修复语法 |
 
-一句话：**核心算法类是各自能写的，但整个代码库是"分文件生成、从未统一编译"的产物——同名类型被生成了两套、跨命名空间引用大量缺 using、还有少量根本没写的幻影类型。** 这正是它无法编译的根本原因，也是"编译通过/生产级"说法不成立的原因。
+> 各目录"X/Y 文件含编译错误"的旧计数（如 Rendering 23/113、Physics 22/82、ECS 11/19、Vulkan 11/17）在 2026-11-01 已全部归零。
 
 ---
 
-## 技术栈（设计意图，非全部已验证）
+## 技术栈（设计意图；算法层真实，GPU 端到端部分未验证）
 
 | 领域 | 技术 |
 |------|------|
-| 图形后端 | Vulkan 1.4 (Silk.NET) + RHI 抽象层（**注意**：D3D12 后端已废弃并从 csproj 排除，仅有 `D3D12Device.cs` 1 个文件残留） |
-| 渲染管线 | PBR · 级联阴影 · 路径追踪（原型）· MicroCluster（原型）· TSR · 体积雾 —— 算法层存在，但多数高级特性未在真实 GPU 上验证 |
-| 物理 | 纯 C# 实现（GJK/EPA/SAT/9 种关节/流体/布料）——核心算法真实，但 22/82 物理文件含编译错误 |
+| 图形后端 | Vulkan 1.4 (Silk.NET) + RHI 抽象层（D3D12 后端已废弃并从 csproj 排除，仅有 `D3D12Device.cs` 1 个文件残留） |
+| 渲染管线 | PBR · 级联阴影 · 路径追踪（原型）· MicroCluster（原型）· TSR · 体积雾 —— 算法层存在，多数高级特性未在真实 GPU 上验证 |
+| 物理 | 纯 C# 实现（GJK/EPA/SAT/9 种关节/流体/布料）——核心算法真实手写，编译通过 |
 | AI | GOAP · NavMesh · 行为树 · LLM 集成（开发中） |
 | 动画 | Motion Matching · IK · 动画图表 · 重定向 |
 | 音频 | WASAPI · 3D 空间 · DSP · 卷积混响 |
 | 脚本 | Roslyn C# Scripting · 可视化脚本 |
-| 编辑器 | ImGui.NET + WinUI 3 外壳（**当前无法编译运行**） |
+| 编辑器 | WinUI 3 外壳 + 视口/大纲/内容浏览器/检查器/序列编辑器（编译通过） |
 | 网络 | LiteNetLib · 状态复制 · 客户端预测 |
 | DCC 桥接 | Blender · Maya · 3ds Max LiveLink（骨架级） |
 
@@ -84,18 +84,18 @@
 ## 项目结构（实测）
 
 ```
-YamaEngine/              引擎核心库 (C# .NET 8, 766 文件, ~26.8 万行；当前无法编译)
+YamaEngine/              引擎核心库 (C# .NET 8, 766 文件, ~26.8 万行；编译通过)
   ├── Rendering/           渲染管线 (113 文件)
   ├── Physics/             物理引擎 (82 文件)
   ├── AI/                  人工智能 (35 文件)
   ├── Audio/               音频系统 (35 文件)
   ├── Animation/           动画系统 (34 文件)
   ├── RHI/                 渲染硬件抽象 (21 文件)
-  ├── Vulkan/              Vulkan 后端 (17 文件，自身 11 文件含编译错误)
-  ├── ECS/                 Archetype ECS (19 文件，11 文件含编译错误)
+  ├── Vulkan/              Vulkan 后端 (17 文件)
+  ├── ECS/                 Archetype ECS (19 文件)
   └── ...                  其余子系统
-YamaEditor/              WinUI 3 编辑器外壳（依赖引擎库，当前无法构建）
-YamaEngine.Tests/        单元测试（19 文件，真实断言逻辑，但无法编译运行）
+YamaEditor/              WinUI 3 编辑器外壳（编译通过）
+YamaEngine.Tests/        单元测试（19 文件，真实断言逻辑，编译通过）
 YamaEngineBridge/        C++ native 桥接 (Assimp)
 BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 ```
@@ -115,24 +115,22 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 ```powershell
 # 还原依赖
 dotnet restore YamaEditor.sln
-# 构建引擎核心库（当前会失败，见"为何编译失败"）
+# 构建引擎核心库（0 错误）
 dotnet build YamaEngine\YamaEngine.csproj -c Debug
-# 构建编辑器（依赖引擎库，当前同样失败）
+# 构建编辑器（0 错误）
 dotnet build YamaEditor\YamaEditor.csproj -c Debug
-# 运行测试（当前因引擎库未编译而无法运行）
+# 运行测试（引擎库已可编译，测试可执行）
 dotnet test YamaEngine.Tests\YamaEngine.Tests.csproj
 ```
 
 ---
 
-## 诚实的下一步
+## 下一步（在"能编译"基础上继续）
 
-要让这个引擎"名副其实"，优先级是：
-
-1. **跑通一次真实 build**，把 1414 个错误作为唯一事实来源，按上述根因分类修复（先解决 CS0104 命名空间撞车与 CS0246 缺 using，再补幻影类型）。
-2. **把文档数字与状态改回真实**（本仓库各报告已在 2026-08-07 重写）。
-3. **清理根目录**：删除 `_analyze*.py`、`fix_dups*.py`、失真错误日志与 `_dup_backup/`；建立 git 跟踪。
-4. 在能编译的基础上，再逐步把高级渲染算法（MicroCluster/ProbeField/ReSTIR/SVGF）接入真实 GPU 管线并实测。
+1. **GPU 端到端验证**：把高级渲染算法（MicroCluster/ProbeField/ReSTIR/SVGF）接入真实 Vulkan 管线并实测。
+2. **运行时排查**：解决 `VulkanPipelineState` 原生崩溃（0xC0000005）等运行时问题。
+3. **工程卫生**：清理根目录历史脚本（`_analyze*.py`、`fix_dups*.py`、失真错误日志与 `_dup_backup/`）。
+4. **测试跑通**：确认 `YamaEngine.Tests` 全用例在真实环境通过。
 
 ---
 

@@ -10,7 +10,7 @@
 | 维度 | 结论 |
 |------|------|
 | 代码规模 | **766 个 C# 文件，约 646,000 行**；AI 模块 35 文件 / 40,085 行 |
-| 当前构建状态 | **不可编译**：582 个错误（196×CS0246 类型缺失、80×CS0115 override 不匹配、46×CS8340 ref-struct、44×CS0111 / 38×CS0101 重复定义 等） |
+| 当前构建状态 | **全部托管项目编译通过（2026-11-01，0 错误）**：历史峰值 582 → 0；`YamaEngine.Tests` 115→0、`YamaEditor` 56→0 收尾 |
 | 架构愿景 | 雄心勃勃且方向正确：自研 ECS + 手写物理 + Vulkan/D3D12 RHI + LLM 驱动 NPC |
 | 真实完成度 | **约 35–45%**：核心子系统有骨架与部分真实实现，但大量门面类/接口为"幻影类型"，全链路未打通 |
 | 最强资产 | **LLM NPC 系统**——5 家 Provider、SSE 流式、Persona/Memory/PAD 情感、LLM→行为树桥接、GameMaster、任务生成器，设计完整度远超同类自研引擎 |
@@ -29,7 +29,7 @@
 
 ```
 YamaEngine
-├── Core/            WorldSystemsBootstrap（系统引导，30 编译错误）
+├── Core/            WorldSystemsBootstrap（系统引导，编译通过）
 ├── ECS/             SystemBaseReal / EntityManagerReal / ArchetypeQuery（自研 ECS）
 ├── RHI/             RHICore（枚举与描述符）、RHIDeviceExtensions、Vulkan/、D3D12/
 ├── Rendering/       HybridLightingRenderer、Pipeline
@@ -84,7 +84,7 @@ YamaEngine
 
 ## 2. 构建修复路线图（一切的前提）
 
-目标：将 `YamaEngine.csproj` 从 582 错误降至 **0 编译错误**，并保留现有真实实现，不引入伪代码。
+目标：将 `YamaEngine.csproj` 从 582 错误降至 **0 编译错误**，并保留现有真实实现，不引入伪代码。—— **已完成（2026-11-01，0 错误）**
 
 ### 阶段 A：幻影类型与命名统一（预计消除 ~250 错误）
 - **A1 类型别名统一**：在 `RHICore.cs` 中新增 `public enum RHITextureUsage : uint { ... }` 与 `RHITextureFlags` 成员一致；同理 `RHIBufferUsage`→`RHIResourceUsage`，`RHIMapMode`/`RHIFormatUsage`/`RHIFormatProperties`/`RHIDeviceCapabilities`/`RHIRenderPass`/`RHIShaderDesc`/`RHITimerQuery`/`RHITimestampQueryHeap`/`RHIMaterial` 按引用方实际成员定义真实枚举/结构（成员清单已通过 grep 提取，见 `_inventory_out.txt`）。
@@ -117,7 +117,7 @@ YamaEngine
 | 约束求解器基类解耦 | `Physics/CollisionSolverReal.cs` | 80×CS0115 + 12×CS0534 | 新增 `SolverConstraint` 抽象基类，9 个约束子类从重载 Jolt `Constraint` 重定向到它，并修复 `InitVelocitySolve` 虚方法签名 |
 | 基础引擎类型补全 | `EngineCompatTypes.cs`（新增，已加入 csproj） | ~30×CS0246 | 补齐 `Camera`(struct,134 引用)/`DemoMeshType`/`PhysicsRenderTarget`/`BodyDescriptor`/`ColoredSegment`/`CameraManager`/`BuiltinMaterials` |
 
-**构建错误总数：582 → 422（净消除 160 个，约 27%）**，且新增文件均通过编译（无新引入错误）。剩余 422 错误主要分布在：缺失真实子系统（TerrainSystem/PhysicsSystem/UISystem/MaterialLibrary/SwapChain/GameInstance/ScriptEngine/PhysicsScene，约 50）、重复定义（CS0101/0102/0111，约 120）、ref struct 违规（CS8340，46）、缺失 using（CS0234，24）、语法断裂（CS1073/0103，28）及其他。
+**构建错误总数：582 → 0（2026-11-01 全部清零）**。历史轨迹：582 → 422（净消除 160）→ … → 0。剩余的错误曾分布在缺失真实子系统、重复定义、ref struct 违规、缺失 using、语法断裂等类别，均已按根因修复。
 
 ---
 
@@ -151,7 +151,7 @@ YamaEngine
 
 ### 3.2 支柱二：渲染管线与画质表现
 
-**现状（实测）**：`Rendering/HybridLightingRenderer.cs`（10 编译错误）、`RHI/` 抽象层、`Vulkan/`(17 文件)、`D3D12/` 雏形。具备描述符结构与管线状态键，但渲染通道、后处理、PBR 材质链未打通。
+**现状（实测 2026-11-01）**：`Rendering/HybridLightingRenderer.cs`、`RHI/` 抽象层、`Vulkan/`(17 文件)、`D3D12/` 雏形均编译通过。具备描述符结构与管线状态键，但渲染通道、后处理、PBR 材质链**未在真实 GPU 上端到端打通**。
 
 **开发目标**：实现延迟/前向混合渲染，达到"现代 PBR 画质"：物理光照 + 阴影 + 后处理（Bloom/DOF/色调映射）+ 基础 GI（探针/SSAO）。
 
@@ -194,7 +194,7 @@ YamaEngine
 ## 4. 交付物与后续步骤
 
 ### 本会话已交付
-1. **真实构建基线**：582 错误 / 112 文件，按根因分类（§1.3、§2）。
+1. **真实构建基线**：582 错误 / 112 文件，按根因分类（§1.3、§2）——**已于 2026-11-01 全部清零**。
 2. **逐幻影类型成员清单**（已通过 `_inventory.py` 提取至 `_inventory_out.txt`，可作为修复脚本输入）。
 3. **本评估与开发规格文档**。
 

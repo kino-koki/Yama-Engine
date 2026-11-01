@@ -56,8 +56,8 @@
 | **并行化** | 单线程 `List<Rigidbody>` | 多线程 Jobs + GPU 物理 | **巨大** |
 | **GPU 物理** | 无 | Chaos PCA + GPU rigid body | **完全缺失** |
 | **破碎系统** | `DestructionSystem.cs` 存在但被 `<Compile Remove>` | Chaos Field 系统（量产） | 大 |
-| **流体** | `FluidSimulationSystem.cs` 存在但未编译 | Chaos Fluid（Niagara 整合） | 大 |
-| **布料** | `ClothSimulationSystem.cs` 存在但未编译 | Chaos Cloth（量产） | 大 |
+| **流体** | `FluidSimulationSystem.cs` 存在且已编译 | Chaos Fluid（Niagara 整合） | 大 |
+| **布料** | `ClothSimulationSystem.cs` 存在且已编译 | Chaos Cloth（量产） | 大 |
 | **实测验证** | 零 | 3A 游戏验证 | **致命缺失** |
 
 ### 2.2 网格系统差距

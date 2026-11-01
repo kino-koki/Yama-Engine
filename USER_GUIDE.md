@@ -329,10 +329,11 @@ renderDevice.ExecuteRenderGraph(compiledGraph, deltaTime);
    - 确认文件格式支持
    - 查看 AssetDatabase 错误日志
 
-2. **构建失败**
+2. **构建失败（2026-11-01 起全部托管项目 0 错误；若出现新错误）**
    - 运行 EngineDiagnostics 检查项目完整性
    - 清理 Intermediate 目录重新构建
    - 检查磁盘空间
+   - 若为 `YamaEngineBridge`（C++）：需使用 Visual Studio MSBuild（`dotnet CLI` 无法导入 C++ 目标文件）
 
 3. **运行时崩溃**
    - 检查资产文件完整性
