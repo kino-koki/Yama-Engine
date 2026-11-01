@@ -160,6 +160,17 @@ try
     NpcBrainWiringTests.TestLLMConfigFactoryLocalOllama();
     NpcBrainWiringTests.TestLLMConfigFactoryFromEnvironment();
     NpcBrainWiringTests.TestLLMConfigFactoryCreateClientIsReady();
+    // ── GPU 渲染管线（Deferred + 后处理栈，真实 GLSL shader + RHI 管线规划）──
+    GpuPipelineTests.TestGbufferShadersValidAndMrt8();
+    GpuPipelineTests.TestDeferredLightingShaderValid();
+    GpuPipelineTests.TestPostProcessStackShadersValid();
+    GpuPipelineTests.TestFramePlanBuildsGbufferMrt8();
+    GpuPipelineTests.TestFramePlanPassOrder();
+    GpuPipelineTests.TestFramePlanRespectsFeatureFlags();
+    GpuPipelineTests.TestBuildPipelineDescsProduceRhiDescs();
+    GpuPipelineTests.TestGpuShaderCompilerDeterministic();
+    GpuPipelineTests.TestGpuShaderCompilerRejectsEmpty();
+    GpuPipelineTests.TestGpuPipelineBridgeExecutesPasses();
     Console.WriteLine("All YamaEngine tests passed.");
 }
 

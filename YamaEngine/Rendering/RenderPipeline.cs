@@ -208,7 +208,7 @@ public sealed class ShadowMapPass : BaseRenderPass
         return s;
     }
 
-    public override void Execute(ViewData view, SceneRenderData scene, FrameResourcePool pool, GPUDrivenCullingSystem culling) { }
+    public override void Execute(ViewData view, SceneRenderData scene, FrameResourcePool pool, GPUDrivenCullingSystem culling) { GpuPipelineBridge.Execute(Name); }
 }
 
 public sealed class SSAOPass : BaseRenderPass
@@ -228,7 +228,7 @@ public sealed class SSAOPass : BaseRenderPass
         }
         return k;
     }
-    public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { }
+    public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); }
 }
 
 public sealed class BloomPass : BaseRenderPass
@@ -236,7 +236,7 @@ public sealed class BloomPass : BaseRenderPass
     public override string Name => "Bloom";
     public float Intensity = 1f, Threshold = 1f, SoftThreshold = 0.5f;
     public int DownsampleCount = 6;
-    public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { }
+    public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); }
 }
 
 public sealed class TonemappingPass : BaseRenderPass
@@ -245,15 +245,15 @@ public sealed class TonemappingPass : BaseRenderPass
     public float Exposure = 1f, WhitePoint = 11.2f;
     public static float ACES(float x) { float a=2.51f,b=0.03f,c=2.43f,d=0.59f,e=0.14f; return Math.Clamp((x*(a*x+b))/(x*(c*x+d)+e),0,1); }
     public static float Reinhard(float x) => x / (1f + x);
-    public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { }
+    public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); }
 }
 
-public sealed class DepthOfFieldPass : BaseRenderPass { public override string Name => "DepthOfField"; public float FocalDistance = 10f, FocalRegion = 3f, MaxBlur = 0.5f; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { } }
-public sealed class MotionBlurPass : BaseRenderPass { public override string Name => "MotionBlur"; public int SampleCount = 8; public float Strength = 1f; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { } }
-public sealed class ScreenSpaceReflectionPass : BaseRenderPass { public override string Name => "SSR"; public int MaxSteps = 64; public float Thickness = 0.1f; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { } }
-public sealed class GeometryBufferPass : BaseRenderPass { public override string Name => "GeometryBuffer"; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { } }
-public sealed class MainLightingPass : BaseRenderPass { public override string Name => "MainLighting"; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { } }
-public sealed class PresentPass : BaseRenderPass { public override string Name => "Present"; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { } }
+public sealed class DepthOfFieldPass : BaseRenderPass { public override string Name => "DepthOfField"; public float FocalDistance = 10f, FocalRegion = 3f, MaxBlur = 0.5f; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); } }
+public sealed class MotionBlurPass : BaseRenderPass { public override string Name => "MotionBlur"; public int SampleCount = 8; public float Strength = 1f; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); } }
+public sealed class ScreenSpaceReflectionPass : BaseRenderPass { public override string Name => "SSR"; public int MaxSteps = 64; public float Thickness = 0.1f; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); } }
+public sealed class GeometryBufferPass : BaseRenderPass { public override string Name => "GeometryBuffer"; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); } }
+public sealed class MainLightingPass : BaseRenderPass { public override string Name => "MainLighting"; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); } }
+public sealed class PresentPass : BaseRenderPass { public override string Name => "Present"; public override void Execute(ViewData v, SceneRenderData s, FrameResourcePool p, GPUDrivenCullingSystem c) { GpuPipelineBridge.Execute(Name); } }
 
 #endregion
 
@@ -402,6 +402,8 @@ public sealed class RenderPipeline : IDisposable
         _currentView = view;
         OnBeforeRender?.Invoke();
         _framePool.AdvanceFrame();
+        // 打开 GPU 管线帧：构建 Deferred+后处理 GPU pass 图（GBuffer MRT8/SSAO/SSR/Bloom/后处理栈）
+        GpuPipelineBridge.ResetFrame(view.RenderWidth, view.RenderHeight, _settings);
         var f = view.GetFrustum();
         _culling.Cull(f, scene.InstanceBounds, scene.InstanceIds);
         foreach (var p in _passes) { if (p.IsEnabled) p.Execute(view, scene, _framePool, _culling); }
