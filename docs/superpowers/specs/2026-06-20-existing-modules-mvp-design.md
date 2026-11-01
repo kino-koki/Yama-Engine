@@ -1,10 +1,10 @@
-# Shanyu 已有模块完善设计
+# Yama 已有模块完善设计
 
 ## 目标
 
-本阶段只完善仓库中已经存在且属于当前主干的模块，不新增空泛的大系统。目标是把 Shanyu 从“有编辑器和引擎结构”推进到“能稳定完成基础开发闭环”的 MVP：创建项目、导入资产、保存场景、创建 Prefab、导出可运行包，并用烟测验证。
+本阶段只完善仓库中已经存在且属于当前主干的模块，不新增空泛的大系统。目标是把 Yama 从“有编辑器和引擎结构”推进到“能稳定完成基础开发闭环”的 MVP：创建项目、导入资产、保存场景、创建 Prefab、导出可运行包，并用烟测验证。
 
-完成后，用户应能打开 `ShanyuEditor.sln`，构建解决方案，运行 `ShanyuEngine.Tests`，并确信当前主干不是堆叠目录，而是一条连贯工作流。
+完成后，用户应能打开 `YamaEditor.sln`，构建解决方案，运行 `YamaEngine.Tests`，并确信当前主干不是堆叠目录，而是一条连贯工作流。
 
 ## 范围
 
@@ -13,10 +13,10 @@
 - 完善 `ProjectSystem`：项目创建、模板复制、默认目录、manifest 校验。
 - 完善 `AssetDatabase`：资产导入、`.shmeta`、GUID 索引、场景对象管理。
 - 完善 `PrefabSystem`：Prefab 保存、meta 写入、GUID 实例化、基础属性 roundtrip。
-- 抽出场景序列化：让 `.shanyu` 保存/加载格式集中维护，不继续散在 `AssetDatabase` 中。
-- 抽出 `BuildPipeline`：把编辑器中的导出逻辑迁到 `ShanyuEngine`。
-- 完善 `ShanyuRuntime` smoke：能读取导出包 manifest、加载场景、跑短循环。
-- 完善 `ShanyuEngine.Tests`：覆盖项目、资产、场景、Prefab、导出包验证。
+- 抽出场景序列化：让 `.yama` 保存/加载格式集中维护，不继续散在 `AssetDatabase` 中。
+- 抽出 `BuildPipeline`：把编辑器中的导出逻辑迁到 `YamaEngine`。
+- 完善 `YamaRuntime` smoke：能读取导出包 manifest、加载场景、跑短循环。
+- 完善 `YamaEngine.Tests`：覆盖项目、资产、场景、Prefab、导出包验证。
 - 清理编辑器文案：去掉夸张宣传式文本，改为专业、可验证的描述。
 
 本阶段不包含：
@@ -33,25 +33,25 @@
 
 优先级如下：
 
-1. 构建稳定：`dotnet build ShanyuEditor.sln -c Debug -p:Platform=x64` 必须通过。
+1. 构建稳定：`dotnet build YamaEditor.sln -c Debug -p:Platform=x64` 必须通过。
 2. 数据稳定：项目、资产、场景、Prefab 都使用明确的 JSON 格式和 GUID。
 3. 导出稳定：`BuildPipeline` 生成结构固定的 demo 包。
-4. 测试稳定：`ShanyuEngine.Tests` 覆盖关键闭环。
+4. 测试稳定：`YamaEngine.Tests` 覆盖关键闭环。
 5. 编辑器调用核心库：UI 只负责选择文件夹和展示结果，不承载核心导出逻辑。
 
 ## 模块设计
 
 ### `ProjectSystem`
 
-位置：`ShanyuEngine/Projects/ProjectSystem.cs`
+位置：`YamaEngine/Projects/ProjectSystem.cs`
 
-保留现有 `ShanyuProject` 和 `ProjectSystem`，补齐输入校验和 manifest 校验。
+保留现有 `YamaProject` 和 `ProjectSystem`，补齐输入校验和 manifest 校验。
 
 职责：
 
 - 创建项目目录。
 - 从 `Templates/Basic3D` 复制基础内容。
-- 读取和写入 `shanyu.project.json`。
+- 读取和写入 `yama.project.json`。
 - 确保 `Assets`、`Content/Scenes`、`Content/Materials`、`Builds`、`Library`、`ProjectSettings` 存在。
 - 返回明确错误，避免静默失败。
 
@@ -63,7 +63,7 @@
 
 ### `AssetDatabase`
 
-位置：`ShanyuEngine/Assets/AssetDatabase.cs`
+位置：`YamaEngine/Assets/AssetDatabase.cs`
 
 保留现有 API，但将场景保存/加载细节迁出到 `SceneSerializer`。`AssetDatabase` 保留为资产索引和场景对象容器。
 
@@ -78,7 +78,7 @@
 
 改进点：
 
-- 扩展类型识别：`.obj/.fbx/.gltf/.glb` 为 Mesh，常见图片为 Texture2D，音频为 Audio，`.shprefab` 为 Prefab，`.shanyu` 为 Scene。
+- 扩展类型识别：`.obj/.fbx/.gltf/.glb` 为 Mesh，常见图片为 Texture2D，音频为 Audio，`.shprefab` 为 Prefab，`.yama` 为 Scene。
 - 统一路径为 `/` 分隔。
 - 导入重复文件时保留唯一文件名，但 meta 中记录原始来源。
 - `.shmeta` 读取失败时提供可诊断错误。
@@ -91,14 +91,14 @@
 
 ### `SceneSerializer`
 
-位置：`ShanyuEngine/Scenes/SceneSerializer.cs`
+位置：`YamaEngine/Scenes/SceneSerializer.cs`
 
 新增集中式场景序列化模块，避免 `AssetDatabase` 同时承担资产库和场景格式两个职责。
 
 职责：
 
-- 保存 `.shanyu`。
-- 加载 `.shanyu`。
+- 保存 `.yama`。
+- 加载 `.yama`。
 - 序列化对象的名称、可见性、层、Transform、Mesh/Material 引用、基础材质参数、Prefab 源 GUID。
 - 支持格式版本字段。
 
@@ -124,7 +124,7 @@
 
 ### `PrefabSystem`
 
-位置：`ShanyuEngine/Prefabs/PrefabSystem.cs`
+位置：`YamaEngine/Prefabs/PrefabSystem.cs`
 
 保留现有 `PrefabAsset`、`PrefabObject`、`PrefabSystem`，补齐与 `AssetDatabase` 的关系。
 
@@ -146,7 +146,7 @@
 
 ### `BuildPipeline`
 
-位置：`ShanyuEngine/Build/BuildPipeline.cs`
+位置：`YamaEngine/Build/BuildPipeline.cs`
 
 新增核心导出模块，替代编辑器中内联的 `ExportDemoDialog` 文件复制逻辑。
 
@@ -155,20 +155,20 @@
 - 接收项目根路径、输出目录、当前场景路径、资产库。
 - 保存或复制当前场景到导出包。
 - 复制已导入资产。
-- 写入 `shanyu.demo.json`。
-- 尝试复制 `ShanyuRuntime` 构建产物。
-- 生成 `run_shanyu_demo.bat`。
+- 写入 `yama.demo.json`。
+- 尝试复制 `YamaRuntime` 构建产物。
+- 生成 `run_yama_demo.bat`。
 - 返回 `BuildResult`，包含导出目录、是否复制 runtime、对象数、资产数、警告列表。
 
 导出包结构：
 
 ```text
-ShanyuPlayableDemo/
-  shanyu.demo.json
-  run_shanyu_demo.bat
+YamaPlayableDemo/
+  yama.demo.json
+  run_yama_demo.bat
   README.txt
   Content/
-    MainScene.shanyu
+    MainScene.yama
     Assets/
   Runtime/
 ```
@@ -185,16 +185,16 @@ ShanyuPlayableDemo/
 - manifest 中场景路径、对象数、资产数正确。
 - 没有 runtime 时仍能得到可诊断 warning。
 
-### `ShanyuRuntime`
+### `YamaRuntime`
 
-位置：`ShanyuRuntime/Program.cs`
+位置：`YamaRuntime/Program.cs`
 
 保留现有 manifest 加载与 `--smoke` 参数。完善错误码和输出，使其适合作为导出包验证工具。
 
 职责：
 
-- 读取 `shanyu.demo.json`。
-- 加载 manifest 指向的 `.shanyu`。
+- 读取 `yama.demo.json`。
+- 加载 manifest 指向的 `.yama`。
 - 初始化 `EngineSystems`。
 - 输出项目名、场景、对象数、资产数。
 - `--smoke` 模式跑 5 帧后退出。
@@ -204,9 +204,9 @@ ShanyuPlayableDemo/
 - smoke 模式成功返回 0。
 - manifest 缺失、场景缺失、JSON 错误均返回非 0。
 
-### `ShanyuEditor`
+### `YamaEditor`
 
-位置：`ShanyuEditor/MainWindow.xaml.cs`
+位置：`YamaEditor/MainWindow.xaml.cs`
 
 编辑器只做 UI 编排，不承载核心业务逻辑。
 
@@ -214,7 +214,7 @@ ShanyuPlayableDemo/
 
 - `ExportDemoDialog()` 调用 `BuildPipeline.Build()`。
 - 创建项目、打开项目、导入资产、创建 Prefab 后刷新 UI。
-- 文案从“UE5.7-level industrial engine”等不可验证描述改成“Shanyu Engine MVP”。
+- 文案从“UE5.7-level industrial engine”等不可验证描述改成“Yama Engine MVP”。
 - 日志使用清晰、可诊断文本。
 
 验收：
@@ -223,9 +223,9 @@ ShanyuPlayableDemo/
 - 菜单项仍能调用对应功能。
 - 导出结果在日志中显示输出目录和 warnings。
 
-### `ShanyuEngine.Tests`
+### `YamaEngine.Tests`
 
-位置：`ShanyuEngine.Tests/Program.cs`
+位置：`YamaEngine.Tests/Program.cs`
 
 扩展现有烟测，不引入复杂测试框架，保持命令行可跑。
 
@@ -236,14 +236,14 @@ ShanyuPlayableDemo/
 3. 保存场景并重新加载。
 4. 创建 Prefab 并实例化。
 5. 使用 `BuildPipeline` 导出 demo 包。
-6. 校验 `shanyu.demo.json`、场景、资产、脚本文件存在。
+6. 校验 `yama.demo.json`、场景、资产、脚本文件存在。
 
 验收命令：
 
 ```powershell
-dotnet restore ShanyuEditor.sln
-dotnet build ShanyuEditor.sln -c Debug -p:Platform=x64
-dotnet run --project ShanyuEngine.Tests/ShanyuEngine.Tests.csproj
+dotnet restore YamaEditor.sln
+dotnet build YamaEditor.sln -c Debug -p:Platform=x64
+dotnet run --project YamaEngine.Tests/YamaEngine.Tests.csproj
 ```
 
 ## 数据流
@@ -268,7 +268,7 @@ dotnet run --project ShanyuEngine.Tests/ShanyuEngine.Tests.csproj
 
 1. 编辑器调用 `AssetDatabase.SaveScene()`。
 2. `AssetDatabase` 将对象列表交给 `SceneSerializer`。
-3. `SceneSerializer` 写入 `.shanyu`。
+3. `SceneSerializer` 写入 `.yama`。
 
 ### 创建 Prefab
 
@@ -280,7 +280,7 @@ dotnet run --project ShanyuEngine.Tests/ShanyuEngine.Tests.csproj
 ### 导出 Demo
 
 1. 编辑器选择输出目录。
-2. `BuildPipeline.Build()` 生成 `ShanyuPlayableDemo`。
+2. `BuildPipeline.Build()` 生成 `YamaPlayableDemo`。
 3. 复制场景和资产。
 4. 写入 manifest 和启动脚本。
 5. 编辑器显示成功或 warnings。
@@ -300,7 +300,7 @@ dotnet run --project ShanyuEngine.Tests/ShanyuEngine.Tests.csproj
 1. 新增 `SceneSerializer` 和对应测试。
 2. 新增 `BuildPipeline` 和对应测试。
 3. 修改 `AssetDatabase` 调用 `SceneSerializer`。
-4. 修改 `ShanyuEditor` 调用 `BuildPipeline`。
+4. 修改 `YamaEditor` 调用 `BuildPipeline`。
 5. 清理编辑器文案。
 6. 跑 `dotnet build` 和测试。
 7. 更新 `README.md` 的功能边界与验证命令。
@@ -308,7 +308,7 @@ dotnet run --project ShanyuEngine.Tests/ShanyuEngine.Tests.csproj
 ## 验收标准
 
 - 解决方案构建通过。
-- 测试命令输出 `All ShanyuEngine tests passed.`。
-- 导出目录包含 `shanyu.demo.json`、`Content/MainScene.shanyu`、`run_shanyu_demo.bat`。
-- 如果 runtime 已构建，导出包包含 `Runtime/ShanyuRuntime.exe`。
+- 测试命令输出 `All YamaEngine tests passed.`。
+- 导出目录包含 `yama.demo.json`、`Content/MainScene.yama`、`run_yama_demo.bat`。
+- 如果 runtime 已构建，导出包包含 `Runtime/YamaRuntime.exe`。
 - `README.md` 与实际功能一致，不再承诺未实现的大系统。

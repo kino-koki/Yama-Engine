@@ -1,11 +1,11 @@
 import re, os, collections
 
-ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling"
+ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling"
 log = open(os.path.join(ROOT, "build_out.txt"), encoding="utf-8", errors="ignore").read().splitlines()
 # CS0101: 命名空间'NS'已经包含'TYPE'的定义
 # CS0104: 类型'TYPE'在'A'和'B'之间不明确
 # CS0111: 类型'TYPE'已定义了一个名为'M'... ; or 已定义了一个名为'M'的具有相同参数类型的成员
-pat = re.compile(r'ShanyuEngine\\(.+?)\((?P<line>\d+),(?P<col>\d+)\): error (?P<code>CS\d+): (?P<msg>.*)')
+pat = re.compile(r'YamaEngine\\(.+?)\((?P<line>\d+),(?P<col>\d+)\): error (?P<code>CS\d+): (?P<msg>.*)')
 errs=[]
 for ln in log:
     m=pat.search(ln)

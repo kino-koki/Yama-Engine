@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="using:YamaEditor.Controls">
+
+    <Style TargetType="controls:EngineViewport">
+        <Setter Property="Background" Value="#FF0A0A0E"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:EngineViewport">
+                    <Grid Background="{TemplateBinding Background}">
+                        <!-- Vulkan 渲染面板 -->
+                        <SwapChainPanel x:Name="PART_SwapChainPanel"/>
+
+                        <!-- 统计信息叠加层 -->
+                        <Border x:Name="PART_OverlayRoot"
+                                VerticalAlignment="Top"
+                                HorizontalAlignment="Right"
+                                Margin="8">
+                            <StackPanel x:Name="PART_StatsOverlay"
+                                        Orientation="Vertical"
+                                        Spacing="2"
+                                        Background="#AA000000"
+                                        Padding="8,4"
+                                        CornerRadius="2">
+                                <TextBlock x:Name="PART_FpsText"
+                                           Text="FPS: 60.0"
+                                           Foreground="#FF80FF80"
+                                           FontFamily="Consolas"
+                                           FontSize="11"/>
+                                <TextBlock x:Name="PART_TrianglesText"
+                                           Text="Tris: 0"
+                                           Foreground="#FFE0E0E8"
+                                           FontFamily="Consolas"
+                                           FontSize="11"/>
+                                <TextBlock x:Name="PART_DrawCallsText"
+                                           Text="Draw: 0"
+                                           Foreground="#FFE0E0E8"
+                                           FontFamily="Consolas"
+                                           FontSize="11"/>
+                                <TextBlock x:Name="PART_GpuMemoryText"
+                                           Text="GPU: 0 MB"
+                                           Foreground="#FF8A8A96"
+                                           FontFamily="Consolas"
+                                           FontSize="11"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

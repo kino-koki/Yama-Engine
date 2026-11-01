@@ -1,14 +1,14 @@
-# 山雨引擎 (Shanyu Engine) 综合评估报告（修订版）
+# yama引擎 (Yama Engine) 综合评估报告（修订版）
 
 > 评估日期：2026-08-07（基于 .NET 8.0.422 真实 `dotnet build` + 逐文件抽读）
-> 评估范围：仓库 `Shanyu GamesEngine and Modeling` 全部活动工程
+> 评估范围：仓库 `Yama GamesEngine and Modeling` 全部活动工程
 > 评估方法：真实构建 + 错误归类 + 子系统抽读代码
 
 ---
 
 ## 1. 执行摘要
 
-山雨引擎是一个以 **C# (.NET 8) 为主干**、目标对标 Unreal Engine 5 的桌面端游戏/建模引擎原型。
+yama引擎是一个以 **C# (.NET 8) 为主干**、目标对标 Unreal Engine 5 的桌面端游戏/建模引擎原型。
 
 **核心结论（实测）：**
 - **算法层完成度较高且真实**：物理 GJK/EPA/SAT、Vulkan 交换链/管线、NavMesh、GOAP、音频 DSP、ECS 原型、资产管线均为真实手写实现，不是空壳。
@@ -24,13 +24,13 @@
 ### 2.1 分层结构（设计意图）
 
 ```
-ShanyuEditor      WinUI 3 编辑器外壳（XAML + code-behind），通过 Vulkan Surface 嵌入引擎渲染
+YamaEditor      WinUI 3 编辑器外壳（XAML + code-behind），通过 Vulkan Surface 嵌入引擎渲染
    │
-ShanyuEngine      .NET 引擎核心库（单一巨型库，766 .cs 文件，~40 子系统）
+YamaEngine      .NET 引擎核心库（单一巨型库，766 .cs 文件，~40 子系统）
    │
-ShanyuRuntime     .NET 运行时加载器
+YamaRuntime     .NET 运行时加载器
    │
-ShanyuEngineBridge  C++ native 桥接（Assimp 模型导入）
+YamaEngineBridge  C++ native 桥接（Assimp 模型导入）
 BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 ```
 
@@ -42,7 +42,7 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 
 | 编号 | 问题 | 严重度 |
 |---|---|---|
-| A1 | ShanyuEngine 为单一巨型库（~40 子系统、766 文件编译进一个 Library），无程序集边界 | 高 |
+| A1 | YamaEngine 为单一巨型库（~40 子系统、766 文件编译进一个 Library），无程序集边界 | 高 |
 | A2 | **同名类型在 `RHI` 与 `Vulkan` 等命名空间被生成了两套**，导致 CS0104 歧义（Vulkan 后端 11 文件因此报错）——这是"分文件批量生成、从未整体编译"的直接证据 | 高 |
 | A3 | 跨命名空间引用大量缺 `using`（CS0246 共 562 处），以及约 10 个被引用却从未定义的幻影类型 | 高 |
 | A4 | 命名空间风格不统一（块式 vs 文件作用域） | 低 |
@@ -54,7 +54,7 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 
 ### 3.1 渲染层
 
-- **Vulkan 后端真实**：`VulkanSwapchain.cs`、`VulkanPipeline.cs` 等为真实实现；`ShanyuEditor/Controls/TriangleRenderer.cs` 是内嵌 SPIR-V、含 `DrawInstanced` 闭环的"第一个三角形"真实代码（已抽读确认）。
+- **Vulkan 后端真实**：`VulkanSwapchain.cs`、`VulkanPipeline.cs` 等为真实实现；`YamaEditor/Controls/TriangleRenderer.cs` 是内嵌 SPIR-V、含 `DrawInstanced` 闭环的"第一个三角形"真实代码（已抽读确认）。
 - **但无法编译运行**：Vulkan 目录 11/17 文件含 CS0104 命名空间歧义；编辑器工程整体无法构建。**因此"视口已接通、能看到三角形"目前不成立**——代码从未在真实 GPU 上验证运行。
 - 高级渲染（MicroCluster/ProbeField/ReSTIR/SVGF/路径追踪）多为算法原型，未在真实 GPU 实测。
 
@@ -69,7 +69,7 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 
 ### 3.4 测试
 
-- `ShanyuEngine.Tests` 含 19 个测试文件，断言逻辑真实（ProjectSystem/AssetDatabase 等做了真实工程创建/资源导入/roundtrip 验证）。
+- `YamaEngine.Tests` 含 19 个测试文件，断言逻辑真实（ProjectSystem/AssetDatabase 等做了真实工程创建/资源导入/roundtrip 验证）。
 - **实测无法编译运行**（依赖未编译的引擎库）。旧版称"83 个用例全部跑在 NullRenderDevice 上"无法验证且当前为假。
 
 ---
@@ -103,6 +103,6 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 
 ## 6. 结论
 
-山雨引擎的**算法深度与数据管线骨架是其真实核心竞争力**，远超一般"玩具"水准，且代码是认真手写的。但**工程化严重滞后**：当前连编译都未通过（引擎库 1414 错误、编辑器/测试无法构建），文档又大面积虚报规模与"生产级/编译通过"状态。
+yama引擎的**算法深度与数据管线骨架是其真实核心竞争力**，远超一般"玩具"水准，且代码是认真手写的。但**工程化严重滞后**：当前连编译都未通过（引擎库 1414 错误、编辑器/测试无法构建），文档又大面积虚报规模与"生产级/编译通过"状态。
 
 **下一步首要行动**：安装/锁定 .NET 8 SDK，跑通一次真实 `dotnet build`，将 1414 个错误作为后续修复的单一事实来源——而不是继续相信任何"编译通过"的自述。

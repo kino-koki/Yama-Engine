@@ -1,7 +1,7 @@
 import re,collections,os
-ROOT=r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling"
+ROOT=r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling"
 log=open(os.path.join(ROOT,"build_out.txt"),encoding="utf-8",errors="ignore").read().splitlines()
-pat=re.compile(r'ShanyuEngine[\\/](.+?)\((?P<line>\d+),.*?error (?P<code>CS\d+)')
+pat=re.compile(r'YamaEngine[\\/](.+?)\((?P<line>\d+),.*?error (?P<code>CS\d+)')
 c=collections.defaultdict(collections.Counter)
 for ln in log:
     m=pat.search(ln)

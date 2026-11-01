@@ -1,4 +1,4 @@
-# 山雨引擎 (ShanyuEngine) 架构评估与生产级开发规格
+# yama引擎 (YamaEngine) 架构评估与生产级开发规格
 
 > 文档版本：v1.1 ｜ 评估日期：2026-08-22 ｜ 基于实测构建状态（非文档推断）
 > 评估方法：直接运行 `dotnet build` 获取真实错误基线，逐文件核对类型定义与引用关系，抽样阅读核心模块源码。
@@ -28,7 +28,7 @@
 项目采用分层架构，命名空间映射清晰：
 
 ```
-ShanyuEngine
+YamaEngine
 ├── Core/            WorldSystemsBootstrap（系统引导，30 编译错误）
 ├── ECS/             SystemBaseReal / EntityManagerReal / ArchetypeQuery（自研 ECS）
 ├── RHI/             RHICore（枚举与描述符）、RHIDeviceExtensions、Vulkan/、D3D12/
@@ -84,7 +84,7 @@ ShanyuEngine
 
 ## 2. 构建修复路线图（一切的前提）
 
-目标：将 `ShanyuEngine.csproj` 从 582 错误降至 **0 编译错误**，并保留现有真实实现，不引入伪代码。
+目标：将 `YamaEngine.csproj` 从 582 错误降至 **0 编译错误**，并保留现有真实实现，不引入伪代码。
 
 ### 阶段 A：幻影类型与命名统一（预计消除 ~250 错误）
 - **A1 类型别名统一**：在 `RHICore.cs` 中新增 `public enum RHITextureUsage : uint { ... }` 与 `RHITextureFlags` 成员一致；同理 `RHIBufferUsage`→`RHIResourceUsage`，`RHIMapMode`/`RHIFormatUsage`/`RHIFormatProperties`/`RHIDeviceCapabilities`/`RHIRenderPass`/`RHIShaderDesc`/`RHITimerQuery`/`RHITimestampQueryHeap`/`RHIMaterial` 按引用方实际成员定义真实枚举/结构（成员清单已通过 grep 提取，见 `_inventory_out.txt`）。

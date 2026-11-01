@@ -1,12 +1,12 @@
 import re, os, shutil
-ROOT=r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine"
+ROOT=r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling/YamaEngine"
 files=[
  "Vulkan/VulkanInterop.cs",
  "Platform/SDL2Window.cs",
  "Vulkan/VulkanMemoryAllocator.cs",
  "Rendering/MeshShaderRenderer.cs",
 ]
-BACKUP=os.path.join(r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling","_dup_backup")
+BACKUP=os.path.join(r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling","_dup_backup")
 os.makedirs(BACKUP, exist_ok=True)
 # declaration regex: optional modifiers then class/struct/interface/enum/record
 decl=re.compile(r'^(?P<indent>\s*)(?P<mods>(?:(?:public|internal|protected|private|abstract|sealed|static|partial|unsafe|file|ref|readonly)\s+)*)(?P<kw>class|struct|interface|enum|record)\b')

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64</Platforms>
+    <RootNamespace>YamaCel2DSandbox</RootNamespace>
+    <AssemblyName>YamaCel2DSandbox</AssemblyName>
+    <StartupObject>YamaCel2DSandbox.Program</StartupObject>
+  </PropertyGroup>
+
+  <!-- 引用主引擎 RHI + Cel2D 子系统（net10.0） -->
+  <ItemGroup>
+    <ProjectReference Include="..\YamaEngine\YamaEngine.csproj" />
+  </ItemGroup>
+
+  <!-- shaderc 原生库：提供 shaderc_shared.dll，供引擎 VulkanShaderCompiler P/Invoke 编译 HLSL→SPIR-V -->
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Shaderc.Native" Version="2.22.0" />
+  </ItemGroup>
+
+  <!-- 显式把 NuGet native 包里的 shaderc_shared.dll 复制到输出目录
+       （SDK 未自动复制 runtimes/win-x64/native 资产，需手动 Copy） -->
+  <Target Name="CopyShadercNative" AfterTargets="Build">
+    <Copy SourceFiles="$(NuGetPackageRoot)silk.net.shaderc.native\2.22.0\runtimes\win-x64\native\shaderc_shared.dll"
+          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

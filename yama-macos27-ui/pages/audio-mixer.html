@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Mixer - Yama Engine</title>
+    <style id="theme-vars">
+:root {
+  /* Unity 5 Dark Theme for Yama Engine */
+  --color-bg-base: #191919;
+  --color-bg-panel: #2b2b2b;
+  --color-bg-panel-solid: #2b2b2b;
+  --color-bg-elevated: #333333;
+  --color-bg-sunken: #0e0e0e;
+  --color-bg-viewport: #1c1c1c;
+  --color-bg-toolbar: #323232;
+  --color-bg-hover: #363636;
+  --color-bg-active: #404040;
+  --color-bg-selected: #2c5f8a;
+  --color-bg-selected-text: #ffffff;
+  --color-bg-input: #1c1c1c;
+  --color-bg-tab-active: #2b2b2b;
+  --color-bg-tab-inactive: #262626;
+  --color-bg-header: #2a2a2a;
+  --color-bg-pro: #2b2b2b;
+  --color-bg-pro-header: #333333;
+  --color-bg-dropdown: #2b2b2b;
+  --color-bg-playmode: #2a1f1f;
+  --color-text-primary: #cccccc;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-text-accent: #3d9eff;
+  --color-text-bright: #f0f0f0;
+  --color-brand: #3d9eff;
+  --color-brand-hover: #5bb0ff;
+  --color-brand-muted: rgba(61,158,255,0.2);
+  --color-brand-dark: #2870b3;
+  --state-success: #49b86e;
+  --state-warning: #e8c44a;
+  --state-error: #e74c4c;
+  --state-info: #3d9eff;
+  --color-border: #111111;
+  --color-border-light: #444444;
+  --color-border-subtle: #333333;
+  --color-border-focus: #3d9eff;
+  --color-border-pro: #111111;
+  --color-axis-x: #e74c4c;
+  --color-axis-y: #49b86e;
+  --color-axis-z: #3d9eff;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-full: 9999px;
+  --font-display: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 18px;
+  --leading-tight: 1.2;
+  --leading-normal: 1.4;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-8: 16px;
+  --space-10: 20px;
+  --space-12: 24px;
+  --space-16: 32px;
+  --surface-panel: 1px solid var(--color-border);
+  --surface-elevated: 1px solid var(--color-border-light);
+  --surface-floating: 0 2px 8px rgba(0,0,0,0.5), 1px solid var(--color-border-light);
+  /* Unity-specific: inspector label width, toolbar height, etc. */
+  --unity-label-width: 110px;
+  --unity-toolbar-height: 30px;
+  --unity-menubar-height: 20px;
+  --unity-tab-height: 22px;
+  --unity-statusbar-height: 22px;
+  --unity-header-height: 22px;
+  --unity-indent: 16px;
+  --unity-icon-size: 16px;
+  --unity-inspector-padding: 6px 8px;
+}
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+.unity-panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+}
+.unity-header {
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 var(--space-2);
+  height: var(--unity-header-height);
+  line-height: var(--unity-header-height);
+}
+.unity-toolbar {
+  background: var(--color-bg-toolbar);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-toolbar-height);
+  padding: 0 var(--space-2);
+}
+.unity-tab-bar {
+  background: var(--color-bg-tab-inactive);
+  border-bottom: 1px solid var(--color-border);
+  height: var(--unity-tab-height);
+}
+.unity-tab {
+  padding: 0 var(--space-3);
+  height: var(--unity-tab-height);
+  line-height: var(--unity-tab-height);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.unity-tab:hover { background: var(--color-bg-hover); }
+.unity-tab.active {
+  background: var(--color-bg-tab-active);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-brand);
+}
+.unity-input {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 2px 4px;
+  outline: none;
+}
+.unity-input:focus { border-color: var(--color-border-focus); }
+.unity-button {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.unity-button:hover { background: var(--color-bg-hover); }
+.engine-viewport-bg { background: var(--color-bg-viewport); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-border: var(--color-border);
+  }
+  @layer base {
+    body { background: var(--color-bg-base); color: var(--color-text-primary); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body>
+
+<!-- Menu Bar -->
+<div class="menu-bar">
+  <span class="brand">Yama</span>
+  <span>File</span>
+  <span>Edit</span>
+  <span>Audio</span>
+  <span>Window</span>
+  <span>Help</span>
+  <div style="flex:1"></div>
+  <span data-dom-id="nav-main-editor" style="color:#3d9eff;">Scene</span>
+  <span data-dom-id="nav-material-editor" style="color:#3d9eff;">Material</span>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="toolbar-left">
+    <span class="label">Audio Mixer</span>
+  </div>
+  <div class="toolbar-center">
+    <span style="font-size:10px;color:#999;">Snapshot:</span>
+    <select id="snapshotSelect">
+      <option value="default" selected>Default Snapshot</option>
+      <option value="menu">Menu Snapshot</option>
+      <option value="battle">Battle Snapshot</option>
+      <option value="cinematic">Cinematic Snapshot</option>
+    </select>
+  </div>
+  <div class="toolbar-right">
+    <button class="unity-btn" id="btnResetAll">Reset All</button>
+    <button class="unity-btn" id="btnBypass">Bypass Effects</button>
+    <button class="unity-btn" id="btnSolo">Solo</button>
+  </div>
+</div>
+
+<!-- Main Area -->
+<div class="main-area">
+
+  <!-- Left Panel: Bus Routing -->
+  <div class="left-panel">
+    <div class="tab-bar">
+      <div class="tab-item active">Buses</div>
+    </div>
+    <div class="tree-view" id="treeView">
+      <div class="tree-node parent" data-expanded="true" onclick="toggleTree(this)">
+        <span class="arrow">&#9660;</span> Master
+      </div>
+      <div class="tree-children" style="">
+        <div class="tree-node parent" data-expanded="true" onclick="toggleTree(this)">
+          <span class="arrow">&#9660;</span> Groups
+        </div>
+        <div class="tree-children">
+          <div class="tree-leaf" onclick="selectLeaf(this)">Music Bus</div>
+          <div class="tree-leaf" onclick="selectLeaf(this)">SFX Bus</div>
+          <div class="tree-leaf" onclick="selectLeaf(this)">Voice Bus</div>
+          <div class="tree-leaf" onclick="selectLeaf(this)">Ambient Bus</div>
+        </div>
+        <div class="tree-node parent" data-expanded="true" onclick="toggleTree(this)">
+          <span class="arrow">&#9660;</span> Sends
+        </div>
+        <div class="tree-children">
+          <div class="tree-leaf" onclick="selectLeaf(this)">Reverb Send</div>
+          <div class="tree-leaf" onclick="selectLeaf(this)">Delay Send</div>
+          <div class="tree-leaf" onclick="selectLeaf(this)">Compressor Send</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mixer Strips -->
+  <div class="mixer-area" id="mixerArea">
+    <!-- Strips injected by JS -->
+  </div>
+
+</div>
+
+<!-- Bottom Panel -->
+<div class="bottom-panel">
+  <div class="bottom-tab-bar">
+    <div class="tab-item active" id="tabWaveform" onclick="switchBottomTab('waveform')">Waveform</div>
+    <div class="tab-item" id="tabSpectrum" onclick="switchBottomTab('spectrum')">Spectrum</div>
+  </div>
+  <div class="bottom-canvas-area">
+    <canvas id="waveformCanvas"></canvas>
+    <canvas id="spectrumCanvas" style="display:none;"></canvas>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <span class="brand">Audio Mixer</span>
+  <span>Sample Rate: 48000 Hz | Buffer: 512 | Latency: 10.7ms</span>
+  <span id="statusCpuVoices">CPU: 2.3% | Active Voices: 24</span>
+</div>
+
+<script>
+// ==================== DATA ====================
+const CHANNELS = [
+  { id:'master', name:'Master', accentColor:'#3d9eff', bg:'#333', isMaster:true, defaultDb:0, effects:[], vuFreq:0.8, vuAmp:0.7, vuStyle:'stereo' },
+  { id:'music', name:'Music', accentColor:'#3d9eff', bg:'#2b2b2b', isMaster:false, defaultDb:-3, effects:['EQ','Compressor','Reverb'], vuFreq:1.2, vuAmp:0.85, vuStyle:'stereo' },
+  { id:'sfx', name:'SFX', accentColor:'#e8c44a', bg:'#2b2b2b', isMaster:false, defaultDb:-6, effects:['EQ','Compressor'], vuFreq:2.5, vuAmp:0.6, vuStyle:'stereo' },
+  { id:'voice', name:'Voice', accentColor:'#49b86e', bg:'#2b2b2b', isMaster:false, defaultDb:-2, effects:['EQ','Compressor','De-esser'], vuFreq:0.6, vuAmp:0.75, vuStyle:'stereo' },
+  { id:'ambient', name:'Ambient', accentColor:'#9b59b6', bg:'#2b2b2b', isMaster:false, defaultDb:-12, effects:['EQ','Reverb'], vuFreq:0.3, vuAmp:0.4, vuStyle:'stereo' },
+  { id:'reverb', name:'Reverb Send', accentColor:'#60a5fa', bg:'#2b2b2b', isMaster:false, defaultDb:-8, effects:['Reverb'], vuFreq:0.5, vuAmp:0.5, vuStyle:'send', sendAlwaysOn:true }
+];
+
+const SNAPSHOTS = {
+  default: {
+    master:{db:0,mute:false,solo:false,fx:{},pan:0},
+    music:{db:-3,mute:false,solo:false,fx:{EQ:true,Compressor:true,Reverb:true},pan:0},
+    sfx:{db:-6,mute:false,solo:false,fx:{EQ:true,Compressor:true},pan:0},
+    voice:{db:-2,mute:false,solo:false,fx:{EQ:true,Compressor:true,'De-esser':true},pan:0},
+    ambient:{db:-12,mute:false,solo:false,fx:{EQ:true,Reverb:true},pan:0},
+    reverb:{db:-8,mute:false,solo:false,fx:{Reverb:true},pan:0}
+  },
+  menu: {
+    master:{db:0,mute:false,solo:false,fx:{},pan:0},
+    music:{db:-6,mute:false,solo:false,fx:{EQ:true,Compressor:false,Reverb:true},pan:0},
+    sfx:{db:-20,mute:true,solo:false,fx:{EQ:true,Compressor:false},pan:0},
+    voice:{db:-4,mute:false,solo:false,fx:{EQ:true,Compressor:true,'De-esser':true},pan:0},
+    ambient:{db:-18,mute:false,solo:false,fx:{EQ:true,Reverb:true},pan:0},
+    reverb:{db:-12,mute:false,solo:false,fx:{Reverb:true},pan:0}
+  },
+  battle: {
+    master:{db:3,mute:false,solo:false,fx:{},pan:0},
+    music:{db:-2,mute:false,solo:false,fx:{EQ:true,Compressor:true,Reverb:false},pan:0},
+    sfx:{db:0,mute:false,solo:false,fx:{EQ:true,Compressor:true},pan:0},
+    voice:{db:-6,mute:true,solo:false,fx:{EQ:true,Compressor:false,'De-esser':false},pan:0},
+    ambient:{db:-24,mute:true,solo:false,fx:{EQ:false,Reverb:false},pan:0},
+    reverb:{db:-4,mute:false,solo:false,fx:{Reverb:true},pan:0}
+  },
+  cinematic: {
+    master:{db:0,mute:false,solo:false,fx:{},pan:0},
+    music:{db:-1,mute:false,solo:true,fx:{EQ:true,Compressor:false,Reverb:true},pan:0},
+    sfx:{db:-12,mute:false,solo:false,fx:{EQ:true,Compressor:false},pan:0},
+    voice:{db:0,mute:false,solo:true,fx:{EQ:true,Compressor:true,'De-esser':true},pan:0},
+    ambient:{db:-4,mute:false,solo:false,fx:{EQ:true,Reverb:true},pan:0},
+    reverb:{db:-2,mute:false,solo:false,fx:{Reverb:true},pan:0}
+  }
+};
+
+const DB_SCALE = [0,-6,-12,-18,-24,-30,-40,-50,-60];
+const DB_MIN = -80, DB_MAX = 10;
+const FADER_PX_HEIGHT = 140;
+
+// ==================== STATE ====================
+let channelState = {};
+let faderDragging = null;
+let panDragging = null;
+let bypassEffects = false;
+let globalSolo = false;
+let animationId = null;
+
+function initState() {
+  channelState = {};
+  CHANNELS.forEach(ch => {
+    channelState[ch.id] = {
+      db: ch.defaultDb,
+      mute: false,
+      solo: false,
+      pan: 0,
+      fx: {},
+      vuL: 0, vuR: 0, vuSend: 0,
+      peakL: 0, peakR: 0, peakSend: 0,
+      peakDecayL: 0, peakDecayR: 0, peakDecaySend: 0
+    };
+    ch.effects.forEach(e => { channelState[ch.id].fx[e] = true; });
+  });
+}
+initState();
+
+// ==================== BUILD STRIPS ====================
+function buildStrips() {
+  const area = document.getElementById('mixerArea');
+  area.innerHTML = '';
+  CHANNELS.forEach(ch => {
+    const s = channelState[ch.id];
+    const isSend = ch.vuStyle === 'send';
+    const div = document.createElement('div');
+    div.className = 'channel-strip' + (ch.isMaster ? ' master-strip' : '');
+    div.id = 'strip-' + ch.id;
+
+    let vuHTML = '';
+    if (isSend) {
+      vuHTML = `
+        <div class="send-meter-area">
+          <div class="send-meter-bg">
+            <div class="send-meter-fill" id="vu-send-${ch.id}" style="height:0%"></div>
+          </div>
+        </div>`;
+    } else {
+      vuHTML = `
+        <div class="vu-container">
+          <div class="dB-scale">${DB_SCALE.map(d=>`<span>${d}</span>`).join('')}</div>
+          <div class="vu-meter-wrap">
+            <div class="vu-bar-bg" style="height:100%;">
+              <div class="vu-bar-fill" id="vu-L-${ch.id}" style="height:0%"></div>
+              <div class="peak-indicator" id="peak-L-${ch.id}" style="bottom:0%"></div>
+            </div>
+          </div>
+          <div class="vu-meter-wrap">
+            <div class="vu-bar-bg" style="height:100%;">
+              <div class="vu-bar-fill" id="vu-R-${ch.id}" style="height:0%"></div>
+              <div class="peak-indicator" id="peak-R-${ch.id}" style="bottom:0%"></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    let fxHTML = '';
+    if (ch.effects.length > 0) {
+      fxHTML = '<div class="effects-section">';
+      ch.effects.forEach(e => {
+        const on = s.fx[e] !== false;
+        fxHTML += `<div class="fx-btn${on?' fx-on':''}" id="fx-${ch.id}-${e.replace(/\s/g,'_')}" onclick="toggleFx('${ch.id}','${e}')">${e}</div>`;
+      });
+      fxHTML += '</div>';
+    }
+
+    div.innerHTML = `
+      <div class="accent-bar" style="background:${ch.accentColor}"></div>
+      <div class="ch-label">${ch.name}</div>
+      ${vuHTML}
+      <div class="fader-area">
+        <div class="fader-track" id="fader-track-${ch.id}" data-channel="${ch.id}">
+          <div class="fader-thumb" id="fader-thumb-${ch.id}" style="bottom:${dbToFaderPx(s.db)}px"></div>
+        </div>
+      </div>
+      <div class="db-display" id="db-display-${ch.id}">${s.db.toFixed(1)} dB</div>
+      <div class="mute-solo-row">
+        <div class="ms-btn${s.mute?' mute-active':''}" id="mute-${ch.id}" onclick="toggleMute('${ch.id}')">M</div>
+        <div class="ms-btn${s.solo?' solo-active':''}" id="solo-${ch.id}" onclick="toggleSolo('${ch.id}')">S</div>
+      </div>
+      <div class="pan-area">
+        <div class="pan-label">Pan</div>
+        <div class="pan-track" id="pan-track-${ch.id}" data-channel="${ch.id}">
+          <div class="pan-thumb" id="pan-thumb-${ch.id}" style="left:50%"></div>
+        </div>
+        <div class="pan-value" id="pan-value-${ch.id}">C</div>
+      </div>
+      ${fxHTML}
+    `;
+    area.appendChild(div);
+  });
+}
+
+// ==================== HELPERS ====================
+function dbToFaderPx(db) {
+  const ratio = (db - DB_MIN) / (DB_MAX - DB_MIN);
+  return ratio * FADER_PX_HEIGHT;
+}
+function faderPxToDb(px) {
+  const ratio = Math.max(0, Math.min(1, px / FADER_PX_HEIGHT));
+  return DB_MIN + ratio * (DB_MAX - DB_MIN);
+}
+function dbToPercent(db) {
+  // -60dB = 0%, 0dB = 75%, +10dB = 100%
+  if (db <= -60) return 0;
+  if (db >= 10) return 100;
+  return ((db + 60) / 70) * 100;
+}
+function isEffectivelyMuted(chId) {
+  const ch = CHANNELS.find(c => c.id === chId);
+  const s = channelState[chId];
+  if (s.mute) return true;
+  // If any channel has solo active and this one doesn't, mute it
+  const anySolo = CHANNELS.some(c => channelState[c.id].solo);
+  if (anySolo && !s.solo) return true;
+  if (globalSolo && !s.solo) return true;
+  return false;
+}
+
+// ==================== TREE ====================
+function toggleTree(el) {
+  const expanded = el.getAttribute('data-expanded') === 'true';
+  el.setAttribute('data-expanded', (!expanded).toString());
+  const arrow = el.querySelector('.arrow');
+  arrow.innerHTML = expanded ? '&#9654;' : '&#9660;';
+  const children = el.nextElementSibling;
+  if (children && children.classList.contains('tree-children')) {
+    children.style.display = expanded ? 'none' : '';
+  }
+}
+function selectLeaf(el) {
+  document.querySelectorAll('.tree-leaf.selected').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ==================== FADER DRAG ====================
+document.addEventListener('mousedown', function(e) {
+  const thumb = e.target.closest('.fader-thumb');
+  if (thumb) {
+    e.preventDefault();
+    const chId = thumb.id.replace('fader-thumb-','');
+    faderDragging = { chId, thumb, track: thumb.parentElement };
+    thumb.classList.add('dragging');
+    return;
+  }
+  const panThumb = e.target.closest('.pan-thumb');
+  if (panThumb) {
+    e.preventDefault();
+    const chId = panThumb.id.replace('pan-thumb-','');
+    panDragging = { chId, thumb: panThumb, track: panThumb.parentElement };
+    return;
+  }
+});
+document.addEventListener('mousemove', function(e) {
+  if (faderDragging) {
+    const rect = faderDragging.track.getBoundingClientRect();
+    let y = e.clientY - rect.top;
+    y = Math.max(0, Math.min(FADER_PX_HEIGHT, y));
+    const db = faderPxToDb(y);
+    channelState[faderDragging.chId].db = Math.round(db * 10) / 10;
+    faderDragging.thumb.style.bottom = y + 'px';
+    document.getElementById('db-display-' + faderDragging.chId).textContent = channelState[faderDragging.chId].db.toFixed(1) + ' dB';
+  }
+  if (panDragging) {
+    const rect = panDragging.track.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    x = Math.max(0, Math.min(rect.width, x));
+    const pan = (x / rect.width) * 2 - 1;
+    channelState[panDragging.chId].pan = Math.round(pan * 100) / 100;
+    panDragging.thumb.style.left = x + 'px';
+    const pv = document.getElementById('pan-value-' + panDragging.chId);
+    if (Math.abs(pan) < 0.05) pv.textContent = 'C';
+    else if (pan < 0) pv.textContent = 'L' + Math.abs(Math.round(pan * 100));
+    else pv.textContent = 'R' + Math.round(pan * 100);
+  }
+});
+document.addEventListener('mouseup', function() {
+  if (faderDragging) {
+    faderDragging.thumb.classList.remove('dragging');
+    faderDragging = null;
+  }
+  if (panDragging) {
+    panDragging = null;
+  }
+});
+
+// ==================== MUTE / SOLO / FX ====================
+function toggleMute(chId) {
+  channelState[chId].mute = !channelState[chId].mute;
+  updateStripVisuals(chId);
+}
+function toggleSolo(chId) {
+  channelState[chId].solo = !channelState[chId].solo;
+  updateStripVisuals(chId);
+  // Update all strips for solo logic
+  CHANNELS.forEach(ch => updateStripVisuals(ch.id));
+}
+function toggleFx(chId, fxName) {
+  const key = fxName.replace(/\s/g,'_');
+  channelState[chId].fx[fxName] = !channelState[chId].fx[fxName];
+  const btn = document.getElementById('fx-' + chId + '-' + key);
+  if (btn) {
+    btn.classList.toggle('fx-on', channelState[chId].fx[fxName]);
+  }
+}
+function updateStripVisuals(chId) {
+  const s = channelState[chId];
+  const strip = document.getElementById('strip-' + chId);
+  const muteBtn = document.getElementById('mute-' + chId);
+  const soloBtn = document.getElementById('solo-' + chId);
+  muteBtn.classList.toggle('mute-active', s.mute);
+  soloBtn.classList.toggle('solo-active', s.solo);
+  strip.classList.toggle('muted', isEffectivelyMuted(chId));
+  strip.classList.toggle('soloed', s.solo);
+}
+
+// ==================== SNAPSHOTS ====================
+document.getElementById('snapshotSelect').addEventListener('change', function() {
+  applySnapshot(this.value);
+});
+function applySnapshot(name) {
+  const snap = SNAPSHOTS[name];
+  if (!snap) return;
+  CHANNELS.forEach(ch => {
+    const s = snap[ch.id];
+    if (!s) return;
+    channelState[ch.id].db = s.db;
+    channelState[ch.id].mute = s.mute;
+    channelState[ch.id].solo = s.solo;
+    channelState[ch.id].pan = s.pan;
+    if (s.fx) {
+      Object.keys(s.fx).forEach(k => { channelState[ch.id].fx[k] = s.fx[k]; });
+    }
+    // Update UI
+    const thumb = document.getElementById('fader-thumb-' + ch.id);
+    if (thumb) thumb.style.bottom = dbToFaderPx(s.db) + 'px';
+    const dbDisp = document.getElementById('db-display-' + ch.id);
+    if (dbDisp) dbDisp.textContent = s.db.toFixed(1) + ' dB';
+    const panThumb = document.getElementById('pan-thumb-' + ch.id);
+    if (panThumb) panThumb.style.left = (50 + s.pan * 50) + '%';
+    const panVal = document.getElementById('pan-value-' + ch.id);
+    if (panVal) {
+      if (Math.abs(s.pan) < 0.05) panVal.textContent = 'C';
+      else if (s.pan < 0) panVal.textContent = 'L' + Math.abs(Math.round(s.pan * 100));
+      else panVal.textContent = 'R' + Math.round(s.pan * 100);
+    }
+    // Update fx buttons
+    ch.effects.forEach(e => {
+      const btn = document.getElementById('fx-' + ch.id + '-' + e.replace(/\s/g,'_'));
+      if (btn) btn.classList.toggle('fx-on', !!channelState[ch.id].fx[e]);
+    });
+    updateStripVisuals(ch.id);
+  });
+}
+
+// ==================== TOOLBAR BUTTONS ====================
+document.getElementById('btnResetAll').addEventListener('click', function() {
+  applySnapshot('default');
+  document.getElementById('snapshotSelect').value = 'default';
+});
+document.getElementById('btnBypass').addEventListener('click', function() {
+  bypassEffects = !bypassEffects;
+  this.classList.toggle('active-toggle', bypassEffects);
+  CHANNELS.forEach(ch => {
+    ch.effects.forEach(e => {
+      const btn = document.getElementById('fx-' + ch.id + '-' + e.replace(/\s/g,'_'));
+      if (btn) {
+        btn.style.opacity = bypassEffects ? '0.3' : '1';
+      }
+    });
+  });
+});
+document.getElementById('btnSolo').addEventListener('click', function() {
+  globalSolo = !globalSolo;
+  this.classList.toggle('active-toggle', globalSolo);
+  CHANNELS.forEach(ch => updateStripVisuals(ch.id));
+});
+
+// ==================== BOTTOM TABS ====================
+function switchBottomTab(tab) {
+  document.getElementById('tabWaveform').classList.toggle('active', tab === 'waveform');
+  document.getElementById('tabSpectrum').classList.toggle('active', tab === 'spectrum');
+  document.getElementById('waveformCanvas').style.display = tab === 'waveform' ? '' : 'none';
+  document.getElementById('spectrumCanvas').style.display = tab === 'spectrum' ? '' : 'none';
+}
+
+// ==================== ANIMATION LOOP ====================
+function animate(time) {
+  const t = time * 0.001;
+  CHANNELS.forEach(ch => {
+    const s = channelState[ch.id];
+    const muted = isEffectivelyMuted(ch.id);
+    // Calculate simulated level based on fader position
+    const faderGain = Math.pow(10, s.db / 20);
+
+    if (ch.vuStyle === 'send') {
+      let level;
+      if (muted) {
+        level = s.vuSend * 0.9; // fade out
+      } else {
+        const base = (Math.sin(t * ch.vuFreq) * 0.5 + 0.5) * ch.vuAmp;
+        const noise = Math.random() * 0.1;
+        level = Math.min(1, Math.max(0, (base + noise) * faderGain));
+      }
+      s.vuSend += (level - s.vuSend) * 0.15;
+      if (s.vuSend > s.peakSend) { s.peakSend = s.vuSend; s.peakDecaySend = 1; }
+      else { s.peakDecaySend *= 0.995; s.peakSend *= 0.998; }
+      const fillEl = document.getElementById('vu-send-' + ch.id);
+      if (fillEl) {
+        fillEl.style.height = (s.vuSend * 100) + '%';
+        fillEl.style.opacity = muted ? '0.15' : '1';
+      }
+    } else {
+      // Stereo L/R
+      ['L','R'].forEach((lr, i) => {
+        let level;
+        if (muted) {
+          const key = 'vu' + lr;
+          level = s[key] * 0.9;
+        } else {
+          const phase = i * 1.3;
+          let base;
+          if (ch.id === 'sfx') {
+            // Sporadic spikes
+            const spike = Math.random() > 0.95 ? Math.random() * 0.6 : 0;
+            base = (Math.sin(t * ch.vuFreq + phase) * 0.3 + 0.4) * ch.vuAmp + spike;
+          } else {
+            base = (Math.sin(t * ch.vuFreq + phase) * 0.4 + 0.5) * ch.vuAmp;
+          }
+          const noise = (Math.random() - 0.5) * 0.15;
+          level = Math.min(1, Math.max(0, (base + noise) * faderGain));
+        }
+        const key = 'vu' + lr;
+        s[key] += (level - s[key]) * 0.12;
+        const peakKey = 'peak' + lr;
+        const decayKey = 'peakDecay' + lr;
+        if (s[key] > s[peakKey]) { s[peakKey] = s[key]; s[decayKey] = 1; }
+        else { s[decayKey] *= 0.993; s[peakKey] *= 0.997; }
+        const fillEl = document.getElementById('vu-' + lr + '-' + ch.id);
+        const peakEl = document.getElementById('peak-' + lr + '-' + ch.id);
+        if (fillEl) {
+          fillEl.style.height = (s[key] * 100) + '%';
+          fillEl.classList.toggle('dimmed', muted);
+        }
+        if (peakEl) {
+          peakEl.style.bottom = (s[peakKey] * 100) + '%';
+          peakEl.classList.toggle('dimmed', muted);
+        }
+      });
+    }
+  });
+
+  // Waveform canvas
+  drawWaveform(t);
+  // Spectrum canvas
+  drawSpectrum(t);
+
+  // Status bar CPU simulation
+  const cpu = (2.0 + Math.sin(t * 0.5) * 0.8 + Math.random() * 0.5).toFixed(1);
+  const voices = Math.round(20 + Math.sin(t * 0.3) * 6 + Math.random() * 3);
+  document.getElementById('statusCpuVoices').textContent = `CPU: ${cpu}% | Active Voices: ${voices}`;
+
+  animationId = requestAnimationFrame(animate);
+}
+
+// ==================== WAVEFORM CANVAS ====================
+function drawWaveform(t) {
+  const canvas = document.getElementById('waveformCanvas');
+  if (!canvas || canvas.style.display === 'none') return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth;
+  const h = canvas.height = canvas.parentElement.clientHeight;
+
+  ctx.fillStyle = '#0e0e0e';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 20) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  // Center line
+  ctx.strokeStyle = '#222';
+  ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+  // Waveform amplitude linked to master fader
+  const masterDb = channelState.master.db;
+  const masterGain = Math.pow(10, masterDb / 20);
+  const amplitude = Math.min(h * 0.45, h * 0.3 * masterGain);
+
+  ctx.strokeStyle = '#3d9eff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const scrollX = x + t * 100;
+    const y = h / 2 +
+      Math.sin(scrollX * 0.02) * amplitude * 0.6 +
+      Math.sin(scrollX * 0.05 + 1.2) * amplitude * 0.3 +
+      Math.sin(scrollX * 0.11 + 2.8) * amplitude * 0.1;
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Secondary trace (slight offset for depth)
+  ctx.strokeStyle = 'rgba(61,158,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const scrollX = x + t * 100 + 50;
+    const y = h / 2 +
+      Math.sin(scrollX * 0.025 + 0.5) * amplitude * 0.5 +
+      Math.sin(scrollX * 0.06 + 2.0) * amplitude * 0.25;
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+// ==================== SPECTRUM CANVAS ====================
+function drawSpectrum(t) {
+  const canvas = document.getElementById('spectrumCanvas');
+  if (!canvas || canvas.style.display === 'none') return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth;
+  const h = canvas.height = canvas.parentElement.clientHeight;
+
+  ctx.fillStyle = '#0e0e0e';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 20) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  const masterDb = channelState.master.db;
+  const masterGain = Math.pow(10, masterDb / 20);
+  const barCount = 32;
+  const gap = 2;
+  const barW = (w - gap * (barCount - 1)) / barCount;
+
+  for (let i = 0; i < barCount; i++) {
+    const freq = (i + 1) * 0.3;
+    const baseH = (Math.sin(t * freq + i * 0.5) * 0.5 + 0.5) * h * 0.8 * masterGain;
+    const noise = Math.random() * h * 0.05;
+    const barH = Math.max(2, Math.min(h - 4, baseH + noise));
+    const x = i * (barW + gap);
+
+    // Color gradient: green -> blue -> red
+    const ratio = i / barCount;
+    let r, g, b;
+    if (ratio < 0.5) {
+      const t2 = ratio * 2;
+      r = Math.round(73 + (61 - 73) * t2);
+      g = Math.round(184 + (158 - 184) * t2);
+      b = Math.round(110 + (255 - 110) * t2);
+    } else {
+      const t2 = (ratio - 0.5) * 2;
+      r = Math.round(61 + (231 - 61) * t2);
+      g = Math.round(158 + (76 - 158) * t2);
+      b = Math.round(255 + (76 - 255) * t2);
+    }
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(x, h - barH, barW, barH);
+  }
+}
+
+// ==================== INIT ====================
+buildStrips();
+// Apply default snapshot to set fx states
+applySnapshot('default');
+// Start animation
+animationId = requestAnimationFrame(animate);
+</script>
+
+    <style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1600px;height:900px;overflow:hidden;font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;font-size:12px;color:#ccc;background:#191919;user-select:none;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:#1c1c1c;}
+::-webkit-scrollbar-thumb{background:#444;}
+::-webkit-scrollbar-thumb:hover{background:#555;}
+.menu-bar{height:20px;background:#2a2a2a;border-bottom:1px solid #111;display:flex;align-items:center;padding:0 8px;font-size:11px;}
+.menu-bar span{padding:0 8px;cursor:pointer;color:#999;}
+.menu-bar span:hover{color:#ccc;background:#363636;}
+.menu-bar .brand{color:#3d9eff;font-weight:700;}
+.toolbar{height:30px;background:#323232;border-bottom:1px solid #111;display:flex;align-items:center;padding:0 8px;justify-content:space-between;}
+.toolbar-left{display:flex;align-items:center;gap:8px;}
+.toolbar-left .label{font-weight:700;color:#ccc;font-size:12px;}
+.toolbar-center{display:flex;align-items:center;gap:6px;}
+.toolbar-center select{background:#1c1c1c;border:1px solid #333;color:#ccc;font-size:11px;padding:2px 6px;outline:none;}
+.toolbar-center select:focus{border-color:#3d9eff;}
+.toolbar-right{display:flex;align-items:center;gap:6px;}
+.unity-btn{background:#333;border:1px solid #444;color:#ccc;font-size:10px;padding:3px 10px;cursor:pointer;border-radius:0;}
+.unity-btn:hover{background:#404040;}
+.unity-btn.active-toggle{background:#2c5f8a;border-color:#3d9eff;color:#fff;}
+.main-area{display:flex;height:calc(900px - 20px - 30px - 22px - 100px);overflow:hidden;}
+.left-panel{width:180px;background:#2b2b2b;border-right:1px solid #111;display:flex;flex-direction:column;flex-shrink:0;}
+.tab-bar{height:22px;background:#262626;border-bottom:1px solid #111;display:flex;align-items:stretch;}
+.tab-item{padding:0 10px;font-size:10px;color:#999;cursor:pointer;display:flex;align-items:center;border-bottom:2px solid transparent;}
+.tab-item:hover{background:#363636;color:#ccc;}
+.tab-item.active{background:#2b2b2b;color:#ccc;border-bottom-color:#3d9eff;}
+.tree-view{flex:1;overflow-y:auto;padding:4px 0;font-size:11px;}
+.tree-node{padding:2px 8px;cursor:pointer;display:flex;align-items:center;gap:4px;color:#999;}
+.tree-node:hover{background:#363636;color:#ccc;}
+.tree-node.parent{color:#ccc;font-weight:500;}
+.tree-node .arrow{font-size:8px;width:10px;text-align:center;flex-shrink:0;}
+.tree-children{padding-left:16px;}
+.tree-leaf{padding:2px 8px 2px 22px;cursor:pointer;color:#999;font-size:11px;}
+.tree-leaf:hover{background:#363636;color:#ccc;}
+.tree-leaf.selected{background:#2c5f8a;color:#fff;}
+.mixer-area{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;background:#1c1c1c;}
+.channel-strip{width:120px;background:#2b2b2b;border-right:1px solid #111;display:flex;flex-direction:column;flex-shrink:0;position:relative;}
+.channel-strip.master-strip{background:#333;width:130px;}
+.channel-strip .accent-bar{height:3px;width:100%;}
+.channel-strip .ch-label{text-align:center;font-size:11px;font-weight:700;color:#ccc;padding:4px 0 2px;letter-spacing:0.5px;}
+.vu-container{display:flex;justify-content:center;gap:3px;padding:0 8px;flex:1;align-items:flex-end;position:relative;}
+.vu-meter-wrap{position:relative;display:flex;flex-direction:column;align-items:center;height:100%;}
+.dB-scale{position:absolute;left:-2px;top:0;bottom:0;width:28px;display:flex;flex-direction:column-reverse;justify-content:space-between;font-size:8px;color:#666;font-family:Consolas,monospace;padding:2px 0;}
+.vu-bar-bg{width:8px;background:#1c1c1c;position:relative;border:1px solid #111;}
+.vu-bar-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,#49b86e 0%,#49b86e 60%,#e8c44a 75%,#e74c4c 95%);transition:height 0.05s linear;}
+.vu-bar-fill.dimmed{opacity:0.2;}
+.peak-indicator{position:absolute;left:0;right:0;height:2px;background:#e74c4c;transition:bottom 0.3s ease-out;}
+.peak-indicator.dimmed{opacity:0.2;}
+.fader-area{display:flex;justify-content:center;padding:4px 0;position:relative;height:160px;align-items:center;}
+.fader-track{width:8px;height:140px;background:#1c1c1c;border:1px solid #333;position:relative;cursor:pointer;}
+.fader-thumb{width:20px;height:10px;background:#3d9eff;position:absolute;left:50%;transform:translateX(-50%);cursor:grab;z-index:2;}
+.fader-thumb:active{cursor:grabbing;}
+.fader-thumb.dragging{background:#5bb0ff;}
+.db-display{text-align:center;font-family:Consolas,monospace;font-size:11px;color:#3d9eff;padding:2px 0;}
+.mute-solo-row{display:flex;justify-content:center;gap:4px;padding:2px 0;}
+.ms-btn{width:22px;height:18px;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#333;border:1px solid #444;color:#999;}
+.ms-btn:hover{background:#404040;}
+.ms-btn.mute-active{background:#e74c4c;color:#fff;border-color:#e74c4c;}
+.ms-btn.solo-active{background:#e8c44a;color:#000;border-color:#e8c44a;}
+.pan-area{padding:4px 10px 6px;}
+.pan-label{font-size:9px;color:#666;text-align:center;margin-bottom:2px;}
+.pan-track{width:100%;height:6px;background:#1c1c1c;border:1px solid #333;position:relative;cursor:pointer;}
+.pan-thumb{width:8px;height:10px;background:#999;position:absolute;top:50%;transform:translate(-50%,-50%);cursor:grab;}
+.pan-thumb:active{cursor:grabbing;background:#ccc;}
+.pan-value{text-align:center;font-family:Consolas,monospace;font-size:9px;color:#666;margin-top:1px;}
+.effects-section{padding:4px 6px 6px;border-top:1px solid #333;}
+.fx-btn{width:100%;height:16px;font-size:9px;cursor:pointer;margin-bottom:2px;text-align:center;line-height:16px;background:#333;border:1px solid #444;color:#999;}
+.fx-btn:last-child{margin-bottom:0;}
+.fx-btn:hover{background:#404040;}
+.fx-btn.fx-on{background:#2c5f8a;color:#fff;border-color:#3d9eff;}
+.channel-strip.soloed{background:#2a2a2a;}
+.channel-strip.soloed.master-strip{background:#3a3a3a;}
+.channel-strip.muted .vu-bar-fill{opacity:0.15 !important;}
+.channel-strip.muted .peak-indicator{opacity:0.15 !important;}
+.bottom-panel{height:100px;background:#0e0e0e;border-top:1px solid #111;display:flex;flex-direction:column;}
+.bottom-tab-bar{height:22px;background:#262626;border-bottom:1px solid #111;display:flex;align-items:stretch;flex-shrink:0;}
+.bottom-canvas-area{flex:1;position:relative;overflow:hidden;}
+.bottom-canvas-area canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+.status-bar{height:22px;background:#2a2a2a;border-top:1px solid #111;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:10px;color:#666;}
+.status-bar .brand{color:#3d9eff;}
+.send-meter-area{display:flex;justify-content:center;align-items:flex-end;padding:0 20px;flex:1;position:relative;}
+.send-meter-bg{width:20px;height:100%;background:#1c1c1c;border:1px solid #333;position:relative;}
+.send-meter-fill{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,#49b86e 0%,#49b86e 60%,#e8c44a 75%,#e74c4c 95%);transition:height 0.05s linear;}
+</style>
+</body>
+</html>

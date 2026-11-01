@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>yama引擎评估报告 · 2026-08-25</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1d212b; --line:#2a2f3a;
+    --ink:#e8eaef; --muted:#9aa1ad; --dim:#6b7280;
+    --accent:#4da3ff; --accent2:#7c5cff; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --mono:'Cascadia Code',Consolas,'JetBrains Mono',monospace;
+    --sans:'Segoe UI',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.7;font-size:15px;padding:32px 20px 80px}
+  .wrap{max-width:980px;margin:0 auto}
+  .hero{background:linear-gradient(135deg,#141823 0%,#1a2333 55%,#221a33 100%);border:1px solid var(--line);border-radius:16px;padding:38px 36px;margin-bottom:26px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-80px;top:-80px;width:260px;height:260px;background:radial-gradient(circle,rgba(124,92,255,.18),transparent 70%)}
+  .kicker{font-size:12px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;font-weight:600;margin-bottom:8px}
+  h1{font-size:30px;font-weight:800;letter-spacing:.5px;line-height:1.25}
+  .sub{color:var(--muted);margin-top:10px;font-size:14px}
+  .verdict{display:flex;align-items:flex-start;gap:14px;margin-top:22px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:16px 18px}
+  .verdict b{color:var(--warn)}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{font-size:12px;color:var(--muted);border:1px solid var(--line);background:rgba(255,255,255,.03);padding:4px 10px;border-radius:20px}
+  .chip b{color:var(--ink)}
+  h2{font-size:20px;font-weight:800;margin:36px 0 4px;padding-bottom:8px;border-bottom:1px solid var(--line);letter-spacing:.3px}
+  h2 .n{color:var(--accent);margin-right:8px;font-family:var(--mono)}
+  h3{font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--accent2)}
+  p{color:var(--muted);margin-bottom:12px}
+  p strong{color:var(--ink)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin:14px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--accent);font-weight:700;background:var(--panel2)}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  .big{font-family:var(--mono);font-size:34px;font-weight:800}
+  .mono{font-family:var(--mono)}
+  .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:2px 8px;margin-right:6px;vertical-align:middle}
+  .tag.p0{background:rgba(248,113,113,.15);color:var(--bad);border:1px solid rgba(248,113,113,.35)}
+  .tag.p1{background:rgba(251,191,36,.14);color:var(--warn);border:1px solid rgba(251,191,36,.35)}
+  .tag.p2{background:rgba(77,163,255,.14);color:var(--accent);border:1px solid rgba(77,163,255,.35)}
+  .tag.p3{background:rgba(154,161,173,.14);color:var(--muted);border:1px solid rgba(154,161,173,.35)}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 60px;align-items:center;gap:12px;margin:7px 0;font-size:13px}
+  .bar-row .lbl{color:var(--muted);text-align:right;font-family:var(--mono);font-size:12px}
+  .bar{height:16px;border-radius:4px;background:var(--panel2);overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .bar-row .v{color:var(--ink);font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  @media(max-width:720px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi .k{font-size:12px;color:var(--muted);letter-spacing:1px}
+  .kpi .v{font-family:var(--mono);font-size:26px;font-weight:800;margin-top:4px}
+  .kpi .d{font-size:12px;color:var(--dim);margin-top:2px}
+  .kpi.good .v{color:var(--good)} .kpi.bad .v{color:var(--bad)} .kpi.warn .v{color:var(--warn)} .kpi.neutral .v{color:var(--accent)}
+  .flow{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:18px;white-space:pre;line-height:1.9;overflow-x:auto}
+  ul{padding-left:20px;margin:10px 0}
+  li{color:var(--muted);margin-bottom:7px}
+  li strong{color:var(--ink)}
+  .note{font-size:12.5px;color:var(--dim);border-top:1px dashed var(--line);margin-top:22px;padding-top:12px}
+  .quote{border-left:3px solid var(--accent);background:rgba(77,163,255,.06);padding:12px 16px;border-radius:0 8px 8px 0;color:var(--muted);margin:12px 0;font-size:14px}
+  .score{display:flex;gap:20px;flex-wrap:nowrap;align-items:center}
+  .ring{width:90px;height:90px;flex:0 0 90px}
+  .ring .lab{font-size:11px;fill:var(--muted)}
+  .ring .big-t{font-size:26px;font-weight:800;fill:var(--ink)}
+  footer{color:var(--dim);font-size:12px;text-align:center;margin-top:50px;border-top:1px solid var(--line);padding-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="kicker">Engine Evaluation</div>
+    <h1>yama引擎（Yama GamesEngine）评估报告</h1>
+    <div class="sub">基于 2026-08-25 本机真实编译实测 + git 提交历史 + 仓库多份报告交叉验证，非转述</div>
+    <div class="verdict">
+      <div style="font-size:22px;line-height:1.2">⚕️</div>
+      <div>
+        <b>一句话结论：</b>这是一个"广度惊人、深度未验"的大型引擎原型——50+ 子系统、核心算法真实手写，但<b>至今没有编译通过，也从未在 GPU 上跑出过一帧。</b>它正处于"抢救中"且已明显见效，是一个志向远大的、尚未成熟的科研级作品。
+      </div>
+    </div>
+    <div class="meta">
+      <span class="chip">评估日期 <b>2026-08-25</b></span>
+      <span class="chip">引擎库实测 <b>192 错误 / 281 警告</b></span>
+      <span class="chip">C# 源文件 <b>817</b></span>
+      <span class="chip">代码规模 <b>≈32 万行</b></span>
+      <span class="chip">版本控制 <b>git 已建立</b></span>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi bad"><div class="k">编译状态</div><div class="v">FAIL</div><div class="d">192 错 / 281 警告（实测）</div></div>
+    <div class="kpi warn"><div class="k">GPU 出帧</div><div class="v">0 frame</div><div class="d">从未在任何 GPU 上验证运行</div></div>
+    <div class="kpi neutral"><div class="k">子广度</div><div class="v">50+</div><div class="d">渲染/物理/AI/音频/网络…</div></div>
+    <div class="kpi good"><div class="k">抢救趋势</div><div class="v">−86%</div><div class="d">1414 → 374 → 192 错</div></div>
+  </div>
+
+  <h2><span class="n">01</span>综合评分</h2>
+  <div class="card">
+    <div class="score">
+      <div>整体成熟度<br><b style="font-size:34px;color:#f87171" class="mono">3.2 / 10</b></div>
+    </div>
+    <table>
+      <tr><th>维度</th><th>得分</th><th>评语</th></tr>
+      <tr><td>系统广度</td><td class="num"><b style="color:#34d399">9.0</b></td><td>商业引擎级覆盖面</td></tr>
+      <tr><td>算法真实度</td><td class="num"><b style="color:#34d399">8.0</b></td><td>核心算法手写非空壳</td></tr>
+      <tr><td>可运行性</td><td class="num"><b style="color:#f87171">0.5</b></td><td>从未编译、从未出帧</td></tr>
+      <tr><td>架构清晰度</td><td class="num"><b style="color:#fbbf24">6.5</b></td><td>分层清晰但重复定义泛滥</td></tr>
+      <tr><td>代码卫生</td><td class="num"><b style="color:#fbbf24">4.0</b></td><td>注水、幻影类型、日志堆积</td></tr>
+      <tr><td>文档可信度</td><td class="num"><b style="color:#f87171">3.0</b></td><td>报告相互矛盾且曾虚报</td></tr>
+      <tr><td>测试与 CI</td><td class="num"><b style="color:#f87171">1.0</b></td><td>名存实亡</td></tr>
+      <tr><td>差异化潜力</td><td class="num"><b style="color:#fbbf24">6.5</b></td><td>"AI 原生 + 全 C#" 有代码基础</td></tr>
+    </table>
+  </div>
+
+  <h2><span class="n">02</span>当前真实状态 <span class="tag p1">2026-08-25 实测</span></h2>
+  <p>事实来源为今天我在本机用 <span class="mono">dotnet build YamaEngine.csproj</span> 的真实输出，而非仓库内任何旧文档。</p>
+  <div class="card">
+    <table>
+      <tr><th>工程</th><th>状态</th><th class="num">实测</th></tr>
+      <tr><td>YamaEngine（引擎库）</td><td><span class="tag p0">编译失败</span></td><td class="num">192 错 / 281 警告</td></tr>
+      <tr><td>YamaEditor（WinUI 编辑器）</td><td><span class="tag p0">编译失败</span></td><td class="num">依赖引擎库，连锁失败</td></tr>
+      <tr><td>YamaEngine.Tests</td><td><span class="tag p0">无法运行</span></td><td class="num">依赖引擎库，连锁失败</td></tr>
+      <tr><td>CI（.github/workflows）</td><td><span class="tag p0">必然红灯</span></td><td class="num">—</td></tr>
+    </table>
+  </div>
+  <div class="quote"><b>抢救趋势是今天最大的好消息：</b>引擎库编译错误从 2026-08-07 的 <b>1414</b> → 08-22 评估的 <b>374</b> → 今天的 <b>192</b>，两周内下降约 <b>86%</b>。git 历史证实这是带回滚、按根因的抢救（基线快照 → RHI 补全 → 物理真实修复 → AI 去重净化），方向正确。</div>
+
+  <h2><span class="n">03</span>剩余 192 个错误：结构与重灾区</h2>
+
+  <h3>按错误类型（揭示根因性质）</h3>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:8px"><span class="big" style="color:#f87171">43</span><span class="kicker" style="margin:0;color:var(--warn)">CS0246 找不到类型/命名空间</span></div>
+    <p>最集中。一半是缺 <span class="mono">using</span>，另一半是"<b>幻影类型</b>"——被大量引用却从未定义：<span class="mono">RenderResource、MaterialLibrary、PhysicsScene、IComponent、SwapChain、NPCSpawnSystem</span> 等。这正是"分文件批量生成、从未整体编译对齐"的铁证。</p>
+    <div class="bar-row"><span class="lbl">CS0246 缺类型</span><div class="bar"><i style="width:100%;background:#f87171"></i></div><span class="v">43</span></div>
+    <div class="bar-row"><span class="lbl">CS8340 只读结构</span><div class="bar"><i style="width:77%;background:#fb7185"></i></div><span class="v">33</span></div>
+    <div class="bar-row"><span class="lbl">CS0111/CS0102 重复成员</span><div class="bar"><i style="width:60%;background:#fbbf24"></i></div><span class="v">34</span></div>
+    <div class="bar-row"><span class="lbl">CS0115 无 override</span><div class="bar"><i style="width:42%;background:#4da3ff"></i></div><span class="v">18</span></div>
+    <div class="bar-row"><span class="lbl">CS1073 语法断裂</span><div class="bar"><i style="width:16%;background:#7c5cff"></i></div><span class="v">7</span></div>
+    <div class="bar-row"><span class="lbl">CS0534/CS0535 抽象未实现</span><div class="bar"><i style="width:23%;background:#34d399"></i></div><span class="v">10</span></div>
+    <div class="bar-row"><span class="lbl">CS0579 特性重复</span><div class="bar"><i style="width:12%;background:#c084fc"></i></div><span class="v">5</span></div>
+    <div class="bar-row"><span class="lbl">其他（CS005x/CS0592…）</span><div class="bar"><i style="width:45%;background:#9aa1ad"></i></div><span class="v">42</span></div>
+  </div>
+
+  <h3>按子系统（重灾区）</h3>
+  <div class="card">
+    <div class="bar-row"><span class="lbl">ECS</span><div class="bar"><i style="width:100%;background:#f87171"></i></div><span class="v">36</span></div>
+    <div class="bar-row"><span class="lbl">Physics</span><div class="bar"><i style="width:86%;background:#fb7185"></i></div><span class="v">31</span></div>
+    <div class="bar-row"><span class="lbl">Core</span><div class="bar"><i style="width:50%;background:#fbbf24"></i></div><span class="v">18</span></div>
+    <div class="bar-row"><span class="lbl">Runtime</span><div class="bar"><i style="width:47%;background:#fbbf24"></i></div><span class="v">17</span></div>
+    <div class="bar-row"><span class="lbl">UI</span><div class="bar"><i style="width:39%;background:#4da3ff"></i></div><span class="v">14</span></div>
+    <div class="bar-row"><span class="lbl">Vulkan</span><div class="bar"><i style="width:31%;background:#4da3ff"></i></div><span class="v">11</span></div>
+    <div class="bar-row"><span class="lbl">Rendering</span><div class="bar"><i style="width:28%;background:#7c5cff"></i></div><span class="v">10</span></div>
+    <div class="bar-row"><span class="lbl">World / Network / 其余</span><div class="bar"><i style="width:67%;background:#9aa1ad"></i></div><span class="v">55</span></div>
+    <p style="margin-top:12px">单文件最高密度：<span class="mono">Core\WorldSystemsBootstrap.cs(15)</span>、<span class="mono">ECS\SystemBaseReal.cs(12)</span>、<span class="mono">Runtime\GpuCommandRecorder.cs(11)</span>、<span class="mono">Physics\CharacterControllerSystem.cs(11)</span>、<span class="mono">ECS\EntityManagerReal.cs(10)</span>。</p>
+  </div>
+
+  <h2><span class="n">04</span>真实优点（抽读代码确认，非宣传）</h2>
+  <div class="grid2">
+    <div class="card"><h3>子系统广度达商业引擎量级</h3><p>渲染(113)、物理(82)、AI(35)、动画、音频、网络、ECS、地形、编辑器、脚本热重载、LLM 集成……50+ 子系统，个人/小团队引擎罕见。</p></div>
+    <div class="card"><h3>核心算法真实手写</h3><p>GJK/EPA/SAT 碰撞、NavMesh 烘焙、DSP/卷积混响、Roslyn collectible ALC 热重载(875 行带状态迁移回滚)——抽读确认是真实现，非空壳。</p></div>
+    <div class="card"><h3>渲染技术栈前沿</h3><p>MicroCluster 虚拟几何、ReSTIR、SVGF、ProbeField GI、PathTracer——HLSL 是真东西（BVH 求交、NEE+MIS、俄罗斯轮盘），架构对标 UE5 渲染管线。</p></div>
+    <div class="card"><h3>"AI 原生"差异化有代码基础</h3><p>多平台 LLM 集成(1403 行：OpenAI/Anthropic/Ollama/Qwen/Ernie，SSE 流式、LLM→行为树、GameMaster、任务生成器)——全引擎最强的一块。</p></div>
+    <div class="card"><h3>编辑器骨架完整</h3><p>10+ ImGui 面板、5 种编辑模式、PlayMode、事件总线、EditorWorld 统一上下文，一体化工作流骨架已搭好。</p></div>
+    <div class="card"><h3>抢救卓有成效</h3><p>1414→192 错，-86%，带 git 回滚、按根因分类修复——证明代码库"可救"，方法有效。</p></div>
+  </div>
+
+  <h2><span class="n">05</span>致命短板 <span style="font-size:13px;color:var(--muted)">（按严重度排序）</span></h2>
+  <div class="card">
+    <p><span class="tag p0">P0</span><strong>从未编译通过（192 错）</strong>——一切功能、测试、渲染正确性全部停留在"纸上谈兵"，没有任何一行真实运行过。</p>
+    <p><span class="tag p0">P0</span><strong>从未在任何 GPU 上出过一帧</strong>——对标 UE5 的渲染管线(2.6 万行+)，GPU 正确性 100% 未验证。</p>
+    <p><span class="tag p1">P1</span><strong>重复实现未收敛</strong>——行为树×3、地形×2、MathHelper×8、RenderGraph×2，"Real/V2/Enhanced" 后缀泛滥。修一个 bug 要修 N 遍。</p>
+    <p><span class="tag p1">P1</span><strong>约 10 个"幻影类型"</strong>被大量引用却从未定义，暴露"分文件生成、未整体编译"的病灶。</p>
+    <p><span class="tag p1">P1</span><strong>测试与 CI 名存实亡</strong>——17 个测试文件跑不通，CI 必然红灯，无回归防护网。</p>
+    <p><span class="tag p2">P2</span><strong>文档可信度差</strong>——根目录 30+ 份报告相互矛盾，早期报告虚报"生产级/0 空壳/全部编译通过"后被实测推翻，连近期报告数字口径也不一致。</p>
+    <p><span class="tag p2">P2</span><strong>工程卫生差</strong>——根目录堆积分析脚本、失真错误日志、<span class="mono">_dup_backup/</span>(157 个 .bak)。</p>
+  </div>
+
+  <h2><span class="n">06</span>定位与差异化</h2>
+  <p>对照 Unity / Unreal / Godot，yama引擎<b>在成熟度上任何维度都无法竞争</b>——渲染稳定性、工具链、生态、文档均不占优。它的价值定位只有两条路：</p>
+  <ul>
+    <li><strong>学习/研究引擎</strong>：每个子系统的架构决策与算法实现都是现成的"引擎教学提纲"，价值很高。</li>
+    <li><strong>差异化应用引擎</strong>：唯一现实路径是"<strong>全 C# 一站式 + AI 原生（LLM 驱动 NPC）+ 脚本热重载</strong>"，且此差异化已有代码基础。</li>
+  </ul>
+  <div class="quote"><b>关键风险：</b>差异化必须建立在"引擎能跑"之上。当前最大的威胁不是"功能不够"，而是"<b>广而不精、无一可用</b>"——90% 的代码没被执行过，就等于 90% 是"未验证的假设"。</div>
+
+  <h2><span class="n">07</span>康复路线图（明确优先级）</h2>
+  <div class="card">
+    <h3>阶段 0 · 抢救与地基（1–2 周，唯一前置）</h3>
+    <ul>
+      <li>把 <strong>192 个编译错误清零、引擎库编译通过</strong>——按根因推进：补幻影类型与 using（CS0246/CS0234）→ 去重（CS0111/CS0102）→ 对齐类层次（CS0115/CS0534/CS0535）→ 修只读/unsafe（CS8340/CS9244）→ 补语法断裂（CS1073）。</li>
+      <li>固化 git 工作流与 CI 红绿灯，以"当前 192 错"为回归基线。</li>
+    </ul>
+    <h3>阶段 1 · 验证与收敛</h3>
+    <ul>
+      <li>用最小的 <strong>YamaVulkanSandbox</strong>（独立三角形程序）证明"交换链→绘制→出帧"链路真实成立，再把经验带回主引擎。思路完全正确。</li>
+      <li>收敛重复实现：行为树留一套、地形留一套、编辑器定死一轨（ImGui 为主线）。</li>
+    </ul>
+    <h3>阶段 2 · 能力开发（建立在地基之上）</h3>
+    <p>按差异化需要排：AI 驱动 NPC（行为树编辑器 + 情感模型 + LLM 桥）→ 地形编辑器（撤销/重做命令栈）→ 一体化开发体验。每个里程碑都可独立验收。</p>
+    <h3>阶段 3 · 打磨</h3>
+    <p>性能预算、文档同步机制（修根目录报告垃圾场）、新手引导、示例工程。</p>
+  </div>
+
+  <h2><span class="n">08</span>给决策者的三句话</h2>
+  <div class="card">
+    <p style="margin:0 0 12px"><strong>1. 先修编译、固地基，再谈一切。</strong>剩余 192 错已确认 100% 是真实代码缺陷（非机械可批量），需逐文件理解上下文修复，是有限工作量。</p>
+    <p style="margin:0 0 12px"><strong>2. 收敛比新增重要。</strong>行为树留一套、地形留一套、编辑器留一轨——每收敛一处，后续开发速度翻一倍。</p>
+    <p style="margin:0"><strong>3. 把筹码押在"AI 原生"上。</strong>LLM→行为树 + 可视化 NPC 编辑器 + 情感模型，是与 Unity/UE 错位竞争的现实路径，且代码基础已是全引擎最好的部分。</p>
+  </div>
+
+  <footer>yama引擎评估报告 · 基于 2026-08-25 本机 dotnet build 实测 · 由 AI 整理事实与建议</footer>
+  <p class="note">数据来源：今天本机对 <span class="mono">YamaEngine.csproj</span> 的 Debug 构建输出（192 错 / 281 警告）、git 提交历史（6 次抢救提交）、仓库内多份评估/修复报告交叉核对。报告中"编译通过/生产级/视口已接通"等任何早期断言，均以本机编译输出为唯一可信基准。</p>
+</div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# 山雨游戏引擎 Shanyu GamesEngine
+# yama游戏引擎 Yama GamesEngine
 
 > 使用 C# (.NET 8) 从零构建的游戏/建模引擎原型，目标对标 UE5 级渲染管线，同时保持轻量级一体化工作流。
 
@@ -24,9 +24,9 @@
 > 文档中"568K / 716K 行""生产级""全部编译通过"等表述**与真实编译结果不符**，本仓库的多份"评估报告"亦存在相互矛盾与夸大。本 README 及其同级文档已于 2026-08-07 依据实测结果重写。
 
 **已实测确认的真实情况：**
-- 引擎库（`ShanyuEngine.csproj`）单独 `dotnet build` → **1414 错误，177/766 文件受影响**。
-- 编辑器（`ShanyuEditor.csproj`）→ 因依赖未编译的引擎库，**无法构建（实测 707 错误）**，故"编辑器可启动、视口已接通"目前**不成立**。
-- 测试项目（`ShanyuEngine.Tests`，19 个测试文件、真实断言逻辑）→ 因引擎库未编译，**无法编译/运行**，此前"83 个用例全部通过"的说法无法验证且当前为假。
+- 引擎库（`YamaEngine.csproj`）单独 `dotnet build` → **1414 错误，177/766 文件受影响**。
+- 编辑器（`YamaEditor.csproj`）→ 因依赖未编译的引擎库，**无法构建（实测 707 错误）**，故"编辑器可启动、视口已接通"目前**不成立**。
+- 测试项目（`YamaEngine.Tests`，19 个测试文件、真实断言逻辑）→ 因引擎库未编译，**无法编译/运行**，此前"83 个用例全部通过"的说法无法验证且当前为假。
 
 ---
 
@@ -84,7 +84,7 @@
 ## 项目结构（实测）
 
 ```
-ShanyuEngine/              引擎核心库 (C# .NET 8, 766 文件, ~26.8 万行；当前无法编译)
+YamaEngine/              引擎核心库 (C# .NET 8, 766 文件, ~26.8 万行；当前无法编译)
   ├── Rendering/           渲染管线 (113 文件)
   ├── Physics/             物理引擎 (82 文件)
   ├── AI/                  人工智能 (35 文件)
@@ -94,9 +94,9 @@ ShanyuEngine/              引擎核心库 (C# .NET 8, 766 文件, ~26.8 万行�
   ├── Vulkan/              Vulkan 后端 (17 文件，自身 11 文件含编译错误)
   ├── ECS/                 Archetype ECS (19 文件，11 文件含编译错误)
   └── ...                  其余子系统
-ShanyuEditor/              WinUI 3 编辑器外壳（依赖引擎库，当前无法构建）
-ShanyuEngine.Tests/        单元测试（19 文件，真实断言逻辑，但无法编译运行）
-ShanyuEngineBridge/        C++ native 桥接 (Assimp)
+YamaEditor/              WinUI 3 编辑器外壳（依赖引擎库，当前无法构建）
+YamaEngine.Tests/        单元测试（19 文件，真实断言逻辑，但无法编译运行）
+YamaEngineBridge/        C++ native 桥接 (Assimp)
 BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 ```
 
@@ -114,13 +114,13 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 
 ```powershell
 # 还原依赖
-dotnet restore ShanyuEditor.sln
+dotnet restore YamaEditor.sln
 # 构建引擎核心库（当前会失败，见"为何编译失败"）
-dotnet build ShanyuEngine\ShanyuEngine.csproj -c Debug
+dotnet build YamaEngine\YamaEngine.csproj -c Debug
 # 构建编辑器（依赖引擎库，当前同样失败）
-dotnet build ShanyuEditor\ShanyuEditor.csproj -c Debug
+dotnet build YamaEditor\YamaEditor.csproj -c Debug
 # 运行测试（当前因引擎库未编译而无法运行）
-dotnet test ShanyuEngine.Tests\ShanyuEngine.Tests.csproj
+dotnet test YamaEngine.Tests\YamaEngine.Tests.csproj
 ```
 
 ---

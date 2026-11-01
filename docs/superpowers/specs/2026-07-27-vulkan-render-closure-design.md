@@ -1,7 +1,7 @@
 # Vulkan 最小渲染闭环设计
 
 ## 目标
-让 ShanyuEngine 在真实 GPU 上渲染一个彩色三角形，并通过烟测验证。
+让 YamaEngine 在真实 GPU 上渲染一个彩色三角形，并通过烟测验证。
 
 ## 现状
 - 2918 个编译错误集中在 25 个文件（其余数百文件正常）
@@ -37,10 +37,10 @@
 - 完整帧流程：AcquireNextImage → RenderPass → Draw → Present
 
 ## 阶段 1d：真实 GPU 渲染测试
-- 在 ShanyuEngine.Tests 中添加 VulkanRenderDevice 烟测
+- 在 YamaEngine.Tests 中添加 VulkanRenderDevice 烟测
 - 验证：设备创建、交换链创建、一帧渲染、帧统计正确
 
 ## 交付物
-1. 可编译的 ShanyuEngine.csproj
+1. 可编译的 YamaEngine.csproj
 2. VulkanRenderDevice 实现
 3. 真实 GPU 渲染测试

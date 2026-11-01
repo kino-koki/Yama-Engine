@@ -1,7 +1,7 @@
 import re, os, collections, shutil
 
-ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine"
-proj = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling"
+ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling/YamaEngine"
+proj = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling"
 
 def read(p): return open(p,encoding='utf-8',errors='ignore').read()
 

@@ -1,4 +1,4 @@
-# Shanyu Engine Blender 5.1 Bridge Addon
+# Yama Engine Blender 5.1 Bridge Addon
 
 ## 功能特性
 
@@ -9,7 +9,7 @@
 - 变换数据实时更新
 
 ### 2. 资产导出
-- **原生格式**: `.shanyu` (JSON 格式的 Shanyu 专有格式)
+- **原生格式**: `.yama` (JSON 格式的 Yama 专有格式)
 - **行业标准**: FBX、glTF 2.0 (GLB)
 - **OBJ**: Wavefront OBJ 格式
 
@@ -32,7 +32,7 @@
 ### 方法 1: 用户插件目录 (推荐)
 ```
 1. 关闭 Blender
-2. 复制 `shanyu_bridge.py` 到:
+2. 复制 `yama_bridge.py` 到:
    %APPDATA%\Blender Foundation\Blender\5.1\scripts\addons\
 
    或
@@ -41,9 +41,9 @@
 
 3. 启动 Blender 5.1
 4. 编辑 → 偏好设置 → 插件
-5. 搜索 "Shanyu Engine"
+5. 搜索 "Yama Engine"
 6. 启用插件
-7. 侧边栏出现 "Shanyu" 选项卡
+7. 侧边栏出现 "Yama" 选项卡
 ```
 
 ### 方法 2: 临时测试
@@ -51,7 +51,7 @@
 1. 打开 Blender
 2. 编辑 → 偏好设置 → 插件
 3. 点击 "安装" 按钮
-4. 选择 `shanyu_bridge.py` 文件
+4. 选择 `yama_bridge.py` 文件
 5. 启用插件
 ```
 
@@ -67,12 +67,12 @@
 
 ### Live Link 连接
 
-1. **在 Shanyu Editor 中**:
+1. **在 Yama Editor 中**:
    - 打开编辑器
    - DCC Bridge 工具栏会有 "启动 Live Link" 按钮
 
 2. **在 Blender 中**:
-   - 找到右侧边栏 (N键) → "Shanyu" 选项卡
+   - 找到右侧边栏 (N键) → "Yama" 选项卡
    - 点击 "Connect" 按钮
    - 状态显示 "Connected"
 
@@ -83,9 +83,9 @@
 
 ### 文件导出
 
-1. **Shanyu 格式 (.shanyu)**:
+1. **Yama 格式 (.yama)**:
    - 在 Blender 中选择 "Export" → "Export Scene"
-   - 保存为 `.shanyu` JSON 文件
+   - 保存为 `.yama` JSON 文件
 
 2. **FBX 格式**:
    - 选择 "Export FBX"
@@ -117,7 +117,7 @@ N     - 侧边栏
 
 ## 面板说明
 
-### 主面板 (Shanyu Engine)
+### 主面板 (Yama Engine)
 
 ```
 ┌─────────────────────────────┐
@@ -137,7 +137,7 @@ N     - 侧边栏
 ┌─────────────────────────────┐
 │  Export                     │
 │  Native Formats             │
-│  [Export .shanyu ]         │
+│  [Export .yama ]         │
 ├─────────────────────────────┤
 │  Industry Formats           │
 │  [Export FBX      ]        │
@@ -179,7 +179,7 @@ N     - 侧边栏
 
 ## 导出数据格式
 
-### .shanyu 格式 (JSON)
+### .yama 格式 (JSON)
 
 ```json
 {
@@ -215,7 +215,7 @@ N     - 侧边栏
 
 ### 连接失败
 
-1. 检查 Shanyu Editor 是否正在运行
+1. 检查 Yama Editor 是否正在运行
 2. 检查端口 18888 是否被占用
 3. 检查防火墙设置
 4. 查看 Blender 控制台错误信息
@@ -260,4 +260,4 @@ N     - 侧边栏
 
 ## 许可证
 
-MIT License - Shanyu Engine Team
+MIT License - Yama Engine Team

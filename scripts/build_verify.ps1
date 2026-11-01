@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  山雨引擎：可复现构建 + 验证脚本（地基阶段）
+  yama引擎：可复现构建 + 验证脚本（地基阶段）
 .DESCRIPTION
   1) 检查 .NET 8 SDK
   2) 还原 NuGet
@@ -12,7 +12,7 @@
 #>
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$sln  = Join-Path $root 'ShanyuEditor.sln'
+$sln  = Join-Path $root 'YamaEditor.sln'
 $reportDir = Join-Path $root 'artifacts'
 $report = Join-Path $reportDir 'build_report.txt'
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
@@ -22,7 +22,7 @@ function Log($msg) {
     "$t $msg" | Tee-Object -FilePath $report -Append
 }
 
-Log "===== ShanyuEngine build_verify ====="
+Log "===== YamaEngine build_verify ====="
 Log "Root : $root"
 
 # 0. 前置检查
@@ -46,7 +46,7 @@ Log "build exit code: $buildExit"
 # 3. 测试
 if ($buildExit -eq 0) {
     Log "--- dotnet test ---"
-    dotnet test (Join-Path $root 'ShanyuEngine.Tests/ShanyuEngine.Tests.csproj') -c Debug --no-build *>&1 | Tee-Object -FilePath $report -Append
+    dotnet test (Join-Path $root 'YamaEngine.Tests/YamaEngine.Tests.csproj') -c Debug --no-build *>&1 | Tee-Object -FilePath $report -Append
     Log "test exit code: $LASTEXITCODE"
 }
 

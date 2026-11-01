@@ -19,17 +19,17 @@ jobs:
         with:
           dotnet-version: '8.0.422'
 
-      # ShanyuEditor 是 WinUI 3 工程，依赖 Windows App SDK 1.8。
+      # YamaEditor 是 WinUI 3 工程，依赖 Windows App SDK 1.8。
       # windows-2022 镜像通常已含相关目标；若 dotnet build 报缺少 WindowsAppSDK 的
       # MSBuild 目标，需在该 runner 上安装 VS 2022 的“使用 Windows App SDK 的 C# 开发”工作负载。
       - name: Restore
-        run: dotnet restore ShanyuEditor.sln
+        run: dotnet restore YamaEditor.sln
 
       - name: Build (Debug | x64)
-        run: dotnet build ShanyuEditor.sln -c Debug -p:Platform=x64 --no-restore
+        run: dotnet build YamaEditor.sln -c Debug -p:Platform=x64 --no-restore
 
       - name: Test
-        run: dotnet test ShanyuEngine.Tests/ShanyuEngine.Tests.csproj -c Debug --no-build
+        run: dotnet test YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug --no-build
 
       - name: Upload build artifacts
         if: always()

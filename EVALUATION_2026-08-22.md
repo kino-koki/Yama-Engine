@@ -1,4 +1,4 @@
-# 山雨游戏引擎（Shanyu Engine）全面评估报告
+# yama游戏引擎（Yama Engine）全面评估报告
 
 > **评估日期**：2026-08-22
 > **评估方法**：本机 .NET SDK 8 真实 `dotnet build` + 错误归类统计 + 两个独立代码探索代理的全量盘点 + 既有审查报告交叉验证。
@@ -8,7 +8,7 @@
 
 ## 一、总体结论（先看这段）
 
-**山雨引擎是一个"广度惊人、深度未验"的大型引擎原型：约 32 万行 C#、50+ 个子系统、覆盖渲染/物理/AI/动画/音频/网络/编辑器/打包全链路，且多数核心算法是真实手写而非空壳。但它今天仍然无法编译，从未产生过任何可运行的版本。**
+**yama引擎是一个"广度惊人、深度未验"的大型引擎原型：约 32 万行 C#、50+ 个子系统、覆盖渲染/物理/AI/动画/音频/网络/编辑器/打包全链路，且多数核心算法是真实手写而非空壳。但它今天仍然无法编译，从未产生过任何可运行的版本。**
 
 好消息是趋势在好转：引擎库编译错误已从 2026-08-07 的 **1414 个**降至今天的 **374 个**（-73%），去重修复工作（dup_report 的 KEEP/REMOVE 决策）方向正确、效果显著。
 
@@ -22,9 +22,9 @@
 
 | 工程 | 状态 | 实测数据 |
 |---|---|---|
-| `ShanyuEngine`（引擎库，net8.0） | **编译失败** | **374 个错误 / 115 个文件受影响**（766 文件总数），281 警告 |
-| `ShanyuEditor`（WinUI 3 编辑器） | 编译失败 | 依赖引擎库，连锁失败 |
-| `ShanyuEngine.Tests`（17 个测试文件） | 无法运行 | 依赖引擎库，连锁失败 |
+| `YamaEngine`（引擎库，net8.0） | **编译失败** | **374 个错误 / 115 个文件受影响**（766 文件总数），281 警告 |
+| `YamaEditor`（WinUI 3 编辑器） | 编译失败 | 依赖引擎库，连锁失败 |
+| `YamaEngine.Tests`（17 个测试文件） | 无法运行 | 依赖引擎库，连锁失败 |
 | CI（.github/workflows/build.yml） | 必然红灯 | windows-2022 + .NET 8 构建+测试 |
 
 ### 2.2 错误根因分布（374 错）
@@ -58,7 +58,7 @@
 ### 3.1 分层结构（设计意图清晰）
 
 ```
-ShanyuEditor (WinUI 3 外壳)
+YamaEditor (WinUI 3 外壳)
   └─ Editor Layer (ImGui.NET，17 个面板，5 种编辑模式)
       └─ Gameplay & Scripting (Roslyn 脚本 / 可视化脚本 / GAS)
           └─ Engine Systems (渲染/物理/AI/动画/音频/网络/ECS/资产/构建)
@@ -137,7 +137,7 @@ ShanyuEditor (WinUI 3 外壳)
 
 ## 六、差异化竞争力分析
 
-对照 Unity / Unreal / Godot，山雨引擎**不可能**在渲染成熟度、生态、稳定性上竞争。可行的差异化只有两条，且都有代码基础支撑：
+对照 Unity / Unreal / Godot，yama引擎**不可能**在渲染成熟度、生态、稳定性上竞争。可行的差异化只有两条，且都有代码基础支撑：
 
 1. **AI 原生游戏开发**：LLM→行为树、GameMaster AI、任务生成器、NPC 人格/记忆——把"AI 驱动 NPC"做成引擎的第一公民而非插件。这是四大方向中最该全力投入的一条。
 2. **全 C# 一站式 + 脚本热重载**：对 .NET 开发者友好，Roslyn 编译 + collectible ALC 热重载已是可用设计，配合 VS Code 深度集成可形成"写 C# 的最顺引擎"心智。
@@ -155,7 +155,7 @@ ShanyuEditor (WinUI 3 外壳)
 | 0-1 | `git init` + 首次提交 + 分支保护 | 仓库可回滚 |
 | 0-2 | 执行 dup_report 的 KEEP/REMOVE 决策表，收敛重复类型 | CS0101/CS0111/CS0102 清零 |
 | 0-3 | 修复 374 个编译错误（顺序：幻影类型→缺 using→类层次→unsafe/ref struct→语法） | **引擎库 0 错误** |
-| 0-4 | 编辑器+测试工程连带修复 | `dotnet build ShanyuEditor.sln` 全绿 |
+| 0-4 | 编辑器+测试工程连带修复 | `dotnet build YamaEditor.sln` 全绿 |
 | 0-5 | CI 红绿门禁 + 测试可运行 | CI 通过，17 个测试文件跑通 |
 
 ### Phase 1 — 验证与收敛（预估 1-2 周）
@@ -203,7 +203,7 @@ ShanyuEditor (WinUI 3 外壳)
 - **缺口**：无 LSP/DAP 实现（需从零写），智能提示是骨架（`IntelliSenseEngine` 自称保留集成点）。
 - **建设内容**（务实路线，不重造 LSP——C# 智能提示交给 OmniSharp/C# Dev Kit，引擎做联动层）：
   1. **DAP 调试适配器** `Scripting/DebugAdapter.cs`：引擎内嵌 Debug Adapter Protocol 服务（JSON-RPC over named pipe/TCP），把脚本断点映射到 Roslyn 编译的程序集（需要脚本以 debug 模式编译 + PDB）；
-  2. **VS Code 扩展**（`editors/vscode-shanyu/`，TypeScript，vsix 打包）：一键附加调试、状态栏引擎连接状态、资源面板；
+  2. **VS Code 扩展**（`editors/vscode-yama/`，TypeScript，vsix 打包）：一键附加调试、状态栏引擎连接状态、资源面板；
   3. **双向联动协议**：引擎侧开 JSON-RPC 服务（`Editor/VSCodeBridge.cs`），支持：VS Code 改文件→引擎热重载（已有 FileSystemWatcher 可复用）；引擎内点击资源/错误→VS Code 跳转到文件:行号（`vscode://file/` URI 即可，零成本）；引擎控制台错误双击→跳代码。
 
 ### 方向 4：一体化开发体验

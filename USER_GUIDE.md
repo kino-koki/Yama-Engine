@@ -1,11 +1,11 @@
-# 山雨游戏引擎使用文档
+# yama游戏引擎使用文档
 
 ## 快速开始
 
 ### 1. 创建新项目
 
 ```csharp
-using ShanyuEngine.Projects;
+using YamaEngine.Projects;
 
 // 从模板创建新项目
 var project = ProjectSystem.CreateProject(
@@ -24,7 +24,7 @@ var loadedProject = ProjectSystem.LoadProject(@"C:\MyGame");
 ### 2. 初始化资产数据库
 
 ```csharp
-using ShanyuEngine.Assets;
+using YamaEngine.Assets;
 
 // 创建资产数据库
 var assets = new AssetDatabase(projectPath);
@@ -43,13 +43,13 @@ var light = assets.CreateLight("Directional", new System.Numerics.Vector3(5, 10,
 var camera = assets.CreateCamera(new System.Numerics.Vector3(0, 2, 8), isMain: true);
 
 // 保存场景
-assets.SaveScene(@"Content\Scenes\Main.shanyu", "Main");
+assets.SaveScene(@"Content\Scenes\Main.yama", "Main");
 ```
 
 ### 3. 使用 Prefab 系统
 
 ```csharp
-using ShanyuEngine.Prefabs;
+using YamaEngine.Prefabs;
 
 // 创建 Prefab 系统
 var prefabSystem = new PrefabSystem(projectRoot, assets);
@@ -77,7 +77,7 @@ var variant = prefabSystem.CreateVariant(prefab.Guid, "Assets/Prefabs/GreenDoor.
 ### 4. 运行时加载
 
 ```csharp
-using ShanyuEngine.Runtime;
+using YamaEngine.Runtime;
 
 // 加载导出的游戏包
 var loadResult = RuntimeSceneLoader.LoadPackage(@"Builds\MyGame");
@@ -111,7 +111,7 @@ if (loadResult.Success)
 ### 5. 构建游戏
 
 ```csharp
-using ShanyuEngine.Build;
+using YamaEngine.Build;
 
 // 配置构建
 var config = new BuildConfig
@@ -146,7 +146,7 @@ if (result.Status == BuildStatus.Success)
 ### 6. 引擎诊断
 
 ```csharp
-using ShanyuEngine.Diagnostics;
+using YamaEngine.Diagnostics;
 
 // 运行诊断检查
 var diagnostics = EngineDiagnostics.Run(new ProjectDiagnosticsOptions
@@ -170,7 +170,7 @@ foreach (var issue in diagnostics.Issues)
 ### 7. 配置系统
 
 ```csharp
-using ShanyuEngine.Config;
+using YamaEngine.Config;
 
 // 创建配置系统
 var cvars = new ConsoleVariableSystem();
@@ -203,7 +203,7 @@ cvars.LoadConfig("game.cfg");
 
 ```
 MyGame/
-├── shanyu.project.json      # 项目配置
+├── yama.project.json      # 项目配置
 ├── Assets/                   # 原始资产文件
 │   ├── Models/
 │   ├── Textures/
@@ -224,7 +224,7 @@ MyGame/
 - **Material**: 材质定义 (.shmat)
 - **Shader**: 着色器 (.shgraph)
 - **Prefab**: 预制体 (.shprefab)
-- **Scene**: 场景文件 (.shanyu)
+- **Scene**: 场景文件 (.yama)
 - **Audio**: 音频文件 (.wav, .mp3, .ogg)
 - **Animation**: 动画剪辑
 
@@ -251,7 +251,7 @@ MyGame/
 ### 建模工具集成
 
 ```csharp
-using ShanyuEngine.Modeling;
+using YamaEngine.Modeling;
 
 // 创建可编辑网格
 var mesh = EditableMesh.CreateCube("MyCube", 1.0f);
@@ -276,7 +276,7 @@ mesh.Write("Assets/Models/MyCube.shmesh");
 ### 依赖图管理
 
 ```csharp
-using ShanyuEngine.Assets;
+using YamaEngine.Assets;
 
 // 构建依赖图
 var dependencyGraph = AssetDependencyGraph.Build(new AssetDependencyGraphOptions
@@ -300,7 +300,7 @@ foreach (var missing in dependencyGraph.MissingReferences)
 ### 渲染图
 
 ```csharp
-using ShanyuEngine.Rendering;
+using YamaEngine.Rendering;
 
 // 创建渲染图
 var renderGraph = new RenderGraph();
@@ -393,14 +393,14 @@ config.MaxParallelCookJobs = Environment.ProcessorCount;
 
 ## 更多资源
 
-- **测试示例**: `ShanyuEngine.Tests/Program.cs`
+- **测试示例**: `YamaEngine.Tests/Program.cs`
 - **设计文档**: `docs/superpowers/specs/`
 - **API 文档**: 查看各模块的 XML 注释
 - **构建脚本**: `build.sh`
 
 ## 贡献
 
-山雨引擎采用模块化设计，欢迎贡献：
+yama引擎采用模块化设计，欢迎贡献：
 
 1. 遵循现有代码风格
 2. 添加单元测试

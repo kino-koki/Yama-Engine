@@ -1,4 +1,4 @@
-# 山雨引擎 物理与网格系统 改进路线图
+# yama引擎 物理与网格系统 改进路线图
 
 > 本文档基于实际代码审查 + 开发者社区痛点调研，给出真实可行的改进路径。
 > **不假装"对标 UE5.8 完整"——那是营销话术，不是工程判断。**
@@ -14,20 +14,20 @@
 
 | 组件 | 真实状态 | 评价 |
 |---|---|---|
-| [RealPhysicsEngine.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-山雨%20GamesEngine%20and%20Modeling/ShanyuEngine/Physics/Real/RealPhysicsEngine.cs) | 完整物理循环：ApplyForces → PredictPositions → DetectCollisions → SolveConstraints → UpdatePositions → Sleep | **生产级** |
-| [Rigidbody.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-山雨%20GamesEngine%20and%20Modeling/ShanyuEngine/Physics/Real/Rigidbody.cs) | 转动惯量张量、睡眠优化、碰撞层/掩码、Dynamic/Kinematic/Static 三种类型 | **生产级** |
-| [BroadphaseReal.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-山雨%20GamesEngine%20and%20Modeling/ShanyuEngine/Physics/BroadphaseReal.cs) | DynamicAABBTree（SAH 启发式）+ SweepAndPrune + SpatialHashGrid + 碰撞过滤矩阵 | **生产级** |
-| [ContactSolverEnhanced.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-山雨%20GamesEngine%20and%20Modeling/ShanyuEngine/Physics/ContactSolverEnhanced.cs) | Box 摩擦（静/动摩擦切换）+ Warm Starting + 滚动摩擦 + NGS 位置修正 | **接近 Box2D 质量** |
-| [Constraints.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-山雨%20GamesEngine%20and%20Modeling/ShanyuEngine/Physics/Real/Constraints.cs) | HingeConstraint + SpringConstraint（带电机/角度限制） | **完整** |
+| [RealPhysicsEngine.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-yama%20GamesEngine%20and%20Modeling/YamaEngine/Physics/Real/RealPhysicsEngine.cs) | 完整物理循环：ApplyForces → PredictPositions → DetectCollisions → SolveConstraints → UpdatePositions → Sleep | **生产级** |
+| [Rigidbody.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-yama%20GamesEngine%20and%20Modeling/YamaEngine/Physics/Real/Rigidbody.cs) | 转动惯量张量、睡眠优化、碰撞层/掩码、Dynamic/Kinematic/Static 三种类型 | **生产级** |
+| [BroadphaseReal.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-yama%20GamesEngine%20and%20Modeling/YamaEngine/Physics/BroadphaseReal.cs) | DynamicAABBTree（SAH 启发式）+ SweepAndPrune + SpatialHashGrid + 碰撞过滤矩阵 | **生产级** |
+| [ContactSolverEnhanced.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-yama%20GamesEngine%20and%20Modeling/YamaEngine/Physics/ContactSolverEnhanced.cs) | Box 摩擦（静/动摩擦切换）+ Warm Starting + 滚动摩擦 + NGS 位置修正 | **接近 Box2D 质量** |
+| [Constraints.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-yama%20GamesEngine%20and%20Modeling/YamaEngine/Physics/Real/Constraints.cs) | HingeConstraint + SpringConstraint（带电机/角度限制） | **完整** |
 | 物理子系统总数 | **71 个 .cs 文件**（含 Ragdoll/Vehicle/Cloth/Fluid/SoftBody/Destruction 等） | **野心巨大** |
 
 **算法层对标对象**：Box2D / Bullet / PhysX（不是 UE5 Chaos，Chaos 是大规模并行 GPU 物理）
 
 ### 1.2 网格系统：MicroCluster 算法层确实对标 Nanite
 
-[MicroClusterVirtualGeometry.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-山雨%20GamesEngine%20and%20Modeling/ShanyuEngine/Rendering/MicroClusterVirtualGeometry.cs) 真实实现了：
+[MicroClusterVirtualGeometry.cs](file:///f:/LUCKY_OS/LuckyOS%20systems%201.0/userspace/other/游戏开发与建模引擎-yama%20GamesEngine%20and%20Modeling/YamaEngine/Rendering/MicroClusterVirtualGeometry.cs) 真实实现了：
 
-| Nanite 概念 | 山雨对应实现 | 评价 |
+| Nanite 概念 | yama对应实现 | 评价 |
 |---|---|---|
 | 128 三角形/簇 | `MicroClusterConstants.TrianglesPerCluster = 128` | ✅ 对齐 |
 | QEM LOD 简化 | `MicroClusterQuadricError` 完整 10 元素对称矩阵 | ✅ 算法正确 |
@@ -51,7 +51,7 @@
 
 ### 2.1 物理系统差距
 
-| 维度 | 山雨现状 | UE5 Chaos | 差距 |
+| 维度 | yama现状 | UE5 Chaos | 差距 |
 |---|---|---|---|
 | **并行化** | 单线程 `List<Rigidbody>` | 多线程 Jobs + GPU 物理 | **巨大** |
 | **GPU 物理** | 无 | Chaos PCA + GPU rigid body | **完全缺失** |
@@ -62,7 +62,7 @@
 
 ### 2.2 网格系统差距
 
-| 维度 | 山雨现状 | UE5 Nanite | 差距 |
+| 维度 | yama现状 | UE5 Nanite | 差距 |
 |---|---|---|---|
 | **GPU 集成** | CPU 数据结构定义 | 完整 GPU-driven pipeline | **致命缺失** |
 | **Indirect Draw** | 无 | 完整 | **完全缺失** |
@@ -83,7 +83,7 @@
 #### 机会 A：**动态网格碰撞工作流简化**（高价值）
 **社区痛点**：UE5 Dynamic Mesh Collision 工作流极糟——"Use Complex as Simple" 黑魔法、属性顺序敏感、line trace 通了但物理模拟不响应。一个开发者花了一整周才让 box 物理响应。
 
-**山雨机会**：
+**yama机会**：
 - 已有 `MeshCollider` + `RealPhysicsEngine.CreateCollider(ColliderType.Mesh)`
 - 差异化：**强制一个清晰的 API 契约**——`meshCollider.EnablePhysicsSimulation()` 一步到位，自动处理 BVH 构建 + 物理体注册 + 形状数据库同步
 - 写在 `[PhysicsWorldV2.cs]` 里加一个 `RegisterDynamicMeshForPhysics()` 方法
@@ -91,7 +91,7 @@
 #### 机会 B：**可预测的物理性能预算**（中价值）
 **社区痛点**：UE5 Nanite Foliage 在 PIE 中 35K 实例就 100ms 卡顿，编辑器模式却 0ms——开发者无法预测发布后的性能。
 
-**山雨机会**：
+**yama机会**：
 - 已有 `PhysicsProfiler.cs` 和 `PhysicsOptimizationSystem.cs`
 - 差异化：**强制 editor/PIE/shipping 三档性能一致**——profile 数据带"PIE vs Shipping 偏差"警告
 - 在 `PhysicsProfiler` 里加 `PredictShippingPerformance()` 方法，基于历史数据预测
@@ -99,7 +99,7 @@
 #### 机会 C：**无 GC 物理堆**（高价值）
 **社区痛点**：Unity 物理每帧 GC Spike，非增量 GC 暂停主线程。
 
-**山雨机会**：
+**yama机会**：
 - 物理系统已用 `struct` + `List<T>` + 预分配数组（看 `EnhancedContactSolverData[] _solverData`）
 - 差异化：**承诺零托管堆分配**——所有物理数据用 `NativeArray` + `Span<T>`，物理循环零 GC
 
@@ -108,7 +108,7 @@
 #### 机会 D：**MicroCluster 离线工具链完善**（高价值）
 **社区痛点**：UE5 Nanite 离线 clusterization 是黑盒，开发者无法调试"为什么这个资产 LOD 切换抖动"。
 
-**山雨机会**：
+**yama机会**：
 - 已有 `MicroClusterClusterizationResult` 数据结构
 - 差异化：**暴露 clusterization 全过程**——导出 `.cluster.json` 可视化 DAG、每个簇的 QEM 误差、LOD 切换点
 - 写一个 `MicroClusterDebugger.cs`，导出 cluster DAG 到 Dot 格式
@@ -116,15 +116,15 @@
 #### 机会 E：**子像素三角形阈值可调**（低价值但差异化）
 **社区痛点**：UE5 Nanite 软光栅化阈值固定，移动端/低端机无法调优。
 
-**山雨机会**：
+**yama机会**：
 - 已有 `SoftwareRasterPixelThreshold = 16.0f` 常量
 - 差异化：**改成运行时可调 + 平台预设**（Mobile=4, Desktop=16, Cinematic=64）
 
 #### 机会 F：**PC 玩家友好的默认值**（差异化）
 **社区痛点**：UE5 默认 Vert- FOV、鼠标平滑、资产流送卡顿、缺 DirectStorage——PC 玩家抱怨一片。
 
-**山雨机会**：
-- 山雨是 PC-first 引擎
+**yama机会**：
+- yama是 PC-first 引擎
 - 差异化：**Hor+ FOV 默认、原始鼠标输入、可配置流送策略**——写在 README 里作为卖点
 
 ---
@@ -153,7 +153,7 @@
 ### P3：差异化机会 A（动态网格碰撞工作流）
 - 基于已有 `MeshCollider` + `RealPhysicsEngine`
 - 实现 `RegisterDynamicMeshForPhysics()` 一键 API
-- 写对比测试：UE5 需要 N 步 + 黑魔法，山雨 1 步
+- 写对比测试：UE5 需要 N 步 + 黑魔法，yama 1 步
 
 ### P4：差异化机会 C（零 GC 物理堆）
 - 把 `List<Rigidbody>` 改成 `NativeArray<Rigidbody>`
@@ -191,11 +191,11 @@
 
 ## §6. 差异化卖点（如果按路线图走完）
 
-如果山雨完成 P0-P5，它相对于 UE5/Unity 的真实差异化卖点：
+如果yama完成 P0-P5，它相对于 UE5/Unity 的真实差异化卖点：
 
 1. **物理工作流可预测**——动态网格碰撞一键启用，UE5 要 N 步黑魔法
 2. **零 GC 物理堆**——Unity 的非增量 GC 是致命伤
-3. **MicroCluster 可调试**——UE5 Nanite 是黑盒，山雨导出 DAG 可视化
+3. **MicroCluster 可调试**——UE5 Nanite 是黑盒，yama导出 DAG 可视化
 4. **PC 玩家友好默认值**——UE5 默认 Vert- FOV 是 PC 玩家的灾难
 5. **PIE = Shipping 性能**——UE5 Nanite Foliage 在 PIE 35K 实例就 100ms 卡顿
 

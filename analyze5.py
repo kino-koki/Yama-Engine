@@ -1,7 +1,7 @@
 import re, os, collections
 
-ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine"
-proj = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling"
+ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling/YamaEngine"
+proj = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling"
 build = open(os.path.join(proj,"build_out.txt"),encoding="utf-8",errors="ignore").read().splitlines()
 
 # CS0101: 命名空间“NS”已经包含“TYPE”的定义

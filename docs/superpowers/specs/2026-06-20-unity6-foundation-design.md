@@ -1,8 +1,8 @@
-# Shanyu Unity6 Foundation Design
+# Yama Unity6 Foundation Design
 
 ## 目标
 
-把当前 Shanyu 从“可启动、可保存场景、可导出 runtime 包”的原型，推进到 Unity6 类工作流的第一层地基。第一批不追求一次性实现 Unity6 的全部渲染、动画、导航、包管理和协作能力，而是先建立这些能力都依赖的工程系统：项目、资产、GUID、Prefab、组件、脚本入口和构建管线接口。
+把当前 Yama 从“可启动、可保存场景、可导出 runtime 包”的原型，推进到 Unity6 类工作流的第一层地基。第一批不追求一次性实现 Unity6 的全部渲染、动画、导航、包管理和协作能力，而是先建立这些能力都依赖的工程系统：项目、资产、GUID、Prefab、组件、脚本入口和构建管线接口。
 
 本阶段完成后，用户应能像使用 Unity 一样完成基础流程：新建项目、导入资源、生成稳定 `.shmeta`、创建场景对象、保存 Prefab、实例化 Prefab、保存场景、导出可运行 demo 包。
 
@@ -10,7 +10,7 @@
 
 本阶段包含：
 
-- 项目系统：读取和创建 `shanyu.project.json`，从 `Templates/Basic3D` 复制项目。
+- 项目系统：读取和创建 `yama.project.json`，从 `Templates/Basic3D` 复制项目。
 - AssetDatabase 2.0：为资产生成 `.shmeta`，保存稳定 GUID、类型、导入设置和依赖。
 - GUID 引用：场景和 Prefab 引用资产 GUID，不只依赖路径。
 - Prefab 系统：保存 `*.shprefab`，实例化 Prefab，保留源 Prefab GUID。
@@ -23,7 +23,7 @@
 - 完整 Unity6 渲染管线。
 - Terrain、Animator、Timeline、VFX Graph、NavMesh、Package Manager。
 - 真正 C# 热重载或 Roslyn 编译沙箱。
-- 完整窗口化 3D 渲染 runtime。现有 `ShanyuRuntime` 继续作为可运行加载器。
+- 完整窗口化 3D 渲染 runtime。现有 `YamaRuntime` 继续作为可运行加载器。
 
 ## 推荐方案
 
@@ -42,24 +42,24 @@
 
 ### `ProjectSystem`
 
-位置：`ShanyuEngine/Projects/ProjectSystem.cs`
+位置：`YamaEngine/Projects/ProjectSystem.cs`
 
 职责：
 
 - 创建项目目录。
-- 读取和写入 `shanyu.project.json`。
+- 读取和写入 `yama.project.json`。
 - 维护项目根目录、启动场景、模板名、构建目录。
 - 从 `Templates/Basic3D` 复制新项目。
 
 主要类型：
 
-- `ShanyuProject`
+- `YamaProject`
 - `ProjectSystem`
 - `ProjectTemplate`
 
 ### `AssetDatabase`
 
-位置：继续使用 `ShanyuEngine/Assets/AssetDatabase.cs`，必要时拆分为多个文件。
+位置：继续使用 `YamaEngine/Assets/AssetDatabase.cs`，必要时拆分为多个文件。
 
 职责：
 
@@ -96,7 +96,7 @@
 
 ### `PrefabSystem`
 
-位置：`ShanyuEngine/Prefabs/PrefabSystem.cs`
+位置：`YamaEngine/Prefabs/PrefabSystem.cs`
 
 职责：
 
@@ -128,7 +128,7 @@ Prefab 示例：
 
 ### `ComponentModel`
 
-位置：`ShanyuEngine/Components`
+位置：`YamaEngine/Components`
 
 职责：
 
@@ -139,7 +139,7 @@ Prefab 示例：
 接口：
 
 ```csharp
-public interface IShanyuComponent
+public interface IYamaComponent
 {
     string TypeName { get; }
     void Awake(SceneObject owner) {}
@@ -152,7 +152,7 @@ public interface IShanyuComponent
 
 ### `BuildPipeline`
 
-位置：`ShanyuEngine/Build/BuildPipeline.cs`
+位置：`YamaEngine/Build/BuildPipeline.cs`
 
 职责：
 
@@ -180,7 +180,7 @@ public interface IShanyuComponent
 1. 场景对象序列化。
 2. Mesh、Material、Script 引用写成 GUID。
 3. Prefab instance 写入源 Prefab GUID 和 override。
-4. 输出 `.shanyu`。
+4. 输出 `.yama`。
 
 ### 实例化 Prefab
 
@@ -196,15 +196,15 @@ public interface IShanyuComponent
 2. `BuildPipeline` 加载当前项目和启动场景。
 3. 收集场景依赖资产。
 4. 复制 runtime、场景、资产、manifest。
-5. 生成 `run_shanyu_demo.bat`。
-6. 可用 `ShanyuRuntime --smoke` 验证。
+5. 生成 `run_yama_demo.bat`。
+6. 可用 `YamaRuntime --smoke` 验证。
 
 ## 错误处理
 
 - `.shmeta` 缺失：自动重建，但生成新 GUID 前必须检查是否有旧路径索引。
 - GUID 找不到：场景加载保留 Missing Reference，并在 Console 输出错误。
 - Prefab 源丢失：实例仍保留对象数据，但 Inspector 显示 `Missing Prefab Source`。
-- 构建 runtime 缺失：导出仍生成场景包，并明确提示先构建 `ShanyuRuntime`。
+- 构建 runtime 缺失：导出仍生成场景包，并明确提示先构建 `YamaRuntime`。
 - JSON 格式错误：加载失败并输出文件路径、字段名和异常摘要。
 
 ## 测试
@@ -218,12 +218,12 @@ public interface IShanyuComponent
 - 从 Prefab 实例化对象。
 - 保存场景并重新加载。
 - 执行 BuildPipeline 导出。
-- 用 `ShanyuRuntime --smoke` 加载导出包。
+- 用 `YamaRuntime --smoke` 加载导出包。
 
 构建验收：
 
-- `dotnet build ShanyuEditor/ShanyuEditor.csproj --no-restore --nologo`
-- `dotnet build ShanyuRuntime/ShanyuRuntime.csproj -c Release --no-restore --nologo`
+- `dotnet build YamaEditor/YamaEditor.csproj --no-restore --nologo`
+- `dotnet build YamaRuntime/YamaRuntime.csproj -c Release --no-restore --nologo`
 - 两者保持 `0 错误`。阶段目标是尽量保持 `0 警告`，若底层旧模块有遗留警告，必须记录来源，不影响主线验收。
 
 ## 实施顺序
@@ -247,7 +247,7 @@ public interface IShanyuComponent
 5. 删除对象后从 Prefab 恢复。
 6. 保存场景，关闭后重新打开。
 7. 导出 demo 包。
-8. 双击启动脚本或运行 `ShanyuRuntime --smoke`，runtime 成功加载场景。
+8. 双击启动脚本或运行 `YamaRuntime --smoke`，runtime 成功加载场景。
 
 ## 自检
 

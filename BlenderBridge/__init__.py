@@ -1,10 +1,10 @@
 bl_info = {
-    "name": "Shanyu Engine Bridge",
-    "author": "Shanyu Team",
+    "name": "Yama Engine Bridge",
+    "author": "Yama Team",
     "version": (1, 0, 0),
     "blender": (3, 6, 0),
-    "location": "View3D > Sidebar > Shanyu",
-    "description": "Native integration with Shanyu Engine - export scenes, sync transforms, and live-link editing",
+    "location": "View3D > Sidebar > Yama",
+    "description": "Native integration with Yama Engine - export scenes, sync transforms, and live-link editing",
     "category": "Pipeline",
 }
 
@@ -17,60 +17,60 @@ from bpy.props import StringProperty, BoolProperty
 from bpy_extras.io_utils import ExportHelper
 
 class SHANYU_PT_Panel(bpy.types.Panel):
-    bl_label = "Shanyu Engine"
+    bl_label = "Yama Engine"
     bl_idname = "SHANYU_PT_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Shanyu'
+    bl_category = 'Yama'
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        shanyu = scene.shanyu_props
+        yama = scene.yama_props
 
         layout.label(text="Engine Connection", icon='LINKED')
-        layout.prop(shanyu, "engine_path")
-        layout.prop(shanyu, "auto_sync")
+        layout.prop(yama, "engine_path")
+        layout.prop(yama, "auto_sync")
 
         layout.separator()
         layout.label(text="Export", icon='EXPORT')
 
         row = layout.row(align=True)
-        row.operator("shanyu.push_scene", text="Push Scene", icon='EXPORT')
-        row.operator("shanyu.push_selected", text="Push Selected", icon='EXPORT')
+        row.operator("yama.push_scene", text="Push Scene", icon='EXPORT')
+        row.operator("yama.push_selected", text="Push Selected", icon='EXPORT')
 
         layout.separator()
         layout.label(text="Sync", icon='FILE_REFRESH')
 
         row = layout.row(align=True)
-        row.operator("shanyu.start_sync", text="Start Live Sync", icon='PLAY')
-        row.operator("shanyu.stop_sync", text="Stop", icon='PAUSE')
+        row.operator("yama.start_sync", text="Start Live Sync", icon='PLAY')
+        row.operator("yama.stop_sync", text="Stop", icon='PAUSE')
 
         layout.separator()
         layout.label(text="Settings", icon='PREFERENCES')
-        layout.prop(shanyu, "export_normals")
-        layout.prop(shanyu, "export_uvs")
-        layout.prop(shanyu, "export_colors")
-        layout.prop(shanyu, "triangulate_mesh")
-        layout.prop(shanyu, "bake_transforms")
+        layout.prop(yama, "export_normals")
+        layout.prop(yama, "export_uvs")
+        layout.prop(yama, "export_colors")
+        layout.prop(yama, "triangulate_mesh")
+        layout.prop(yama, "bake_transforms")
 
 class SHANYU_OT_PushScene(bpy.types.Operator):
-    bl_idname = "shanyu.push_scene"
-    bl_label = "Push Scene to Shanyu"
+    bl_idname = "yama.push_scene"
+    bl_label = "Push Scene to Yama"
     bl_options = {'REGISTER'}
 
     def execute(self, context):
         scene = context.scene
-        shanyu = scene.shanyu_props
+        yama = scene.yama_props
 
         export_data = serialize_scene(context.scene)
         temp_file = write_temp_json(export_data)
 
-        self.report({'INFO'}, f"Pushed {len(export_data['nodes'])} nodes to Shanyu")
+        self.report({'INFO'}, f"Pushed {len(export_data['nodes'])} nodes to Yama")
         return {'FINISHED'}
 
 class SHANYU_OT_PushSelected(bpy.types.Operator):
-    bl_idname = "shanyu.push_selected"
+    bl_idname = "yama.push_selected"
     bl_label = "Push Selected Objects"
     bl_options = {'REGISTER'}
 
@@ -83,20 +83,20 @@ class SHANYU_OT_PushSelected(bpy.types.Operator):
         export_data = serialize_selected(selected)
         temp_file = write_temp_json(export_data)
 
-        self.report({'INFO'}, f"Pushed {len(selected)} objects to Shanyu")
+        self.report({'INFO'}, f"Pushed {len(selected)} objects to Yama")
         return {'FINISHED'}
 
 class SHANYU_OT_StartSync(bpy.types.Operator):
-    bl_idname = "shanyu.start_sync"
+    bl_idname = "yama.start_sync"
     bl_label = "Start Live Sync"
     bl_options = {'REGISTER'}
 
     def execute(self, context):
-        self.report({'INFO'}, "Live sync with Shanyu Engine started")
+        self.report({'INFO'}, "Live sync with Yama Engine started")
         return {'FINISHED'}
 
 class SHANYU_OT_StopSync(bpy.types.Operator):
-    bl_idname = "shanyu.stop_sync"
+    bl_idname = "yama.stop_sync"
     bl_label = "Stop Live Sync"
     bl_options = {'REGISTER'}
 
@@ -104,17 +104,17 @@ class SHANYU_OT_StopSync(bpy.types.Operator):
         self.report({'INFO'}, "Live sync stopped")
         return {'FINISHED'}
 
-class ShanyuProperties(bpy.types.PropertyGroup):
+class YamaProperties(bpy.types.PropertyGroup):
     engine_path: StringProperty(
         name="Engine Path",
-        description="Path to Shanyu Engine executable",
+        description="Path to Yama Engine executable",
         default="",
         maxlen=1024,
         subtype='FILE_PATH'
     )
     auto_sync: BoolProperty(
         name="Auto Sync",
-        description="Automatically sync changes to Shanyu Engine",
+        description="Automatically sync changes to Yama Engine",
         default=False
     )
     export_normals: BoolProperty(
@@ -143,8 +143,8 @@ class ShanyuProperties(bpy.types.PropertyGroup):
         default=True
     )
 
-def get_shanyu_props(scene):
-    return scene.shanyu_props
+def get_yama_props(scene):
+    return scene.yama_props
 
 def serialize_scene(scene):
     nodes = []
@@ -250,13 +250,13 @@ def serialize_mesh(obj):
     }
 
 def write_temp_json(data):
-    fd, path = tempfile.mkstemp(suffix='.json', prefix='shanyu_')
+    fd, path = tempfile.mkstemp(suffix='.json', prefix='yama_')
     with os.fdopen(fd, 'w') as f:
         json.dump(data, f, indent=2)
     return path
 
 classes = (
-    ShanyuProperties,
+    YamaProperties,
     SHANYU_PT_Panel,
     SHANYU_OT_PushScene,
     SHANYU_OT_PushSelected,
@@ -268,13 +268,13 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.types.Scene.shanyu_props = bpy.props.PointerProperty(type=ShanyuProperties)
+    bpy.types.Scene.yama_props = bpy.props.PointerProperty(type=YamaProperties)
 
 def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
-    del bpy.types.Scene.shanyu_props
+    del bpy.types.Scene.yama_props
 
 if __name__ == "__main__":
     register()

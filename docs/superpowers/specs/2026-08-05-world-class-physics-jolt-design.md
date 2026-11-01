@@ -1,19 +1,19 @@
 # 世界级物理接入设计 — Jolt + 自研创新层
 
 > 日期：2026-08-05
-> 目标：将山雨引擎物理拉到世界顶级水平（对标 Jolt/PhysX/Chaos），并在接入基础上做自研创新解决社区争议。
+> 目标：将yama引擎物理拉到世界顶级水平（对标 Jolt/PhysX/Chaos），并在接入基础上做自研创新解决社区争议。
 
 ## 1. 背景与现状
 
-- `JoltPhysicsBridge.cs`（1092 行 P/Invoke 绑定）已存在，但 native `ShanyuJolt.dll` **缺失**（无 C++ 源码），桥接是死代码。
+- `JoltPhysicsBridge.cs`（1092 行 P/Invoke 绑定）已存在，但 native `YamaJolt.dll` **缺失**（无 C++ 源码），桥接是死代码。
 - 管理端 `PhysicsWorld` 类被 RigidbodyComponent / RaycastSystem / ForceFieldSystem / CharacterControllerReal 等多处引用但**不存在**，构建断链。
-- vcpkg 含 `joltphysics` port；`ShanyuEngine.Native`（CMake, C++20, AVX2）是现成 native 宿主。
+- vcpkg 含 `joltphysics` port；`YamaEngine.Native`（CMake, C++20, AVX2）是现成 native 宿主。
 - 自研 C# 物理（PhysicsWorldV2 / RealPhysicsEngine / GJK+EPA+SAT）保留为参考/回退。
 
 ## 2. 架构
 
 ```
-C# managed (ShanyuEngine.Physics)        Native (ShanyuJolt.dll, 新写)
+C# managed (YamaEngine.Physics)        Native (YamaJolt.dll, 新写)
 ┌────────────────────────────┐          ┌──────────────────────────┐
 │ PhysicsWorld (缺, 写)      │─P/Invoke─│ SJ_* C ABI 实现          │
 │  ├ AdaptiveSubstepper      │          │  ├ SmartEdgeFilter       │
@@ -27,7 +27,7 @@ C# managed (ShanyuEngine.Physics)        Native (ShanyuJolt.dll, 新写)
 
 ## 3. 第一层：接入 Jolt（基础）
 
-### 3.1 Native ShanyuJolt.dll
+### 3.1 Native YamaJolt.dll
 实现 `JoltPhysicsBridge.cs` 声明的全部 `SJ_*` C ABI：
 - 库生命周期：`SJ_Init / SJ_Shutdown / SJ_GetVersion`
 - PhysicsSystem：Create/Destroy/Step/SetGravity/GetGravity/GetActiveBodyCount/GetBodyCount/SetContactListener
@@ -76,27 +76,27 @@ C# managed (ShanyuEngine.Physics)        Native (ShanyuJolt.dll, 新写)
 ## 5. 文件清单
 
 ### Native（新建）
-- `ShanyuEngine.Native/include/shanyu/jolt/ShanyuJolt.h` — C ABI 头
-- `ShanyuEngine.Native/src/jolt/ShanyuJolt.cpp` — SJ_* 全实现
-- `ShanyuEngine.Native/src/jolt/EdgeAdjacency.{h,cpp}` — 网格边邻接
-- `ShanyuEngine.Native/src/jolt/SmartEdgeFilter.{h,cpp}` — ContactListener
-- 改 `ShanyuEngine.Native/CMakeLists.txt` — 链接 vcpkg joltphysics，输出 ShanyuJolt.dll
+- `YamaEngine.Native/include/yama/jolt/YamaJolt.h` — C ABI 头
+- `YamaEngine.Native/src/jolt/YamaJolt.cpp` — SJ_* 全实现
+- `YamaEngine.Native/src/jolt/EdgeAdjacency.{h,cpp}` — 网格边邻接
+- `YamaEngine.Native/src/jolt/SmartEdgeFilter.{h,cpp}` — ContactListener
+- 改 `YamaEngine.Native/CMakeLists.txt` — 链接 vcpkg joltphysics，输出 YamaJolt.dll
 
 ### Managed（新建）
-- `ShanyuEngine/Physics/PhysicsWorld.cs` — 管理封装
-- `ShanyuEngine/Physics/Innovations/AdaptiveSubstepper.cs`
-- `ShanyuEngine/Physics/Innovations/OriginShiftCoordinator.cs`
-- `ShanyuEngine/Physics/Innovations/StackStabilizer.cs`
-- `ShanyuEngine/Physics/Innovations/SmartEdgeFilterSettings.cs`
+- `YamaEngine/Physics/PhysicsWorld.cs` — 管理封装
+- `YamaEngine/Physics/Innovations/AdaptiveSubstepper.cs`
+- `YamaEngine/Physics/Innovations/OriginShiftCoordinator.cs`
+- `YamaEngine/Physics/Innovations/StackStabilizer.cs`
+- `YamaEngine/Physics/Innovations/SmartEdgeFilterSettings.cs`
 
 ### 测试与构建
-- `ShanyuEngine.Tests/` 加物理烟测
+- `YamaEngine.Tests/` 加物理烟测
 - `scripts/build-jolt-native.ps1` — vcpkg + cmake 构建脚本
 
 ## 6. 验证（M2，用户本机）
 1. vcpkg install joltphysics
-2. cmake 构建 ShanyuEngine.Native → ShanyuJolt.dll
-3. dotnet build ShanyuEditor.sln
+2. cmake 构建 YamaEngine.Native → YamaJolt.dll
+3. dotnet build YamaEditor.sln
 4. 跑 5 箱子堆叠 demo + 边过滤 demo + 射线 demo
 
 ## 7. 诚实约束

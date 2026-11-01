@@ -5,11 +5,11 @@
 
 ## 系统总览
 
-山雨引擎采用分层架构，从底层 RHI 到上层编辑器。设计意图是清晰的，但**当前整体无法编译**（见下方"构建状态"）。
+yama引擎采用分层架构，从底层 RHI 到上层编辑器。设计意图是清晰的，但**当前整体无法编译**（见下方"构建状态"）。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    ShanyuEditor (WinUI 3)                    │
+│                    YamaEditor (WinUI 3)                    │
 │         编辑器外壳 · XAML 页面 · Vulkan Surface 嵌入          │
 │         ⚠️ 当前无法编译运行（依赖未编译的引擎库）              │
 ├─────────────────────────────────────────────────────────────┤
@@ -40,9 +40,9 @@
 
 | 工程 | 构建结果 |
 |---|---|
-| `ShanyuEngine` (引擎库) | **失败**：1414 错误，177/766 文件受影响（约 23%） |
-| `ShanyuEditor` (编辑器) | **失败**：因依赖未编译的引擎库，707 错误，无法运行 |
-| `ShanyuEngine.Tests` (测试) | **无法编译/运行**：19 个测试文件逻辑真实，但依赖未编译的引擎库 |
+| `YamaEngine` (引擎库) | **失败**：1414 错误，177/766 文件受影响（约 23%） |
+| `YamaEditor` (编辑器) | **失败**：因依赖未编译的引擎库，707 错误，无法运行 |
+| `YamaEngine.Tests` (测试) | **无法编译/运行**：19 个测试文件逻辑真实，但依赖未编译的引擎库 |
 
 > 因此"渲染闭环已完整接通""编辑器可启动"等说法目前**不成立**——代码连编译都过不了，更未在任何 GPU 上验证运行。
 
@@ -120,26 +120,26 @@
 ## 项目依赖关系
 
 ```
-ShanyuEditor.sln
-├── ShanyuEngine (Library, net8.0)         ← 当前无法编译（1414 错误）
+YamaEditor.sln
+├── YamaEngine (Library, net8.0)         ← 当前无法编译（1414 错误）
 │   ├── Silk.NET.Vulkan (2.22.0)
 │   ├── ImGui.NET (1.90.8.1)
 │   ├── Vortice.Mathematics (1.9.3)
 │   ├── Microsoft.CodeAnalysis.CSharp (4.9.2)
 │   ├── SixLabors.ImageSharp (3.1.5)
 │   └── LiteNetLib (1.3.1)
-├── ShanyuEditor (WinUI 3, net8.0-windows10)  ← 当前无法编译（依赖引擎库）
-├── ShanyuEngine.Tests (net8.0)               ← 当前无法编译/运行
-├── ShanyuEngineBridge (C++/vcxproj)          ← Assimp 模型导入
+├── YamaEditor (WinUI 3, net8.0-windows10)  ← 当前无法编译（依赖引擎库）
+├── YamaEngine.Tests (net8.0)               ← 当前无法编译/运行
+├── YamaEngineBridge (C++/vcxproj)          ← Assimp 模型导入
 ├── BlenderBridge (net8.0)
-└── ShanyuEngine.Rust (Cargo)
+└── YamaEngine.Rust (Cargo)
 ```
 
 ## 关键设计决策（设计意图，部分未经验证）
 
 ### 1. 单一图形后端 (Vulkan)
 
-原 D3D12 后端已废弃，统一使用 Vulkan 1.4 (Silk.NET)。**csproj 仅排除了 `RHI/D3D12/` 目录下的 `D3D12Device.cs` 一个文件（3205 行）残留**，但渲染代码仍大量引用 `RHIPipeline`/`RHIDevice` 等类型却缺少 `using ShanyuEngine.RHI`，导致 CS0246。
+原 D3D12 后端已废弃，统一使用 Vulkan 1.4 (Silk.NET)。**csproj 仅排除了 `RHI/D3D12/` 目录下的 `D3D12Device.cs` 一个文件（3205 行）残留**，但渲染代码仍大量引用 `RHIPipeline`/`RHIDevice` 等类型却缺少 `using YamaEngine.RHI`，导致 CS0246。
 
 ### 2. ImGui 编辑器 UI
 
@@ -156,7 +156,7 @@ ShanyuEditor.sln
 ## 目录结构（实测）
 
 ```
-ShanyuEngine/
+YamaEngine/
 ├── AI/                 人工智能 (35 文件)
 ├── Animation/          动画系统 (34 文件)
 ├── Assets/             资产管理 + 导入器 (34 文件)

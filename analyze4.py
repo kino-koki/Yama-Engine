@@ -1,6 +1,6 @@
 import re, os, collections
 
-ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine"
+ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling/YamaEngine"
 files = []
 for dp,_,fs in os.walk(ROOT):
     for fn in fs:

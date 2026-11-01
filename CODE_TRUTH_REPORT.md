@@ -1,4 +1,4 @@
-# 山雨引擎 (Shanyu Engine) — 代码真实状态报告（修订版）
+# yama引擎 (Yama Engine) — 代码真实状态报告（修订版）
 
 > **最后更新**：2026-08-07（基于 `dotnet build` 真实构建结果 + 逐文件抽读）
 > **修订说明**：本文件旧版（"CODE_TRUTH_REPORT"）声称各子系统"✅ 编译 / 生产级 / 零 NotImplementedException"，**与真实编译结果严重不符**，已于 2026-08-07 依据实测重写。本版以编译器输出为唯一事实来源。
@@ -8,11 +8,11 @@
 
 ## §0. 最关键的事实（先看这段）
 
-**山雨引擎当前无法编译，也没有发布过任何可运行的版本。**
+**yama引擎当前无法编译，也没有发布过任何可运行的版本。**
 
-- `ShanyuEngine.csproj` 单独构建：**1414 个编译错误**，覆盖 **177 / 766 个文件（约 23%）**。
-- `ShanyuEditor.csproj`：**无法构建**（依赖未编译的引擎库，实测 707 错误），因此"编辑器可启动、视口已接通"不成立。
-- `ShanyuEngine.Tests`：**无法编译/运行**（19 个测试文件逻辑真实，但因引擎库未编译而失败）。
+- `YamaEngine.csproj` 单独构建：**1414 个编译错误**，覆盖 **177 / 766 个文件（约 23%）**。
+- `YamaEditor.csproj`：**无法构建**（依赖未编译的引擎库，实测 707 错误），因此"编辑器可启动、视口已接通"不成立。
+- `YamaEngine.Tests`：**无法编译/运行**（19 个测试文件逻辑真实，但因引擎库未编译而失败）。
 
 旧版报告中"✅ 编译 生产级"的逐行标注**全部作废**——它们是基于"逐文件抽读后贴标签"，而非真实编译器结果。
 
@@ -78,11 +78,11 @@
 
 ## §4. 真实存在的亮点（抽读确认，是真写的）
 
-- **Vulkan 底层**：交换链（`VulkanSwapchain`）、图形/计算管线真实实现；`ShanyuEditor/Controls/TriangleRenderer.cs` 是内嵌 SPIR-V、含顶点缓冲/PSO/`DrawInstanced` 闭环的"第一个三角形"真实代码。
+- **Vulkan 底层**：交换链（`VulkanSwapchain`）、图形/计算管线真实实现；`YamaEditor/Controls/TriangleRenderer.cs` 是内嵌 SPIR-V、含顶点缓冲/PSO/`DrawInstanced` 闭环的"第一个三角形"真实代码。
 - **物理碰撞**：`CollisionDetectionReal.cs` 的 GJK/EPA/SAT、自定义数学类型、形状分发器为真实手写实现。
 - **AI**：NavMesh 烘焙/查询、GOAP、行为树等算法真实存在。
 - **音频 DSP / ECS 原型 / 资产管线**：逻辑均为认真编写。
-- **测试**：`ShanyuEngine.Tests` 中 ProjectSystem/AssetDatabase 等测试用自研断言（`AssertEqual`/`AssertTrue`）做了真实的工程创建/资源导入/roundtrip 验证——只是当前无法编译运行。
+- **测试**：`YamaEngine.Tests` 中 ProjectSystem/AssetDatabase 等测试用自研断言（`AssertEqual`/`AssertTrue`）做了真实的工程创建/资源导入/roundtrip 验证——只是当前无法编译运行。
 
 ---
 

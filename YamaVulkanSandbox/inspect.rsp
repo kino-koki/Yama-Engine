@@ -1,0 +1,13 @@
+-target:exe
+-platform:x64
+-nologo
+-out:c:\Users\28726\.trae-cn\work\6a6705495b45645bcd26e4a0\inspect.exe
+-reference:"E:\nuget\packages\silk.net.core\2.22.0\lib\net6.0\Silk.NET.Core.dll"
+-reference:"E:\nuget\packages\silk.net.maths\2.22.0\lib\netstandard2.0\Silk.NET.Maths.dll"
+-reference:"E:\nuget\packages\silk.net.windowing.common\2.22.0\lib\netstandard2.0\Silk.NET.Windowing.Common.dll"
+-reference:"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.28\System.Runtime.dll"
+-reference:"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.28\System.Console.dll"
+-reference:"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.28\System.Private.CoreLib.dll"
+-reference:"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.28\System.Runtime.InteropServices.dll"
+-reference:"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\8.0.28\System.Reflection.dll"
+"f:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\游戏开发与建模引擎-yama Yama GamesEngine and Modeling\YamaVulkanSandbox\InspectTypes.cs"

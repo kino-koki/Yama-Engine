@@ -1,16 +1,16 @@
-# 山雨游戏引擎入门教程
+# yama游戏引擎入门教程
 
 ## 教程 1: 创建你的第一个游戏
 
 ### 步骤 1: 创建项目
 
-创建一个控制台应用程序，添加对 ShanyuEngine 的引用：
+创建一个控制台应用程序，添加对 YamaEngine 的引用：
 
 ```csharp
-using ShanyuEngine.Projects;
-using ShanyuEngine.Assets;
-using ShanyuEngine.Runtime;
-using ShanyuEngine.Rendering;
+using YamaEngine.Projects;
+using YamaEngine.Assets;
+using YamaEngine.Runtime;
+using YamaEngine.Rendering;
 
 var projectPath = @"C:\MyFirstGame";
 
@@ -51,14 +51,14 @@ var camera = assets.CreateCamera(new System.Numerics.Vector3(0, 3, 10), true);
 ### 步骤 3: 保存场景
 
 ```csharp
-assets.SaveScene(@"Content\Scenes\Level1.shanyu", "Level1");
+assets.SaveScene(@"Content\Scenes\Level1.yama", "Level1");
 Console.WriteLine("场景保存成功！");
 ```
 
 ### 步骤 4: 构建游戏
 
 ```csharp
-using ShanyuEngine.Build;
+using YamaEngine.Build;
 
 var config = new BuildConfig
 {
@@ -114,7 +114,7 @@ if (loadResult.Success)
 ### 创建 Door Prefab
 
 ```csharp
-using ShanyuEngine.Prefabs;
+using YamaEngine.Prefabs;
 
 // 创建 Prefab 系统
 var prefabSystem = new PrefabSystem(projectPath, assets);
@@ -165,7 +165,7 @@ prefabSystem.AddVariantOverride(greenDoor.Guid, "BaseColor",
 ### 注册游戏设置
 
 ```csharp
-using ShanyuEngine.Config;
+using YamaEngine.Config;
 
 var cvars = new ConsoleVariableSystem();
 
@@ -202,7 +202,7 @@ float gravity = cvars.Get("game.gravity", -9.81f);
 ### 创建自定义网格
 
 ```csharp
-using ShanyuEngine.Modeling;
+using YamaEngine.Modeling;
 
 // 创建金字塔形状
 var pyramid = new EditableMesh { Name = "Pyramid" };
@@ -262,7 +262,7 @@ cube.Write(Path.Combine(projectPath, "Assets", "Models", "edited_cube.shmesh"));
 ### 创建 PBR 材质
 
 ```csharp
-using ShanyuEngine.Materials;
+using YamaEngine.Materials;
 
 // 创建材质
 var material = new PbrMaterial
@@ -295,7 +295,7 @@ metalObj.Roughness = 0.3f;
 ### 检查项目健康度
 
 ```csharp
-using ShanyuEngine.Diagnostics;
+using YamaEngine.Diagnostics;
 
 // 运行完整诊断
 var diagnostics = EngineDiagnostics.Run(new ProjectDiagnosticsOptions
@@ -359,7 +359,7 @@ if (releaseResult.Status == BuildStatus.Success)
 恭喜你完成了基础教程！现在你可以：
 
 1. **深入学习**: 查阅 `USER_GUIDE.md` 了解更多高级功能
-2. **查看示例**: 研究 `ShanyuEngine.Tests/` 中的示例代码
+2. **查看示例**: 研究 `YamaEngine.Tests/` 中的示例代码
 3. **阅读设计文档**: 查看 `docs/superpowers/specs/` 了解架构设计
 4. **创建游戏**: 开始开发你自己的游戏！
 
@@ -393,4 +393,4 @@ A: 在构建配置中设置不同的 `BuildTarget`，引擎会自动处理平台
 
 ---
 
-**祝你在山雨引擎中创造出精彩的游戏！**
+**祝你在yama引擎中创造出精彩的游戏！**

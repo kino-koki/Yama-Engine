@@ -1,25 +1,25 @@
-# 山雨引擎 (Shanyu Engine) 深度代码审查报告
+# yama引擎 (Yama Engine) 深度代码审查报告
 
 > ⚠️ **勘误（2026-08-07 实测）**：本报告撰写时基于"代码可编译、逐文件自读"的假设。经真实 `dotnet build`（.NET 8.0.422）实测，**引擎库有 1414 个编译错误、177/766 文件受影响（约 23%），编辑器与测试项目同样无法构建**。因此本报告中"生产级/编译通过/可运行"类结论**不成立**。详细真实状态见已修订的 `README.md` / `ARCHITECTURE.md` / `CODE_TRUTH_REPORT.md` / `COMPLETION_REPORT.md` / `EVALUATION_REPORT.md`。本报告的算法层技术分析（如各子系统实现细节）仍可作参考，但所有"已编译/可运行"断言请一律视为未验证。
 
 **审查日期**: 2026-08-06（内容）；2026-08-07（勘误）
 **审查范围**: 编辑器、构建系统、核心架构、工具链全部最新代码  
-**解决方案**: ShanyuEditor.sln (6 个项目)
+**解决方案**: YamaEditor.sln (6 个项目)
 
 ---
 
 ## 一、项目结构与构建配置总览
 
-### 1.1 解决方案项目列表 (ShanyuEditor.sln)
+### 1.1 解决方案项目列表 (YamaEditor.sln)
 
 | 项目 | 类型 | 目标框架 | GUID |
 |------|------|----------|------|
-| ShanyuEngine | C# 类库 (net8.0) | .NET 8.0 | D1A2B3C4-... |
-| ShanyuEditor | C# WinExe (WinUI 3) | net8.0-windows10.0.19041.0 | 8F3E3B9A-... |
-| ShanyuRuntime | C# Exe | net8.0-windows10.0.19041.0 | 1D890D27-... |
-| ShanyuEngineBridge | C++ DLL (v143) | Win32 | A2C4E5B1-... |
+| YamaEngine | C# 类库 (net8.0) | .NET 8.0 | D1A2B3C4-... |
+| YamaEditor | C# WinExe (WinUI 3) | net8.0-windows10.0.19041.0 | 8F3E3B9A-... |
+| YamaRuntime | C# Exe | net8.0-windows10.0.19041.0 | 1D890D27-... |
+| YamaEngineBridge | C++ DLL (v143) | Win32 | A2C4E5B1-... |
 | BlenderBridge | C# 类库 | net8.0-windows10.0.19041.0 | 5D589CCD-... |
-| ShanyuEngine.Tests | C# Exe (测试) | net8.0-windows10.0.19041.0 | 4D89D39F-... |
+| YamaEngine.Tests | C# Exe (测试) | net8.0-windows10.0.19041.0 | 4D89D39F-... |
 
 ### 1.2 Directory.Build.props
 
@@ -27,7 +27,7 @@
 - 使用相对路径，可移植，不再硬编码 E: 盘
 - NuGet 资产文件路径和锁文件也统一管理
 
-### 1.3 ShanyuEngine.csproj 关键配置
+### 1.3 YamaEngine.csproj 关键配置
 
 - **EnableDefaultCompileItems = false**: 手动控制编译文件列表
 - **AllowUnsafeBlocks = true**: 支持 P/Invoke 和指针操作
@@ -72,7 +72,7 @@
 
 ---
 
-## 二、ShanyuEditor (编辑器) 审查
+## 二、YamaEditor (编辑器) 审查
 
 ### 2.1 Controls 目录 (6 文件 / 2,202 行)
 
@@ -149,7 +149,7 @@
 
 ---
 
-## 三、ShanyuEngine 核心架构审查
+## 三、YamaEngine 核心架构审查
 
 ### 3.1 EngineApplication.cs (1,543 行) -- 引擎主循环
 
@@ -166,7 +166,7 @@
 - **真实实现**: 是。完整的引擎主循环，所有子系统都有真实的初始化和 Tick 调用
 - **代码质量**: 优秀。异常处理完善 (每个子系统 try-catch 独立)，fallback 机制健壮，日志输出详细
 - **问题**:
-  - `AppConfig` 类中属性名为 `UseVulkan`，但 `ShanyuRuntime\Program.cs` 使用 `UseD3D12` -- **编译错误**
+  - `AppConfig` 类中属性名为 `UseVulkan`，但 `YamaRuntime\Program.cs` 使用 `UseD3D12` -- **编译错误**
   - 相机控制使用硬编码的 WASD + 鼠标右键，无配置化
 
 ### 3.2 Core 目录 (21 文件 / 9,173 行)
@@ -454,9 +454,9 @@
 
 ---
 
-## 十三、C++ 桥接审查 (ShanyuEngineBridge)
+## 十三、C++ 桥接审查 (YamaEngineBridge)
 
-### 13.1 ShanyuEngineBridge.cpp (664 行)
+### 13.1 YamaEngineBridge.cpp (664 行)
 
 **关键发现: 有真实的 Assimp 调用。**
 
@@ -483,16 +483,16 @@
 
 - **自研优化**: 顶点去重 (基于位置+法线+UV 的哈希去重)，减少冗余顶点
 
-- **C API 导出**: `Shanyu_Blender_ImportScene`, `Shanyu_Asset_ImportUnity`, `Shanyu_Asset_ImportUnreal`, `Shanyu_GetImportedMeshCount` 等
+- **C API 导出**: `Yama_Blender_ImportScene`, `Yama_Asset_ImportUnity`, `Yama_Asset_ImportUnreal`, `Yama_GetImportedMeshCount` 等
 
 - **vcxproj 配置**:
-  - Assimp 路径: `E:\shanyu_third_party\assimp` (硬编码路径)
+  - Assimp 路径: `E:\yama_third_party\assimp` (硬编码路径)
   - Debug 链接: `assimp-vc143-mtd.lib`
   - Release 链接: `assimp-vc143-mt.lib`
   - C++20 标准
 
 - **代码质量**: 优秀。线程安全 (mutex 保护)，错误处理完善，日志输出详细
-- **问题**: Assimp 路径硬编码到 `E:\shanyu_third_party\assimp`，不可移植
+- **问题**: Assimp 路径硬编码到 `E:\yama_third_party\assimp`，不可移植
 
 ### 13.2 AssimpBridge.h
 - **关键功能**: Assimp 桥接头文件，定义 C API 接口
@@ -522,7 +522,7 @@
 
 ### 15.1 编译错误 (严重)
 
-**ShanyuRuntime\Program.cs 第 22 行和第 41 行**:
+**YamaRuntime\Program.cs 第 22 行和第 41 行**:
 ```csharp
 // Program.cs 第 22 行:
 UseD3D12 = true,  // 错误: AppConfig 中没有 UseD3D12 属性
@@ -531,13 +531,13 @@ UseD3D12 = true,  // 错误: AppConfig 中没有 UseD3D12 属性
 config.UseD3D12 = false;  // 同样的错误
 ```
 
-`EngineApplication.AppConfig` 中的属性名是 `UseVulkan` (第 55 行)，不是 `UseD3D12`。这会导致 ShanyuRuntime 项目编译失败。`bin\` 目录中存在的编译产物可能是属性重命名前生成的旧版本。
+`EngineApplication.AppConfig` 中的属性名是 `UseVulkan` (第 55 行)，不是 `UseD3D12`。这会导致 YamaRuntime 项目编译失败。`bin\` 目录中存在的编译产物可能是属性重命名前生成的旧版本。
 
 **修复方案**: 将 `UseD3D12` 改为 `UseVulkan`。
 
 ### 15.2 垃圾文件 (低优先级)
 
-**ShanyuEngine\Core\__path_test.cs**: 内容仅为 `// placeholder`，应删除。
+**YamaEngine\Core\__path_test.cs**: 内容仅为 `// placeholder`，应删除。
 
 ### 15.3 排除编译的损坏文件 (已处理)
 
@@ -549,14 +549,14 @@ config.UseD3D12 = false;  // 同样的错误
 
 ### 15.4 架构冗余
 
-- `GameFramework\Actor.cs` 和 `Gameplay\GameplayFramework.cs` 都定义了 `Actor` 类。虽然命名空间不同 (`ShanyuEngine.GameFramework` vs `ShanyuEngine.Gameplay`)，但功能重叠，可能造成混淆。
+- `GameFramework\Actor.cs` 和 `Gameplay\GameplayFramework.cs` 都定义了 `Actor` 类。虽然命名空间不同 (`YamaEngine.GameFramework` vs `YamaEngine.Gameplay`)，但功能重叠，可能造成混淆。
 - `Core\EngineCore.cs` 和 `Assets\AssetDatabase.cs` 都定义了 `SceneObject` 类 (命名空间不同)，同样存在冗余。
 - `Core\EngineCore.cs` 和 `Core\EngineBootstrap.cs` + `EngineApplication.cs` 存在三套引擎入口/核心数据结构，EngineApplication 注释明确说明是 EngineBootstrap 的轻量替代。
 
 ### 15.5 硬编码路径
 
-- `ShanyuEngineBridge.vcxproj` 中 Assimp 路径硬编码为 `E:\shanyu_third_party\assimp`
-- `ShanyuEngineBridge.cpp` 中 Blender 路径硬编码为 `C:\Program Files\Blender Foundation\...`
+- `YamaEngineBridge.vcxproj` 中 Assimp 路径硬编码为 `E:\yama_third_party\assimp`
+- `YamaEngineBridge.cpp` 中 Blender 路径硬编码为 `C:\Program Files\Blender Foundation\...`
 
 ### 15.6 TerrainSystem.cs 代码风格
 
@@ -594,11 +594,11 @@ config.UseD3D12 = false;  // 同样的错误
 
 ### 16.3 主要风险
 
-1. **ShanyuRuntime 编译错误** (UseD3D12 vs UseVulkan) -- 需立即修复
+1. **YamaRuntime 编译错误** (UseD3D12 vs UseVulkan) -- 需立即修复
 2. **损坏文件** (NetworkLobbySystem.cs, ScriptEngine.cs) -- 已排除编译但仍占用磁盘
 3. **硬编码路径** (Assimp, Blender) -- 影响可移植性
 4. **架构冗余** (多套 Actor/SceneObject 定义) -- 增加维护成本
 
 ### 16.4 结论
 
-山雨引擎是一个规模庞大 (估计 50 万行+ C# 代码)、功能完整的游戏引擎项目，涵盖了现代商业引擎的所有核心子系统。代码以真实实现为主，不存在系统性桩代码问题。唯一的编译错误在 ShanyuRuntime 项目中 (属性名不匹配)，需要修复后才能通过完整解决方案构建。
+yama引擎是一个规模庞大 (估计 50 万行+ C# 代码)、功能完整的游戏引擎项目，涵盖了现代商业引擎的所有核心子系统。代码以真实实现为主，不存在系统性桩代码问题。唯一的编译错误在 YamaRuntime 项目中 (属性名不匹配)，需要修复后才能通过完整解决方案构建。

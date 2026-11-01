@@ -1,7 +1,7 @@
 import re, os, shutil
 
-ROOT=r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling/ShanyuEngine"
-BACKUP=os.path.join(r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling","_dup_backup")
+ROOT=r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling/YamaEngine"
+BACKUP=os.path.join(r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling","_dup_backup")
 os.makedirs(BACKUP, exist_ok=True)
 
 def find_class_ranges(txt):

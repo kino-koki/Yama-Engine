@@ -31,11 +31,12 @@ desktop.ini
 *.nupkg
 *.snupkg
 .nuget/
-packages/
+# 仅忽略仓库根 packages/（NuGet 缓存），不误伤 YamaEngine/Packages/ 源码
+/packages/
 
 # ── 运行时产物 ──
 Builds/
-*.shanyu.bak
+*.yama.bak
 *.log
 
 # ── 可再生日录（不入库）──
@@ -52,16 +53,16 @@ dotnet-sdk-cache/
 *.bak
 
 # ── 评估报告 HTML 产物 (开发期间不入库) ──
-shanyu-engine-evaluation/
+yama-engine-evaluation/
 
 # ── Rust target ──
-ShanyuEngine.Rust/target/
+YamaEngine.Rust/target/
 
 # ── C++ 构建中间文件 ──
-ShanyuEngineBridge/x64/
-ShanyuEngineBridge/Debug/
-ShanyuEngineBridge/Release/
-ShanyuEngine.Native/build/
+YamaEngineBridge/x64/
+YamaEngineBridge/Debug/
+YamaEngineBridge/Release/
+YamaEngine.Native/build/
 
 # ── Python 缓存 (DCC 插件) ──
 __pycache__/
@@ -89,3 +90,11 @@ dup_report.txt
 eval_build_engine.txt
 py_test.txt
 test_write.txt
+
+# ── 会话分析/修复临时产物（仓库根，_ 前缀）──
+/_*.py
+/_*.txt
+/_*.csv
+/_*.json
+/_*.md
+/_repair/

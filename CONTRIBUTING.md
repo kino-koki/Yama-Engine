@@ -1,22 +1,22 @@
 # 贡献指南
 
-感谢你对山雨游戏引擎的兴趣！本文档介绍如何参与项目贡献。
+感谢你对yama游戏引擎的兴趣！本文档介绍如何参与项目贡献。
 
 ## 快速开始
 
 ```bash
 # 1. Fork & Clone
-git clone https://github.com/<your-username>/ShanyuEngine.git
-cd ShanyuEngine
+git clone https://github.com/<your-username>/YamaEngine.git
+cd YamaEngine
 
 # 2. 还原依赖
-dotnet restore ShanyuEditor.sln
+dotnet restore YamaEditor.sln
 
 # 3. 构建引擎核心
-dotnet build ShanyuEngine\ShanyuEngine.csproj -c Debug -p:Platform=x64
+dotnet build YamaEngine\YamaEngine.csproj -c Debug -p:Platform=x64
 
 # 4. 运行测试
-dotnet test ShanyuEngine.Tests\ShanyuEngine.Tests.csproj
+dotnet test YamaEngine.Tests\YamaEngine.Tests.csproj
 ```
 
 ## 开发环境要求
@@ -40,7 +40,7 @@ dotnet test ShanyuEngine.Tests\ShanyuEngine.Tests.csproj
   - 类/方法/属性: `PascalCase`
   - 私有字段: `_camelCase`
   - 常量: `PascalCase`
-  - 命名空间: `ShanyuEngine.{Module}`
+  - 命名空间: `YamaEngine.{Module}`
 
 ### 提交规范
 
@@ -96,10 +96,10 @@ docs(readme): 更新构建步骤
 ## 项目结构
 
 ```
-ShanyuEngine/          引擎核心库 (C# .NET 8)
-ShanyuEditor/          WinUI 3 编辑器外壳
-ShanyuEngine.Tests/    单元测试
-ShanyuEngineBridge/    C++ native 桥接 (Assimp)
+YamaEngine/          引擎核心库 (C# .NET 8)
+YamaEditor/          WinUI 3 编辑器外壳
+YamaEngine.Tests/    单元测试
+YamaEngineBridge/    C++ native 桥接 (Assimp)
 BlenderBridge/         Blender 插件
 MayaBridge/            Maya 插件
 MaxBridge/             3ds Max 插件

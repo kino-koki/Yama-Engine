@@ -1,10 +1,10 @@
 import re, os, collections
 
-ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Shanyu GamesEngine and Modeling"
+ROOT = r"f:/LUCKY_OS/LuckyOS systems 1.0/userspace/other/Yama GamesEngine and Modeling"
 log = open(os.path.join(ROOT, "build_out.txt"), encoding="utf-8", errors="ignore").read().splitlines()
 
-# error line: ...\ShanyuEngine\PATH\file.cs(line,col): error CSxxxx: message
-pat = re.compile(r'ShanyuEngine\\(.+?)\((?P<line>\d+),(?P<col>\d+)\): error (?P<code>CS\d+): (?P<msg>.*)')
+# error line: ...\YamaEngine\PATH\file.cs(line,col): error CSxxxx: message
+pat = re.compile(r'YamaEngine\\(.+?)\((?P<line>\d+),(?P<col>\d+)\): error (?P<code>CS\d+): (?P<msg>.*)')
 errors = []
 for ln in log:
     m = pat.search(ln)

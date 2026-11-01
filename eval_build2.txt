@@ -1,5 +1,5 @@
-F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ECS\ComponentChunkIterator.cs(26,27): error CS1514: 应为 { [F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ShanyuEngine.csproj]
-F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ECS\ComponentChunkIterator.cs(49,1): error CS1022: 应输入类型、命名空间定义或文件尾 [F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Shanyu GamesEngine and Modeling\ShanyuEngine\ShanyuEngine.csproj]
+F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Yama GamesEngine and Modeling\YamaEngine\ECS\ComponentChunkIterator.cs(26,27): error CS1514: 应为 { [F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Yama GamesEngine and Modeling\YamaEngine\YamaEngine.csproj]
+F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Yama GamesEngine and Modeling\YamaEngine\ECS\ComponentChunkIterator.cs(49,1): error CS1022: 应输入类型、命名空间定义或文件尾 [F:\LUCKY_OS\LuckyOS systems 1.0\userspace\other\Yama GamesEngine and Modeling\YamaEngine\YamaEngine.csproj]
 
 生成失败。
     4 个警告
