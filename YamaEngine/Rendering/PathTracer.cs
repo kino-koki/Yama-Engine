@@ -417,6 +417,10 @@ namespace YamaEngine.Rendering
         private RHITexture? _albedoBuffer;
         private RHITexture? _varianceBuffer;
 
+        // CB 上传缓冲 (每帧写入后绑定到 b0)
+        private RHIBuffer? _traceCBUpload;
+        private RHIBuffer? _svgfCBUpload;
+
         private uint _accumulationFrame;
         private int _frameIndex;
 
@@ -596,6 +600,11 @@ namespace YamaEngine.Rendering
                 AccumulationFrame = _accumulationFrame
             };
 
+            // 上传并绑定路径追踪常量 (cbuffer PathTracerCB : register(b0))
+            _traceCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<PathTracerCB>(), "PathTracer.TraceCB");
+            _device.UploadToBuffer(_traceCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+            cmdList.SetComputeRootConstantBufferView(0, _traceCBUpload);
+
             cmdList.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
             cmdList.TransitionTo(_accumulationBuffer, RHIResourceState.NonPixelShaderResource);
@@ -608,6 +617,9 @@ namespace YamaEngine.Rendering
         {
             cmdList.SetComputeRootSignature(_rootSignature!);
             cmdList.SetPipelineState(_restirPipeline!);
+            // 复用本帧已上传的路径追踪常量 (ReSTIRCS 同样读取 b0 的 PathTracerCB)
+            if (_traceCBUpload != null)
+                cmdList.SetComputeRootConstantBufferView(0, _traceCBUpload);
             // 1. 生成候选样本 (RIS)
             // 2. 时序复用 (复用上一帧蓄水池)
             // 3. 空间复用 (复用邻近像素蓄水池)
@@ -632,6 +644,10 @@ namespace YamaEngine.Rendering
                     LuminanceSigma = 0.2f,
                     StepWidth = 1 << i
                 };
+                // 上传并绑定降噪常量 (cbuffer PathTracerSvgfCB : register(b0))
+                _svgfCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<PathTracerSvgfCB>(), "PathTracer.SvgfCB");
+                _device.UploadToBuffer(_svgfCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+                cmdList.SetComputeRootConstantBufferView(0, _svgfCBUpload);
                 cmdList.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
             }
         }
@@ -641,6 +657,9 @@ namespace YamaEngine.Rendering
         {
             cmdList.SetComputeRootSignature(_rootSignature!);
             cmdList.SetPipelineState(_accumulatePipeline!);
+            // 复用本帧已上传的路径追踪常量 (PTAccumulateCS 读取 b0 的累积帧号等)
+            if (_traceCBUpload != null)
+                cmdList.SetComputeRootConstantBufferView(0, _traceCBUpload);
             cmdList.TransitionTo(_historyBuffer!, RHIResourceState.NonPixelShaderResource);
             cmdList.TransitionTo(_denoisedBuffer!, RHIResourceState.UnorderedAccess);
             // 累积: result = (accumulationFrame * history + current) / (accumulationFrame + 1)
@@ -705,6 +724,8 @@ namespace YamaEngine.Rendering
             _depthBuffer?.Dispose();
             _albedoBuffer?.Dispose();
             _varianceBuffer?.Dispose();
+            _traceCBUpload?.Dispose();
+            _svgfCBUpload?.Dispose();
             GC.SuppressFinalize(this);
         }
     }

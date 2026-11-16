@@ -165,6 +165,16 @@ namespace YamaEngine.Rendering
         private RHIPipelineState? _oitPipeline;
         private RHIRootSignature? _rootSignature;
 
+        // CB 上传缓冲 (每帧写入, 对应 HLSL b2/b3/b4)
+        private RHIBuffer? _shadingCBUpload;
+        private RHIBuffer? _cascadesCBUpload;
+        private RHIBuffer? _clusterCBUpload;
+
+        // VSM 阴影矩 (ShadowCS/ShadowFilterCS 写出, ForwardShadeCS 采样 t1)
+        private RHITexture? _shadowMoments;
+        private RHIDescriptorHandle _shadowDepthSRV;
+        private RHIDescriptorHandle _shadowMomentsUAV;
+
         // 视图历史
         private Matrix4x4 _prevViewProj;
         private int _frameIndex;
@@ -239,7 +249,11 @@ namespace YamaEngine.Rendering
                 Parameters = new RHIRootParameter[]
                 {
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },   // b2: ForwardShadingCB
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 3 } },   // b3: ForwardCascadesCB
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 4 } },   // b4: ForwardClusterCB
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
                                 new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 16, BaseShaderRegister = 0 } } } },
@@ -302,6 +316,18 @@ namespace YamaEngine.Rendering
             };
             _shadowAtlas = _device.CreateTexture(shadowDesc, "ForwardShadowAtlas");
 
+            // VSM 阴影矩纹理 (float2: mean, mean²) 与描述符
+            _shadowMoments = _device.CreateTexture(new RHITextureDesc
+            {
+                Dimension = RHIResourceDimension.Texture2D,
+                Format = RHIFormat.R32G32_Float,
+                Width = atlasSize, Height = _settings.CascadeResolution, DepthOrArraySize = 1,
+                MipLevels = 1, SampleCount = 1,
+                Flags = RHITextureFlags.UnorderedAccess | RHITextureFlags.ShaderResource
+            }, "ForwardShadowMoments");
+            _shadowDepthSRV = _device.CreateSRV(_shadowAtlas);
+            _shadowMomentsUAV = _device.CreateUAV(_shadowMoments);
+
             // 集簇光照网格缓冲
             int gridX = (_internalWidth + 63) / 64;
             int gridY = (_internalHeight + 63) / 64;
@@ -336,6 +362,7 @@ namespace YamaEngine.Rendering
 
             _sceneColor?.Dispose(); _sceneDepth?.Dispose(); _motionVectors?.Dispose();
             _geometrybufferNormals?.Dispose(); _geometrybufferAlbedo?.Dispose(); _finalOutput?.Dispose();
+            _shadowMoments?.Dispose();
             AllocateRenderTargets();
 
             _probefield?.Resize(_internalWidth, _internalHeight);
@@ -436,10 +463,10 @@ namespace YamaEngine.Rendering
             return result;
         }
 
-        /// <summary>渲染级联阴影贴图 (CSM)。</summary>
+        /// <summary>渲染级联阴影贴图 (CSM)：清空图集 → ShadowCS 构建 VSM 矩 → ShadowFilterCS 高斯过滤。</summary>
         private void RenderCSM(RHICommandList cmdList, in Matrix4x4 view, in Matrix4x4 proj, Vector3 cameraPos, Vector3 sunDir)
         {
-            if (_shadowPipeline == null || _shadowAtlas == null) return;
+            if (_shadowPipeline == null || _shadowAtlas == null || _shadowMoments == null) return;
 
             // 计算级联分割距离
             float nearZ = proj.M43 / (proj.M33 - 1); // 近平面
@@ -453,14 +480,8 @@ namespace YamaEngine.Rendering
                 cascadeVP[i] = ComputeCascadeViewProj(view, proj, cameraPos, sunDir, cascadeDistances[i], cascadeDistances[i + 1]);
             }
 
-            cmdList.SetGraphicsRootSignature(_rootSignature!);
-            cmdList.SetPipelineState(_shadowPipeline);
-
-            var dsv = _device.CreateDSV(_shadowAtlas);
-            cmdList.OMSetRenderTargets(Array.Empty<RHIDescriptorHandle>(), dsv);
-            cmdList.ClearDepthStencilView(dsv, 1.0f, 0);
-            cmdList.SetViewport(new RHIViewport(_shadowAtlas!.Width, _shadowAtlas!.Height));
-
+            // 上传级联常量 (cbuffer ForwardCascadesCB : register(b3) → root param 1)
+            _cascadesCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<ForwardCascadesCB>(), "Forward.CascadesCB");
             var cb = new ForwardCascadesCB
             {
                 CascadeViewProj0 = cascadeVP[0],
@@ -468,21 +489,41 @@ namespace YamaEngine.Rendering
                 CascadeViewProj2 = cascadeVP[2],
                 CascadeViewProj3 = cascadeVP[3],
                 CascadeDistances = new Vector4(cascadeDistances[1], cascadeDistances[2], cascadeDistances[3], cascadeDistances[4]),
+                // 图集布局: 级联 i 占据 x ∈ [i/N, (i+1)/N]
+                CascadeScale = new Vector4(1f / _settings.CascadeCount, 1f, 1f, 1f),
+                CascadeOffset = new Vector4(0f, 0f, 0f, 0f),
                 ShadowBias = 0.001f,
                 NormalBias = 0.02f,
                 FilterRadius = _settings.ShadowFilterRadius,
                 CascadeCount = _settings.CascadeCount
             };
+            _device.UploadToBuffer(_cascadesCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
 
-            // 渲染深度到阴影图集
-            cmdList.DrawIndexedInstanced(0, 0, 0, 0, 0);
+            // 清空阴影图集深度
+            var dsv = _device.CreateDSV(_shadowAtlas);
+            cmdList.OMSetRenderTargets(Array.Empty<RHIDescriptorHandle>(), dsv);
+            cmdList.ClearDepthStencilView(dsv, 1.0f, 0);
+            cmdList.SetViewport(new RHIViewport(_shadowAtlas!.Width, _shadowAtlas!.Height));
 
-            // 阴影过滤 (Variance Shadow Map / PCF)
-            cmdList.SetComputeRootSignature(_rootSignature);
-            cmdList.SetPipelineState(_shadowFilterPipeline);
-            int sw = _shadowAtlas!.Width;
-            int sh = _shadowAtlas!.Height;
+            // ShadowCS: 深度图集 (t0) → VSM 矩 (u1)
+            cmdList.SetComputeRootSignature(_rootSignature!);
+            cmdList.SetPipelineState(_shadowPipeline);
+            cmdList.SetComputeRootConstantBufferView(1, _cascadesCBUpload);
+            cmdList.TransitionTo(_shadowAtlas, RHIResourceState.NonPixelShaderResource);
+            cmdList.TransitionTo(_shadowMoments, RHIResourceState.UnorderedAccess);
+            cmdList.SetComputeRootDescriptorTable(3, _shadowDepthSRV);
+            cmdList.SetComputeRootDescriptorTable(4, _shadowMomentsUAV);
+            int sw = _shadowAtlas.Width;
+            int sh = _shadowAtlas.Height;
             cmdList.Dispatch((sw + 7) / 8, (sh + 7) / 8, 1);
+
+            // ShadowFilterCS: 5x5 高斯过滤矩 (u1)
+            cmdList.SetPipelineState(_shadowFilterPipeline!);
+            cmdList.SetComputeRootDescriptorTable(4, _shadowMomentsUAV);
+            cmdList.Dispatch((sw + 7) / 8, (sh + 7) / 8, 1);
+
+            // 转为着色可采样 (ForwardShadeCS 的 ShadowMoments t1)
+            cmdList.TransitionTo(_shadowMoments, RHIResourceState.NonPixelShaderResource);
         }
 
         /// <summary>计算级联分割距离 (对数+线性混合)。</summary>
@@ -536,6 +577,10 @@ namespace YamaEngine.Rendering
                 MaxLightsPerCluster = _settings.MaxLightsPerPixel,
                 LightCount = 0
             };
+            // 上传并绑定集群剔除常量 (cbuffer ForwardClusterCB : register(b4) → root param 2)
+            _clusterCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<ForwardClusterCB>(), "Forward.ClusterCB");
+            _device.UploadToBuffer(_clusterCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+            cmdList.SetComputeRootConstantBufferView(2, _clusterCBUpload);
             cmdList.Dispatch(1, 1, 1);
 
             cmdList.TransitionTo(_clusterLightGrid, RHIResourceState.NonPixelShaderResource);
@@ -565,6 +610,10 @@ namespace YamaEngine.Rendering
                 SunColor = new Vector3(1.0f, 0.95f, 0.85f),
                 SunIntensity = 8.0f
             };
+            // 上传并绑定前向着色常量 (cbuffer ForwardShadingCB : register(b2) → root param 0)
+            _shadingCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<ForwardShadingCB>(), "Forward.ShadingCB");
+            _device.UploadToBuffer(_shadingCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+            cmdList.SetComputeRootConstantBufferView(0, _shadingCBUpload);
             cmdList.Dispatch((_internalWidth + 7) / 8, (_internalHeight + 7) / 8, 1);
             cmdList.TransitionTo(_sceneColor, RHIResourceState.PixelShaderResource);
         }
@@ -601,6 +650,10 @@ namespace YamaEngine.Rendering
             _geometrybufferAlbedo?.Dispose();
             _finalOutput?.Dispose();
             _shadowAtlas?.Dispose();
+            _shadowMoments?.Dispose();
+            _shadingCBUpload?.Dispose();
+            _cascadesCBUpload?.Dispose();
+            _clusterCBUpload?.Dispose();
             _clusterLightGrid?.Dispose();
             _clusterLightIndexList?.Dispose();
             _shadowPipeline?.Dispose();

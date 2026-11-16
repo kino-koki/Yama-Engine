@@ -213,18 +213,19 @@ namespace YamaEngine.Vulkan
     public sealed unsafe class SurfaceCapabilitiesQuery
     {
         private readonly PhysicalDevice _physicalDevice;
-        private readonly YamaEngine.RHI.Vulkan.SwapchainApi _surfaceExt;
+        private readonly KhrSurface _surfaceExt;
 
-        internal SurfaceCapabilitiesQuery(PhysicalDevice pd, YamaEngine.RHI.Vulkan.SwapchainApi ext)
+        internal SurfaceCapabilitiesQuery(PhysicalDevice pd, KhrSurface surfaceExt)
         {
             _physicalDevice = pd;
-            _surfaceExt = ext;
+            _surfaceExt = surfaceExt;
         }
 
         /// <summary>查询 surface 能力。</summary>
         public SurfaceCapabilitiesKHR GetCapabilities(SurfaceKHR surface)
         {
-            _surfaceExt.GetPhysicalDeviceSurfaceCapabilitiesKHR(_physicalDevice, surface, out var caps);
+            SurfaceCapabilitiesKHR caps = default;
+            _surfaceExt.GetPhysicalDeviceSurfaceCapabilities(_physicalDevice, surface, &caps);
             return caps;
         }
 
@@ -232,10 +233,10 @@ namespace YamaEngine.Vulkan
         public SurfaceFormatKHR[] GetFormats(SurfaceKHR surface)
         {
             uint count = 0;
-            _surfaceExt.GetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, surface, &count, null);
+            _surfaceExt.GetPhysicalDeviceSurfaceFormats(_physicalDevice, surface, &count, null);
             var arr = new SurfaceFormatKHR[count];
             fixed (SurfaceFormatKHR* pFormats = arr)
-                _surfaceExt.GetPhysicalDeviceSurfaceFormatsKHR(_physicalDevice, surface, &count, pFormats);
+                _surfaceExt.GetPhysicalDeviceSurfaceFormats(_physicalDevice, surface, &count, pFormats);
             return arr;
         }
 
@@ -243,10 +244,10 @@ namespace YamaEngine.Vulkan
         public PresentModeKHR[] GetPresentModes(SurfaceKHR surface)
         {
             uint count = 0;
-            _surfaceExt.GetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice, surface, &count, null);
+            _surfaceExt.GetPhysicalDeviceSurfacePresentModes(_physicalDevice, surface, &count, null);
             var arr = new PresentModeKHR[count];
             fixed (PresentModeKHR* pModes = arr)
-                _surfaceExt.GetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice, surface, &count, pModes);
+                _surfaceExt.GetPhysicalDeviceSurfacePresentModes(_physicalDevice, surface, &count, pModes);
             return arr;
         }
 
@@ -371,8 +372,9 @@ namespace YamaEngine.Vulkan
 
             if (!vk.TryGetDeviceExtension(instance, device, out _swapchainExt))
                 throw new InvalidOperationException("VK_KHR_swapchain 不可用");
-            // VK_KHR_surface: 使用占位 SwapchainApi（不直接调用原生层）
-            _capsQuery = new SurfaceCapabilitiesQuery(physicalDevice, new YamaEngine.RHI.Vulkan.SwapchainApi());
+            if (!vk.TryGetInstanceExtension(instance, out KhrSurface surfaceExt))
+                throw new InvalidOperationException("VK_KHR_surface 不可用");
+            _capsQuery = new SurfaceCapabilitiesQuery(physicalDevice, surfaceExt);
             _stats = new SwapchainStats();
         }
 

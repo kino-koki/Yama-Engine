@@ -206,6 +206,10 @@ namespace YamaEngine.Rendering
         // 上帧相机投影 (用于运动矢量)
         private Matrix4x4 _prevViewProj;
 
+        // CB 上传缓冲 (每帧写入后绑定到 b0)
+        private RHIBuffer? _accumCBUpload;
+        private RHIBuffer? _upscaleCBUpload;
+
         // 输入/输出尺寸
         private int _inputWidth, _inputHeight;
         private int _outputWidth, _outputHeight;
@@ -492,6 +496,11 @@ namespace YamaEngine.Rendering
                 DeltaTime = deltaTime
             };
 
+            // 上传并绑定累积常量 (cbuffer TSRCB : register(b0))
+            _accumCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<TSRAccumCB>(), "TSR.AccumCB");
+            _device.UploadToBuffer(_accumCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+            cmdList.SetComputeRootConstantBufferView(0, _accumCBUpload);
+
             int groupsX = (_inputWidth + 7) / 8;
             int groupsY = (_inputHeight + 7) / 8;
             cmdList.Dispatch(groupsX, groupsY, 1);
@@ -533,6 +542,11 @@ namespace YamaEngine.Rendering
                 EdgeThreshold = _settings.EdgeThreshold,
                 UseYCoCg = _settings.UseYCoCg ? 1 : 0
             };
+
+            // 上传并绑定放大常量 (cbuffer TSRCB : register(b0))
+            _upscaleCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<TSRUpscaleCB>(), "TSR.UpscaleCB");
+            _device.UploadToBuffer(_upscaleCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+            cmdList.SetComputeRootConstantBufferView(0, _upscaleCBUpload);
 
             int groupsX = (_outputWidth + 7) / 8;
             int groupsY = (_outputHeight + 7) / 8;
@@ -588,6 +602,8 @@ namespace YamaEngine.Rendering
             _historyA?.Dispose();
             _historyB?.Dispose();
             _motionVectors?.Dispose();
+            _accumCBUpload?.Dispose();
+            _upscaleCBUpload?.Dispose();
             ExternalUpscaler?.Dispose();
             GC.SuppressFinalize(this);
         }

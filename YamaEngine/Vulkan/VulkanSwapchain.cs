@@ -30,45 +30,81 @@ namespace YamaEngine.RHI.Vulkan
     // ════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// 最小占位类型：swapchain 扩展 API。原代码以指针 / out 形式调用，
-    /// 此处提供与之匹配的签名占位（不实际调用原生层）。
+    /// swapchain/surface 扩展 API 适配层。
+    /// 将 Silk.NET 的 KhrSurface / KhrSwapchain / KhrWin32Surface 封装为统一入口，
+    /// 所有方法均调用真实原生层（此前为占位 stub，导致 surface 查询返回空数据并崩溃）。
     /// </summary>
-    internal unsafe class SwapchainApi
+    internal sealed unsafe class SwapchainApi
     {
-        public SwapchainApi() { }
+        private readonly Vk _vk;
+        private readonly Instance _instance;
+        private readonly Device _device;
+        private readonly KhrSurface _surfaceExt;
+        private readonly KhrSwapchain _swapchainExt;
+        private readonly KhrWin32Surface? _win32Ext;
+
+        public SwapchainApi(VulkanDevice device)
+        {
+            _vk = device.Vk;
+            _instance = device.VkInstance;
+            _device = device.VkDevice;
+
+            if (!_vk.TryGetInstanceExtension(_instance, out _surfaceExt))
+                throw new InvalidOperationException("VK_KHR_surface 扩展不可用");
+            if (!_vk.TryGetDeviceExtension(_instance, _device, out _swapchainExt))
+                throw new InvalidOperationException("VK_KHR_swapchain 扩展不可用");
+            _vk.TryGetInstanceExtension(_instance, out _win32Ext);
+        }
 
         public Result GetPhysicalDeviceSurfaceCapabilitiesKHR(PhysicalDevice physicalDevice, SurfaceKHR surface,
             out SurfaceCapabilitiesKHR capabilities)
-        { capabilities = default; return default; }
+        {
+            SurfaceCapabilitiesKHR caps = default;
+            var result = _surfaceExt.GetPhysicalDeviceSurfaceCapabilities(physicalDevice, surface, &caps);
+            capabilities = caps;
+            return result;
+        }
 
         public Result GetPhysicalDeviceSurfaceFormatsKHR(PhysicalDevice physicalDevice, SurfaceKHR surface,
             uint* pSurfaceFormatCount, SurfaceFormatKHR* pSurfaceFormats)
-        { return default; }
+            => _surfaceExt.GetPhysicalDeviceSurfaceFormats(physicalDevice, surface, pSurfaceFormatCount, pSurfaceFormats);
 
         public Result GetPhysicalDeviceSurfacePresentModesKHR(PhysicalDevice physicalDevice, SurfaceKHR surface,
             uint* pPresentModeCount, PresentModeKHR* pPresentModes)
-        { return default; }
+            => _surfaceExt.GetPhysicalDeviceSurfacePresentModes(physicalDevice, surface, pPresentModeCount, pPresentModes);
 
         public Result CreateSwapchain(Device device, SwapchainCreateInfoKHR* pCreateInfo, AllocationCallbacks* pAllocator,
             out SwapchainKHR swapchain)
-        { swapchain = default; return default; }
+        {
+            SwapchainKHR handle = default;
+            var result = _swapchainExt.CreateSwapchain(device, pCreateInfo, pAllocator, &handle);
+            swapchain = handle;
+            return result;
+        }
 
         public Result GetSwapchainImages(Device device, SwapchainKHR swapchain, uint* pSwapchainImageCount, Image* pSwapchainImages)
-        { return default; }
+            => _swapchainExt.GetSwapchainImages(device, swapchain, pSwapchainImageCount, pSwapchainImages);
 
         public Result AcquireNextImage(Device device, SwapchainKHR swapchain, ulong timeout,
             Semaphore semaphore, Fence fence, out uint imageIndex)
-        { imageIndex = default; return default; }
+        {
+            uint index = default;
+            var result = _swapchainExt.AcquireNextImage(device, swapchain, timeout, semaphore, fence, &index);
+            imageIndex = index;
+            return result;
+        }
 
         public Result QueuePresent(Queue queue, PresentInfoKHR* pPresentInfo)
-        { return default; }
+            => _swapchainExt.QueuePresent(queue, pPresentInfo);
 
-        public void DestroySwapchain(Device device, SwapchainKHR swapchain, AllocationCallbacks* pAllocator) { }
+        public void DestroySwapchain(Device device, SwapchainKHR swapchain, AllocationCallbacks* pAllocator)
+            => _swapchainExt.DestroySwapchain(device, swapchain, pAllocator);
 
         public Bool32 GetPhysicalDeviceWin32PresentationSupportKHR(PhysicalDevice physicalDevice, uint queueFamily)
-            => new Bool32(true);
+            => _win32Ext == null || _win32Ext.GetPhysicalDeviceWin32PresentationSupport(physicalDevice, queueFamily);
 
-        public void DestroySurfaceKHR(Instance instance, SurfaceKHR surface, AllocationCallbacks* pAllocator) { }
+        public void DestroySurfaceKHR(Instance instance, SurfaceKHR surface, AllocationCallbacks* pAllocator)
+            => _surfaceExt.DestroySurface(instance, surface, pAllocator);
     }
 
     public sealed unsafe class VulkanSwapChain : RHISwapChain
@@ -132,7 +168,7 @@ namespace YamaEngine.RHI.Vulkan
             VSync = desc.VSync;
 
             // Load swapchain extension
-            SwapchainApi = new SwapchainApi();
+            SwapchainApi = new SwapchainApi(device);
 
             // Create Win32 surface
             CreateSurface(hwnd);
