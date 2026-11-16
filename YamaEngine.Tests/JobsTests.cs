@@ -71,8 +71,8 @@ namespace YamaEngine.Tests
             using var sched = new JobScheduler(workerCount: 2);
             sched.Start();
             var results = new int[3];
-            // Combine 句柄 Complete() 是 no-op (CompletionSource=null)
-            // 用 CountdownEvent(3) 等三个前置作业全部执行完
+            // Combine 句柄持有聚合 TCS，在前置作业 TCS 全部 signal 后经 ContinueWith 翻转。
+            // 用 CountdownEvent(3) 等三个前置作业体执行完，再轮询等待句柄状态传播完成。
             using var done = new CountdownEvent(3);
 
             var h0 = sched.Schedule(new LambdaIJob(() => { results[0] = 10; done.Signal(); }));
@@ -82,12 +82,28 @@ namespace YamaEngine.Tests
             var combined = JobHandle.Combine(h0, h1, h2);
             AssertTrue(done.Wait(TimeSpan.FromSeconds(5)), "All three prerequisites should finish within 5s.");
 
-            AssertTrue(combined.IsCompleted, "Combined handle IsCompleted should be true (null CompletionSource).");
+            // 完成信号经 TCS/ContinueWith 异步传播，轮询等待（避免慢机上 done.Signal 与 TCS 翻转之间的竞态）
+            bool allCompleted = SpinWaitUntil(TimeSpan.FromSeconds(5),
+                () => combined.IsCompleted && h0.IsCompleted && h1.IsCompleted && h2.IsCompleted);
+
+            AssertTrue(combined.IsCompleted, "Combined handle IsCompleted should become true once all prerequisites finish.");
             AssertTrue(results[0] == 10 && results[1] == 20 && results[2] == 30,
                 "All combined jobs should have executed and be visible.");
             // 前置句柄各自 IsCompleted 应翻转为 true（Worker signal TCS）
             AssertTrue(h0.IsCompleted && h1.IsCompleted && h2.IsCompleted,
                 "Each prerequisite handle should be individually completed.");
+        }
+
+        /// <summary>轮询等待条件成立（用于 TCS/ContinueWith 异步传播的完成信号）。</summary>
+        private static bool SpinWaitUntil(TimeSpan timeout, Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (DateTime.UtcNow < deadline)
+            {
+                if (condition()) return true;
+                Thread.Sleep(10);
+            }
+            return condition();
         }
 
         // ── 单个 IJob：Schedule 后 Complete 阻塞、IsCompleted 翻转 ──
