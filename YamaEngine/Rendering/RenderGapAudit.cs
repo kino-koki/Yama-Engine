@@ -163,6 +163,10 @@ public sealed class RenderGapReport
             ("CascadeShadowMapRenderer", false),
             ("ScreenSpaceAmbientOcclusion", false),
             ("LightResolveProcessor", false),
+            // 2026-11-16 真实化成果: 以下模块已从原型接入真实管线
+            ("PathTracerBVHBuilder", true),               // CPU LBVH 构建 + 上传 + PathTraceCS 软件遍历
+            ("PathTracerAccelerationStructure", true),    // 三缓冲 (节点/顶点/索引) + SRV
+            ("PostProcessingStack", true),                // 全部 8 个后处理 pass 资源绑定
         };
         // 反射交叉校验：确认类型确实存在于程序集
         var renderingAssembly = typeof(RenderGapReport).Assembly;
