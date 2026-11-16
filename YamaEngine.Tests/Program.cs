@@ -1705,6 +1705,24 @@ try
     RunJobs("ParallelForBatchSizeOneEachIndexSeparate", () => JobsTests.TestParallelForBatchSizeOneEachIndexSeparate());
     Console.WriteLine($"  == JobsDepth: {jobsPass}/{jobsTotal} passed ==");
 
+    // ── 路径追踪 BVH 加速结构深度验证 ──
+    int ptbvhPass = 0, ptbvhTotal = 0;
+    void RunPTBVH(string name, Action test)
+    {
+        ptbvhTotal++;
+        try { test(); ptbvhPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunPTBVH("SingleTriangleLeaf", () => PathTracerBVHTests.TestBVHSingleTriangleLeaf());
+    RunPTBVH("CoversAllTrianglesExactlyOnce", () => PathTracerBVHTests.TestBVHCoversAllTrianglesExactlyOnce());
+    RunPTBVH("ChildrenAdjacentAndBoundsNest", () => PathTracerBVHTests.TestBVHChildrenAdjacentAndBoundsNest());
+    RunPTBVH("RayTraversalClosestHit", () => PathTracerBVHTests.TestBVHRayTraversalClosestHit());
+    RunPTBVH("DuplicateCentroidsStillSplits", () => PathTracerBVHTests.TestBVHDuplicateCentroidsStillSplits());
+    RunPTBVH("LargeMeshDepthAndLayout", () => PathTracerBVHTests.TestBVHLargeMeshDepthAndLayout());
+    RunPTBVH("IndexLayoutPreservesVertexIndices", () => PathTracerBVHTests.TestBVHIndexLayoutPreservesVertexIndices());
+    RunPTBVH("AccelMergeMeshesRemapsIndices", () => PathTracerBVHTests.TestAccelMergeMeshesRemapsIndices());
+    Console.WriteLine($"  == PathTracerBVH: {ptbvhPass}/{ptbvhTotal} passed ==");
+
     // ── UE5.8 级引擎核心基础设施深度验证 ──
     int corePass = 0, coreTotal = 0;
     void RunCore(string name, Action test)

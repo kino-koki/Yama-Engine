@@ -145,25 +145,54 @@ namespace YamaEngine.Rendering
         public readonly bool IsLeaf => PrimitiveCount > 0;
     }
 
+    /// <summary>路径追踪顶点 (与 HLSL PTVertex 一致, 52 字节打包)。</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PathTracerVertex
+    {
+        /// <summary>位置。</summary>
+        public Vector3 Position;
+        /// <summary>法线。</summary>
+        public Vector3 Normal;
+        /// <summary>纹理坐标。</summary>
+        public Vector2 TexCoord;
+        /// <summary>反照率。</summary>
+        public Vector3 Albedo;
+        /// <summary>粗糙度。</summary>
+        public float Roughness;
+        /// <summary>金属度。</summary>
+        public float Metallic;
+    }
+
     /// <summary>
-    /// 路径追踪加速结构: 封装 DXR/Vulkan RT 的 TLAS (顶层) 与 BLAS (底层)。
-    /// BLAS 对应每个网格的几何, TLAS 组合所有实例。
+    /// 路径追踪加速结构: CPU 构建 LBVH → 上传 StructuredBuffer → 供 PathTraceCS 软件遍历。
+    /// 三缓冲 (g_BVHNodes/g_Vertices/g_Indices) 布局与 PathTracerBVHBuilder 严格一致。
     /// </summary>
     public sealed class PathTracerAccelerationStructure : IDisposable
     {
         private readonly RHIDevice _device;
-        private RHIBuffer? _blasBuffer;
-        private RHIBuffer? _tlasBuffer;
-        private RHIBuffer? _scratchBuffer;
-        private RHIBuffer? _instanceBuffer;
-        private readonly Dictionary<Guid, RHIBuffer> _meshBlas = new();
+        private readonly Dictionary<Guid, (Vector3[] Vertices, uint[] Indices)> _meshes = new();
+
+        private RHIBuffer? _bvhNodeBuffer;
+        private RHIBuffer? _vertexBuffer;
+        private RHIBuffer? _indexBuffer;
 
         /// <summary>是否已构建。</summary>
         public bool IsBuilt { get; private set; }
-        /// <summary>BLAS 缓冲 (GPU 虚拟地址)。</summary>
-        public ulong BlasGpuVA => _blasBuffer?.GpuVirtualAddress ?? 0;
-        /// <summary>TLAS 缓冲 (GPU 虚拟地址)。</summary>
-        public ulong TlasGpuVA => _tlasBuffer?.GpuVirtualAddress ?? 0;
+        /// <summary>已注册网格数。</summary>
+        public int MeshCount => _meshes.Count;
+        /// <summary>三角形总数 (构建后有效)。</summary>
+        public int TriangleCount { get; private set; }
+        /// <summary>BVH 节点数 (构建后有效)。</summary>
+        public int NodeCount { get; private set; }
+        /// <summary>BVH 最大深度 (构建后有效)。</summary>
+        public int MaxDepth { get; private set; }
+
+        /// <summary>g_BVHNodes (t0) SRV。</summary>
+        public RHIDescriptorHandle BvhNodesSRV { get; private set; }
+        /// <summary>g_Vertices (t1) SRV。</summary>
+        public RHIDescriptorHandle VerticesSRV { get; private set; }
+        /// <summary>g_Indices (t2) SRV。</summary>
+        public RHIDescriptorHandle IndicesSRV { get; private set; }
 
         /// <summary>构造。</summary>
         public PathTracerAccelerationStructure(RHIDevice device)
@@ -171,76 +200,141 @@ namespace YamaEngine.Rendering
             _device = device;
         }
 
-        /// <summary>为单个网格构建 BLAS (底层加速结构)。</summary>
-        public void BuildBLAS(Guid meshId, RHIBuffer vertexBuffer, RHIBuffer indexBuffer, int vertexCount, int indexCount)
+        /// <summary>
+        /// 注册网格几何 (CPU 侧数据, 用于 BVH 构建)。同一 meshId 重复注册会覆盖;
+        /// 注册后加速结构失效, 需重新 BuildAll。
+        /// </summary>
+        /// <param name="meshId">网格 ID。</param>
+        /// <param name="vertices">顶点数组。</param>
+        /// <param name="indices">三角形索引 (长度为 3 的倍数)。</param>
+        /// <param name="transform">可选实例变换 (省略表示不变换)。</param>
+        public void RegisterMeshGeometry(Guid meshId, Vector3[] vertices, uint[] indices, in Matrix4x4 transform = default)
         {
-            // 估算 BLAS 所需大小 (简化: 基于图元数)
-            ulong blasSize = (ulong)(indexCount / 3 * 64 + 4096);
-            var blasDesc = new RHIBufferDesc
-            {
-                SizeInBytes = blasSize,
-                Flags = RHIBufferFlags.AccelerationStructure | RHIBufferFlags.UnorderedAccess,
-                HeapType = RHIResourceHeapType.Default
-            };
-            var blas = _device.CreateBuffer(blasDesc, $"BLAS_{meshId}");
-            _meshBlas[meshId] = blas;
-
-            // 实际构建由 GPU 完成 (BuildRaytracingAccelerationStructure)
-            // 此处分配 scratch 缓冲
-            var scratchDesc = new RHIBufferDesc
-            {
-                SizeInBytes = blasSize,
-                Flags = RHIBufferFlags.UnorderedAccess,
-                HeapType = RHIResourceHeapType.Default
-            };
-            var scratch = _device.CreateBuffer(scratchDesc, $"BLASScratch_{meshId}");
-            // ... 提交构建命令
-            scratch.Dispose();
+            if (vertices == null || vertices.Length == 0 || indices == null || indices.Length == 0) return;
+            var m = transform == default ? Matrix4x4.Identity : transform;
+            var transformed = new Vector3[vertices.Length];
+            for (int i = 0; i < vertices.Length; i++)
+                transformed[i] = Vector3.Transform(vertices[i], m);
+            _meshes[meshId] = (transformed, (uint[])indices.Clone());
+            IsBuilt = false;
         }
 
-        /// <summary>构建 TLAS (顶层加速结构), 组合所有实例变换。</summary>
-        public void BuildTLAS(RHICommandList cmdList, int instanceCount)
+        /// <summary>
+        /// 合并所有已注册网格: 索引按顶点偏移重映射, 拼接为单一三角形汤。
+        /// internal 供单元测试验证合并/重映射逻辑。
+        /// </summary>
+        internal static (Vector3[] Vertices, uint[] Indices) MergeMeshes(Dictionary<Guid, (Vector3[] Vertices, uint[] Indices)> meshes)
         {
-            // 实例缓冲 (每实例 64 字节: 3x4 变换矩阵 + 图元偏移 + 8 字节 BLAS GPU VA)
-            var instDesc = new RHIBufferDesc
+            int totalVerts = 0, totalIndices = 0;
+            foreach (var kv in meshes)
             {
-                SizeInBytes = (ulong)(instanceCount * 64),
-                Flags = RHIBufferFlags.Structured | RHIBufferFlags.ShaderResource,
-                Stride = 64,
-                HeapType = RHIResourceHeapType.Upload
-            };
-            _instanceBuffer = _device.CreateBuffer(instDesc, "TLASInstances");
+                totalVerts += kv.Value.Vertices.Length;
+                totalIndices += kv.Value.Indices.Length;
+            }
+            var verts = new Vector3[totalVerts];
+            var indices = new uint[totalIndices];
+            int vOffset = 0, iOffset = 0;
+            foreach (var kv in meshes)
+            {
+                Array.Copy(kv.Value.Vertices, 0, verts, vOffset, kv.Value.Vertices.Length);
+                for (int i = 0; i < kv.Value.Indices.Length; i++)
+                    indices[iOffset + i] = (uint)vOffset + kv.Value.Indices[i];
+                vOffset += kv.Value.Vertices.Length;
+                iOffset += kv.Value.Indices.Length;
+            }
+            return (verts, indices);
+        }
 
-            // TLAS 缓冲
-            ulong tlasSize = (ulong)(instanceCount * 128 + 65536);
-            var tlasDesc = new RHIBufferDesc
-            {
-                SizeInBytes = tlasSize,
-                Flags = RHIBufferFlags.AccelerationStructure | RHIBufferFlags.UnorderedAccess,
-                HeapType = RHIResourceHeapType.Default
-            };
-            _tlasBuffer = _device.CreateBuffer(tlasDesc, "TLAS");
+        /// <summary>
+        /// 构建加速结构: 合并几何 → CPU LBVH → 创建/上传三缓冲 → 创建 SRV。
+        /// 纯 CPU 构建 + Upload 堆上传, 无需命令列表。几何为空时不置位 IsBuilt。
+        /// </summary>
+        public void BuildAll()
+        {
+            IsBuilt = false;
+            var (vertices, indices) = MergeMeshes(_meshes);
+            int triCount = indices.Length / 3;
+            TriangleCount = triCount;
+            if (triCount == 0) return;
 
-            // Scratch 缓冲
-            var scratchDesc = new RHIBufferDesc
-            {
-                SizeInBytes = tlasSize,
-                Flags = RHIBufferFlags.UnorderedAccess,
-                HeapType = RHIResourceHeapType.Default
-            };
-            _scratchBuffer = _device.CreateBuffer(scratchDesc, "TLASScratch");
+            var bvh = PathTracerBVHBuilder.Build(vertices, indices);
+            NodeCount = bvh.Nodes.Length;
+            MaxDepth = bvh.MaxDepth;
+
+            // 顶点 → PTVertex (逐顶点法线面积加权累积 + 默认材质)
+            var ptVerts = BuildPtVertices(vertices, indices);
+
+            // 创建/上传三缓冲 (Upload 堆, Structured | SRV)
+            int nodeStride = Marshal.SizeOf<PathTracerBVHNode>();
+            int vertStride = Marshal.SizeOf<PathTracerVertex>();
+            _bvhNodeBuffer = CreateStructuredBuffer(bvh.Nodes, nodeStride, "PT_BVHNodes");
+            _vertexBuffer = CreateStructuredBuffer(ptVerts, vertStride, "PT_Vertices");
+            _indexBuffer = CreateStructuredBuffer(bvh.Indices, sizeof(uint), "PT_Indices");
+
+            BvhNodesSRV = _device.CreateSRV(_bvhNodeBuffer, RHIFormat.Unknown, true, 0, (uint)bvh.Nodes.Length, (uint)nodeStride);
+            VerticesSRV = _device.CreateSRV(_vertexBuffer, RHIFormat.Unknown, true, 0, (uint)ptVerts.Length, (uint)vertStride);
+            IndicesSRV = _device.CreateSRV(_indexBuffer, RHIFormat.Unknown, true, 0, (uint)bvh.Indices.Length, sizeof(uint));
 
             IsBuilt = true;
+        }
+
+        private RHIBuffer CreateStructuredBuffer<T>(T[] data, int stride, string name) where T : struct
+        {
+            var desc = new RHIBufferDesc
+            {
+                SizeInBytes = (ulong)Math.Max(1, data.Length) * (ulong)stride,
+                Flags = RHIBufferFlags.Structured | RHIBufferFlags.ShaderResource,
+                Stride = (uint)stride,
+                HeapType = RHIResourceHeapType.Upload
+            };
+            var buffer = _device.CreateBuffer(desc, name);
+            _device.UploadToBuffer(buffer, data);
+            return buffer;
+        }
+
+        /// <summary>构建 PTVertex 数组: 位置 + 逐顶点法线 (面积加权) + 默认材质。</summary>
+        private static PathTracerVertex[] BuildPtVertices(Vector3[] vertices, uint[] indices)
+        {
+            var result = new PathTracerVertex[vertices.Length];
+            var normalAccum = new Vector3[vertices.Length];
+            for (int t = 0; t + 2 < indices.Length; t += 3)
+            {
+                Vector3 a = vertices[indices[t]];
+                Vector3 b = vertices[indices[t + 1]];
+                Vector3 c = vertices[indices[t + 2]];
+                Vector3 n = Vector3.Cross(b - a, c - a); // 面积加权法线
+                normalAccum[indices[t]] += n;
+                normalAccum[indices[t + 1]] += n;
+                normalAccum[indices[t + 2]] += n;
+            }
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                Vector3 n = normalAccum[i];
+                float len = n.Length();
+                result[i] = new PathTracerVertex
+                {
+                    Position = vertices[i],
+                    Normal = len > 1e-12f ? n / len : new Vector3(0, 1, 0),
+                    TexCoord = Vector2.Zero,
+                    Albedo = new Vector3(0.7f),
+                    Roughness = 0.5f,
+                    Metallic = 0f
+                };
+            }
+            return result;
         }
 
         /// <summary>释放。</summary>
         public void Dispose()
         {
-            _blasBuffer?.Dispose();
-            _tlasBuffer?.Dispose();
-            _scratchBuffer?.Dispose();
-            _instanceBuffer?.Dispose();
-            foreach (var blas in _meshBlas.Values) blas.Dispose();
+            _bvhNodeBuffer?.Dispose();
+            _vertexBuffer?.Dispose();
+            _indexBuffer?.Dispose();
+            _bvhNodeBuffer = null;
+            _vertexBuffer = null;
+            _indexBuffer = null;
+            _meshes.Clear();
+            IsBuilt = false;
             GC.SuppressFinalize(this);
         }
     }
@@ -428,6 +522,10 @@ namespace YamaEngine.Rendering
         public PathTracerSettings Settings => _settings;
         /// <summary>加速结构。</summary>
         public PathTracerAccelerationStructure? AccelerationStructure => _accelStructure;
+
+        /// <summary>注册网格几何用于路径追踪 (CPU 侧数据; 注册后加速结构待重建)。</summary>
+        public void RegisterMeshGeometry(Guid meshId, Vector3[] vertices, uint[] indices, in Matrix4x4 transform = default)
+            => _accelStructure?.RegisterMeshGeometry(meshId, vertices, indices, transform);
         /// <summary>环境采样器。</summary>
         public PathTracerEnvironmentSampler? EnvironmentSampler => _environmentSampler;
         /// <summary>是否支持硬件 RT。</summary>
@@ -462,13 +560,22 @@ namespace YamaEngine.Rendering
                 Parameters = new RHIRootParameter[]
                 {
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },   // b0: PathTracerCB
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
-                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 10, BaseShaderRegister = 0 } } } },
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 0 } } } }, // t0: g_BVHNodes
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
-                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 8, BaseShaderRegister = 0 } } } }
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 1 } } } }, // t1: g_Vertices
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 2 } } } }, // t2: g_Indices
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 3 } } } }, // t3: g_PrevReservoirs (预留)
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 8, BaseShaderRegister = 0 } } } }  // u0-u7: 输出 (预留)
                 },
                 StaticSamplers = new[] { RHISamplerDesc.LinearWrap, RHISamplerDesc.PointClamp, RHISamplerDesc.AnisotropicWrap }
             };
@@ -530,6 +637,10 @@ namespace YamaEngine.Rendering
             Vector3 cameraPos, int width, int height, float deltaTime)
         {
             _frameIndex++;
+
+            // 加速结构按需构建 (注册几何后首次渲染时; 纯 CPU + Upload 堆)
+            if (_accelStructure != null && _accelStructure.MeshCount > 0 && !_accelStructure.IsBuilt)
+                _accelStructure.BuildAll();
 
             // 检测相机移动 -> 重置累积
             bool cameraMoved = DetectCameraMovement(view, proj);
@@ -604,6 +715,14 @@ namespace YamaEngine.Rendering
             _traceCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<PathTracerCB>(), "PathTracer.TraceCB");
             _device.UploadToBuffer(_traceCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
             cmdList.SetComputeRootConstantBufferView(0, _traceCBUpload);
+
+            // 绑定加速结构 (t0: BVH 节点, t1: 顶点, t2: 索引) → PathTraceCS 软件遍历
+            if (_accelStructure != null && _accelStructure.IsBuilt && _accelStructure.TriangleCount > 0)
+            {
+                cmdList.SetComputeRootDescriptorTable(1, _accelStructure.BvhNodesSRV);
+                cmdList.SetComputeRootDescriptorTable(2, _accelStructure.VerticesSRV);
+                cmdList.SetComputeRootDescriptorTable(3, _accelStructure.IndicesSRV);
+            }
 
             cmdList.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 

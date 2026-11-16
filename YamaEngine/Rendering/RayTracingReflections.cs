@@ -475,35 +475,21 @@ namespace YamaEngine.Rendering
             _sharedPathTracerAS = pathTracerAS;
         }
 
-        /// <summary>为网格构建 BLAS (底层加速结构)。</summary>
+        /// <summary>为网格注册 BLAS 几何 (CPU 侧数据, 供共享的 PathTracer LBVH 构建)。</summary>
         /// <param name="meshId">网格唯一 ID。</param>
-        /// <param name="vertexBuffer">顶点缓冲。</param>
-        /// <param name="indexBuffer">索引缓冲。</param>
-        /// <param name="vertexCount">顶点数。</param>
-        /// <param name="indexCount">索引数。</param>
-        /// <param name="cmdList">用于提交构建命令的命令列表。</param>
-        public void BuildBLAS(Guid meshId, RHIBuffer vertexBuffer, RHIBuffer indexBuffer,
-            int vertexCount, int indexCount, RHICommandList cmdList)
+        /// <param name="vertices">顶点数组。</param>
+        /// <param name="indices">三角形索引 (长度为 3 的倍数)。</param>
+        /// <param name="transform">可选实例变换 (省略表示不变换)。</param>
+        public void BuildBLAS(Guid meshId, Vector3[] vertices, uint[] indices, in Matrix4x4 transform = default)
         {
-            // 若已与 PathTracer 共享, 复用其 BLAS 构建逻辑
+            // 若已与 PathTracer 共享, 注册几何 (由共享结构统一构建 LBVH 并上传)
             if (_sharedPathTracerAS != null)
             {
-                _sharedPathTracerAS.BuildBLAS(meshId, vertexBuffer, indexBuffer, vertexCount, indexCount);
+                _sharedPathTracerAS.RegisterMeshGeometry(meshId, vertices, indices, transform);
                 return;
             }
 
-            // 独立 BLAS 构建 (此处由后端 RHIAccelerationStructure 实现具体构建)
-            // 估算 BLAS 所需 scratch 与结果缓冲大小
-            ulong blasSize = (ulong)(indexCount / 3 * 64 + 4096);
-            var scratchDesc = new RHIBufferDesc
-            {
-                SizeInBytes = blasSize,
-                Flags = RHIBufferFlags.UnorderedAccess,
-                HeapType = RHIResourceHeapType.Default
-            };
-            using var scratch = _device.CreateBuffer(scratchDesc, $"BLASScratch_{meshId}");
-            // 实际构建命令由后端实现 BuildAccelerationStructure 扩展方法提交
-            // cmdList.BuildAccelerationStructure(blas, scratch, ...);
+            // 独立 BLAS 构建: 需后端 RHIAccelerationStructure / BuildRaytracingAccelerationStructure 支持 (待接入)
         }
 
         /// <summary>构建 TLAS (顶层加速结构), 组合所有实例。</summary>
@@ -513,32 +499,12 @@ namespace YamaEngine.Rendering
         {
             if (_sharedPathTracerAS != null)
             {
-                _sharedPathTracerAS.BuildTLAS(cmdList, instanceCount);
+                // 共享结构: 合并全部已注册几何, CPU 构建 LBVH 并上传三缓冲
+                _sharedPathTracerAS.BuildAll();
                 return;
             }
 
-            // 实例缓冲: 每实例 64 字节 (3x4 变换 + 图元偏移 + 8 字节 BLAS GPU VA)
-            var instDesc = new RHIBufferDesc
-            {
-                SizeInBytes = (ulong)(instanceCount * 64),
-                Flags = RHIBufferFlags.Structured | RHIBufferFlags.ShaderResource,
-                Stride = 64,
-                HeapType = RHIResourceHeapType.Upload
-            };
-            _instanceBuffer?.Dispose();
-            _instanceBuffer = _device.CreateBuffer(instDesc, "RTTLASInstances");
-
-            // scratch 缓冲
-            ulong tlasSize = (ulong)(instanceCount * 128 + 65536);
-            _scratchBuffer?.Dispose();
-            _scratchBuffer = _device.CreateBuffer(new RHIBufferDesc
-            {
-                SizeInBytes = tlasSize,
-                Flags = RHIBufferFlags.UnorderedAccess,
-                HeapType = RHIResourceHeapType.Default
-            }, "RTTLASScratch");
-
-            // 实际 TLAS 构建由后端实现 (此处仅分配资源)
+            // 独立 TLAS 构建: 需后端 RHIAccelerationStructure / BuildRaytracingAccelerationStructure 支持 (待接入)
         }
 
         /// <summary>释放。</summary>
