@@ -76,7 +76,7 @@ namespace YamaEngine.Scripting
             "Vortice.Mathematics",
             "Vortice.DirectX",
             "Silk.NET.Vulkan",
-            "SixLabors.ImageSharp",
+            "StbImageSharp",
             "MiniAudio.NET",
         };
 

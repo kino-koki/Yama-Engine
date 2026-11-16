@@ -431,7 +431,7 @@ namespace YamaEngine.Build
             string engineDir = AppContext.BaseDirectory;
             string[] dlls = { "YamaEngine.dll", "ImGui.NET.dll", "SharpDX.dll", "SharpDX.D3D11.dll",
                 "SharpDX.DXGI.dll", "SharpDX.Direct2D1.dll", "SharpDX.Direct3D11.dll",
-                "SharpDX.Mathematics.dll", "SixLabors.ImageSharp.dll" };
+                "SharpDX.Mathematics.dll", "StbImageSharp.dll" };
 
             foreach (string dll in dlls)
             {

@@ -14,9 +14,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using YamaEngine.RHI;
 
 namespace YamaEngine.Rendering
@@ -295,97 +292,25 @@ namespace YamaEngine.Rendering
         }
 
         // ──────────────────────────────────────────────────────────
-        // 图像文件读取 (ImageSharp)
+        // 图像文件读取 (StbImageSharp)
         // ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 读取图像文件并返回像素数据。支持 PNG/JPG/TGA/BMP/GIF/WebP/EXR/HDR。
+        /// 读取图像文件并返回像素数据。支持 PNG/JPG/BMP/TGA/GIF/PSD/HDR (stb_image 解码, 统一转 RGBA8)。
+        /// 注: WebP/EXR 不在 stb_image 解码范围内。
         /// </summary>
         private static (int width, int height, byte[] pixels, bool hasAlpha) ReadImagePixels(string path)
         {
-            string ext = Path.GetExtension(path).ToLowerInvariant();
+            var bytes = File.ReadAllBytes(path);
+            var decoded = StbImageSharp.ImageResult.FromMemory(bytes, StbImageSharp.ColorComponents.RedGreenBlueAlpha);
+            int width = decoded.Width;
+            int height = decoded.Height;
+            byte[] pixels = decoded.Data;
 
-            if (ext == ".hdr" || ext == ".exr")
-            {
-                // HDR/EXR 通过 ImageSharp 的浮点解码读取
-                // ImageSharp 3.x 对 HDR 支持有限，此处回退到 RGBA32
-                using var image = Image.Load(path);
-                image.Mutate(x => x.AutoOrient());
-                return ExtractPixels(image);
-            }
-
-            using var img = Image.Load(path);
-            img.Mutate(x => x.AutoOrient());
-            return ExtractPixels(img);
-        }
-
-        private static (int width, int height, byte[] pixels, bool hasAlpha) ExtractPixels(Image image)
-        {
-            int width = image.Width;
-            int height = image.Height;
-            byte[] pixels = new byte[width * height * 4];
             bool hasAlpha = false;
-
-            if (image is Image<Rgba32> rgbaImage)
+            for (int i = 3; i < pixels.Length; i += 4)
             {
-                rgbaImage.ProcessPixelRows(accessor =>
-                {
-                    for (int y = 0; y < accessor.Height; y++)
-                    {
-                        var span = accessor.GetRowSpan(y);
-                        for (int x = 0; x < accessor.Width; x++)
-                        {
-                            var p = span[x];
-                            int idx = (y * width + x) * 4;
-                            pixels[idx] = p.R;
-                            pixels[idx + 1] = p.G;
-                            pixels[idx + 2] = p.B;
-                            pixels[idx + 3] = p.A;
-                            if (p.A < 255) hasAlpha = true;
-                        }
-                    }
-                });
-            }
-            else if (image is Image<Rgb24> rgbImage)
-            {
-                rgbImage.ProcessPixelRows(accessor =>
-                {
-                    for (int y = 0; y < accessor.Height; y++)
-                    {
-                        var span = accessor.GetRowSpan(y);
-                        for (int x = 0; x < accessor.Width; x++)
-                        {
-                            var p = span[x];
-                            int idx = (y * width + x) * 4;
-                            pixels[idx] = p.R;
-                            pixels[idx + 1] = p.G;
-                            pixels[idx + 2] = p.B;
-                            pixels[idx + 3] = 255;
-                        }
-                    }
-                });
-            }
-            else
-            {
-                // 通用回退：转换为 Rgba32
-                using var rgba = image.CloneAs<Rgba32>();
-                rgba.ProcessPixelRows(accessor =>
-                {
-                    for (int y = 0; y < accessor.Height; y++)
-                    {
-                        var span = accessor.GetRowSpan(y);
-                        for (int x = 0; x < accessor.Width; x++)
-                        {
-                            var p = span[x];
-                            int idx = (y * width + x) * 4;
-                            pixels[idx] = p.R;
-                            pixels[idx + 1] = p.G;
-                            pixels[idx + 2] = p.B;
-                            pixels[idx + 3] = p.A;
-                            if (p.A < 255) hasAlpha = true;
-                        }
-                    }
-                });
+                if (pixels[i] < 255) { hasAlpha = true; break; }
             }
 
             return (width, height, pixels, hasAlpha);

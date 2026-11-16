@@ -6,8 +6,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using YamaEngine.RHI;
 using YamaEngine.Audio;
 using YamaEngine.Assets.Importers;
@@ -502,7 +500,7 @@ namespace YamaEngine.Assets
 
         /// <summary>
         /// 同步加载纹理。
-        /// 支持 .png, .jpg, .jpeg, .bmp, .tga, .webp 格式。
+        /// 支持 .png, .jpg, .jpeg, .bmp, .tga, .gif, .psd, .hdr 格式 (StbImageSharp 解码)。
         /// </summary>
         public LoadedTexture LoadTexture(string path)
         {
@@ -515,10 +513,10 @@ namespace YamaEngine.Assets
             // 从 VFileSystem 读取字节
             var bytes = _vfs.ReadAllBytes(path);
 
-            // 使用 ImageSharp 解码
-            using var image = SixLabors.ImageSharp.Image.Load<Rgba32>(bytes);
-            int width = image.Width;
-            int height = image.Height;
+            // 使用 StbImageSharp 解码 (强制 RGBA8 输出)
+            var decoded = StbImageSharp.ImageResult.FromMemory(bytes, StbImageSharp.ColorComponents.RedGreenBlueAlpha);
+            int width = decoded.Width;
+            int height = decoded.Height;
 
             // 工业级防御: 尺寸非法/像素总数溢出 → 防 OOM/负分配/越界读。
             // width*height*4 可溢出 int (如 60000x60000 → 负), 或合法但极大 → OOM。
@@ -528,9 +526,10 @@ namespace YamaEngine.Assets
                 throw new InvalidDataException($"纹理尺寸非法或像素过多: {width}x{height}");
             int pixelBytes = (int)(pixelCountL * 4);
 
-            // 提取像素数据
-            var pixelData = new byte[pixelBytes];
-            image.CopyPixelDataTo(pixelData);
+            // 提取像素数据 (stb 输出即为 RGBA8 顶行起源数据)
+            var pixelData = decoded.Data;
+            if (pixelData.Length != pixelBytes)
+                throw new InvalidDataException($"纹理解码字节数不符: 期望 {pixelBytes}, 实际 {pixelData.Length}");
 
             // 计算 Mipmap 层数
             int mipLevels = CalculateMipLevels(width, height);
