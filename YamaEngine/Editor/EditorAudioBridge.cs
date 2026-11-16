@@ -208,6 +208,47 @@ namespace YamaEngine.Editor
         }
 
         // ─────────────────────────────────────────────────────────────────────────
+        //  后端选择器（编辑器音频设置：选择输出后端 + 初始化 + 状态查询）
+        // ─────────────────────────────────────────────────────────────────────────
+
+        /// <summary>当前激活的后端类型（无后端时为 null）。</summary>
+        public AudioBackendType? CurrentBackendType => _audioEngine.Backend?.BackendType;
+
+        /// <summary>后端是否已成功初始化。</summary>
+        public bool IsBackendInitialized => _audioEngine.IsBackendInitialized;
+
+        /// <summary>所有可选后端（供编辑器 UI 下拉选择）。</summary>
+        public static IReadOnlyList<AudioBackendType> AvailableBackends { get; } = new[]
+        {
+            AudioBackendType.Software,
+            AudioBackendType.OpenAL,
+            AudioBackendType.ALSoft,
+            AudioBackendType.WASAPI,
+            AudioBackendType.Dummy,
+        };
+
+        /// <summary>选择并初始化指定音频后端。返回是否成功。</summary>
+        /// <remarks>Software/Dummy 无原生依赖，CPU 可测；OpenAL 原生库缺失时自动回退 Dummy；WASAPI 仅 Windows。</remarks>
+        public bool InitializeBackend(AudioBackendType backendType)
+        {
+            return _audioEngine.InitializeBackend(backendType);
+        }
+
+        /// <summary>后端显示名称（供 UI）。</summary>
+        public static string GetBackendDisplayName(AudioBackendType type)
+        {
+            return type switch
+            {
+                AudioBackendType.Software => "软件/离线 (Software)",
+                AudioBackendType.OpenAL => "OpenAL",
+                AudioBackendType.ALSoft => "OpenAL-soft (ALSoft)",
+                AudioBackendType.WASAPI => "WASAPI (Windows)",
+                AudioBackendType.Dummy => "Dummy (无输出)",
+                _ => type.ToString(),
+            };
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
         //  调试统计
         // ─────────────────────────────────────────────────────────────────────────
 

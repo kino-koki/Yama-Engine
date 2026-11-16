@@ -342,15 +342,16 @@ namespace YamaEngine.Rendering
                 var resolved = Parent.Properties;
                 var ov = OverrideProperties;
 
-                // 简单覆盖策略：只要 override 不是默认值就覆盖
+                // 覆盖策略：字段非零即视为有效覆盖，否则回退父材质。
+                // 构造时 OverrideProperties 为全零，故"无覆盖"完整回退父材质原值。
                 if (ov.AlbedoColor != default) resolved.AlbedoColor = ov.AlbedoColor;
-                if (ov.Metallic != 0.0f || OverrideProperties.Metallic != MaterialProperties.Default.Metallic) resolved.Metallic = ov.Metallic;
-                if (ov.Roughness != 0.0f || OverrideProperties.Roughness != MaterialProperties.Default.Roughness) resolved.Roughness = ov.Roughness;
+                if (ov.Metallic != 0.0f) resolved.Metallic = ov.Metallic;
+                if (ov.Roughness != 0.0f) resolved.Roughness = ov.Roughness;
                 if (ov.EmissiveColor != default) resolved.EmissiveColor = ov.EmissiveColor;
                 if (ov.EmissiveIntensity != 0.0f) resolved.EmissiveIntensity = ov.EmissiveIntensity;
-                if (ov.NormalScale != 0.0f || OverrideProperties.NormalScale != MaterialProperties.Default.NormalScale) resolved.NormalScale = ov.NormalScale;
-                if (ov.OcclusionStrength != 0.0f || OverrideProperties.OcclusionStrength != MaterialProperties.Default.OcclusionStrength) resolved.OcclusionStrength = ov.OcclusionStrength;
-                if (ov.AlphaCutoff != 0.0f || OverrideProperties.AlphaCutoff != MaterialProperties.Default.AlphaCutoff) resolved.AlphaCutoff = ov.AlphaCutoff;
+                if (ov.NormalScale != 0.0f) resolved.NormalScale = ov.NormalScale;
+                if (ov.OcclusionStrength != 0.0f) resolved.OcclusionStrength = ov.OcclusionStrength;
+                if (ov.AlphaCutoff != 0.0f) resolved.AlphaCutoff = ov.AlphaCutoff;
                 resolved.IsTransparent = ov.IsTransparent || Parent.Properties.IsTransparent;
                 resolved.IsDoubleSided = ov.IsDoubleSided || Parent.Properties.IsDoubleSided;
                 resolved.IsUnlit = ov.IsUnlit || Parent.Properties.IsUnlit;
@@ -379,7 +380,9 @@ namespace YamaEngine.Rendering
         public MaterialInstance(MaterialAsset parent)
         {
             Parent = parent ?? throw new ArgumentNullException(nameof(parent));
-            OverrideProperties = MaterialProperties.Default;
+            // 初始化为全零（非 Default），使"无覆盖"时 getter 的非零判断完整回退父材质。
+            // 若初始化为 Default，其 Roughness=0.5 等非零字段会被误判为有效覆盖，盖掉父材质原值。
+            OverrideProperties = default;
         }
 
         /// <summary>

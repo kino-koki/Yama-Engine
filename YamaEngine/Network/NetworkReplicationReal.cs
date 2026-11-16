@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -64,7 +65,7 @@ namespace YamaEngine.Network
     public static class NetworkValueSerializer
     {
         /// <summary>按类型将值序列化到写入器。</summary>
-        public static void SerializeValue(NetworkWriterReal writer, object value, Type type)
+        public static void SerializeValue(NetworkWriterReal writer, object? value, Type type)
         {
             if (value == null)
             {
@@ -94,7 +95,7 @@ namespace YamaEngine.Network
                 ((INetworkSerializableReal)value).Serialize(writer);
             else if (type.IsArray)
             {
-                var elementType = type.GetElementType();
+                var elementType = type.GetElementType()!;
                 var array = (Array)value;
                 writer.WriteInt32(array.Length);
                 foreach (var item in array)
@@ -105,7 +106,7 @@ namespace YamaEngine.Network
         }
 
         /// <summary>按类型从读取器反序列化值。</summary>
-        public static object DeserializeValue(NetworkReaderReal reader, Type type)
+        public static object? DeserializeValue(NetworkReaderReal reader, Type type)
         {
             bool hasValue = reader.ReadBool();
             if (!hasValue) return type.IsValueType ? Activator.CreateInstance(type) : null;
@@ -129,14 +130,20 @@ namespace YamaEngine.Network
             if (type == typeof(Matrix4x4)) return reader.ReadMatrix4x4();
             if (typeof(INetworkSerializableReal).IsAssignableFrom(type))
             {
-                var obj = (INetworkSerializableReal)Activator.CreateInstance(type);
+                var obj = (INetworkSerializableReal)Activator.CreateInstance(type)!;
                 obj.Deserialize(reader);
                 return obj;
             }
             if (type.IsArray)
             {
-                var elementType = type.GetElementType();
+                var elementType = type.GetElementType()!;
                 int length = reader.ReadInt32();
+                // 工业级防御: length 来自未受信网络字节, 可为 int.MaxValue。
+                // 单条消息上限 16MB (与 TCP MaxMessageSize 对齐), 元素至少 1 字节,
+                // 超过即视为损坏数据。否则 Array.CreateInstance 分配巨数组触发 OOM。
+                if (length < 0 || length > 16 * 1024 * 1024)
+                    throw new InvalidDataException(
+                        $"Network data corrupt: array length {length} exceeds safety limit.");
                 var array = Array.CreateInstance(elementType, length);
                 for (int i = 0; i < length; i++)
                     array.SetValue(DeserializeValue(reader, elementType), i);
@@ -146,7 +153,7 @@ namespace YamaEngine.Network
         }
 
         /// <summary>比较两个值是否相等 (考虑浮点阈值)。</summary>
-        public static bool ValuesEqual(object a, object b, Type type, float threshold = 0f)
+        public static bool ValuesEqual(object? a, object? b, Type type, float threshold = 0f)
         {
             if (a == null && b == null) return true;
             if (a == null || b == null) return false;
@@ -217,7 +224,7 @@ namespace YamaEngine.Network
         private float _replicationRateHz;
         private double _lastSyncTime;
         private float _minChangeThreshold;
-        private Func<object, bool> _conditionFunc;
+        private Func<object, bool>? _conditionFunc;
 
         /// <summary>当前值。</summary>
         public T Value => _currentValue;
@@ -245,10 +252,10 @@ namespace YamaEngine.Network
         /// <summary>创建复制属性。</summary>
         /// <param name="initialValue">初始值。</param>
         /// <param name="replicationRateHz">复制频率 (Hz, 0 = 无限制)。</param>
-        public ReplicatedPropertyReal(T initialValue = default, float replicationRateHz = 0f)
+        public ReplicatedPropertyReal(T initialValue = default!, float replicationRateHz = 0f)
         {
-            _currentValue = initialValue;
-            _lastSyncedValue = initialValue;
+            _currentValue = initialValue!;
+            _lastSyncedValue = initialValue!;
             _dirty = false;
             _replicationRateHz = replicationRateHz;
             _lastSyncTime = 0;
@@ -350,8 +357,8 @@ namespace YamaEngine.Network
 
         public class PropertyMetadata
         {
-            public PropertyInfo Info;
-            public ReplicatedAttribute Attribute;
+            public PropertyInfo Info = null!;
+            public ReplicatedAttribute Attribute = null!;
             public int Index;
         }
 
@@ -380,7 +387,7 @@ namespace YamaEngine.Network
             {
                 if ((mask & (1u << i)) != 0)
                 {
-                    object value = metadata[i].Info.GetValue(obj);
+                    object? value = metadata[i].Info.GetValue(obj);
                     NetworkValueSerializer.SerializeValue(writer, value, metadata[i].Info.PropertyType);
                 }
             }
@@ -507,13 +514,13 @@ namespace YamaEngine.Network
 
             // 构建位掩码: 哪些属性发生了变化
             uint mask = 0;
-            var currentValues = new object[metadata.Length];
+            var currentValues = new object?[metadata.Length];
 
             for (int i = 0; i < metadata.Length && i < 32; i++)
             {
                 currentValues[i] = metadata[i].Info.GetValue(obj);
 
-                object lastValue;
+                object? lastValue;
                 lock (_lock)
                 {
                     _lastSyncedValues.TryGetValue((objectId, i), out lastValue);
@@ -592,10 +599,10 @@ namespace YamaEngine.Network
     public struct ReplicationEntry
     {
         public ulong ObjectId;
-        public object Object;
+        public object? Object;
         public double Score;          // 优先级分数 (越高越优先)
         public int EstimatedSize;     // 估计序列化大小
-        public System.Net.IPEndPoint Target;
+        public System.Net.IPEndPoint? Target;
     }
 
     /// <summary>
@@ -629,6 +636,9 @@ namespace YamaEngine.Network
         {
             if (_count >= _heap.Length)
             {
+                if (_heap.Length > int.MaxValue / 2)
+                    throw new InvalidOperationException(
+                        "Replication priority heap exceeded maximum capacity (int overflow on resize).");
                 Array.Resize(ref _heap, _heap.Length * 2);
             }
 
@@ -760,13 +770,17 @@ namespace YamaEngine.Network
         private readonly UDPTransportReal _transport;
         private readonly List<System.Net.IPEndPoint> _connections = new List<System.Net.IPEndPoint>();
 
+        // ── 兴趣管理 / ReplicationGraph ──────────────────────────
+
+        private ReplicationGraphReal? _interestGraph;
+
         // ── 配置 ──────────────────────────────────────────────────
 
         private int _bandwidthBudgetBytes = 16384; // 16KB/帧
         private Vector3 _viewerPosition;
 
         /// <summary>对象生成工厂: (objectId, typeName) => object。</summary>
-        private Func<ulong, string, object> _spawnFactory;
+        private Func<ulong, string, object>? _spawnFactory;
 
         // ── 统计 ──────────────────────────────────────────────────
 
@@ -778,7 +792,7 @@ namespace YamaEngine.Network
 
         // ── 构造函数 ──────────────────────────────────────────────
 
-        public NetworkObjectReplicator(UDPTransportReal transport = null)
+        public NetworkObjectReplicator(UDPTransportReal? transport = null)
         {
             _transport = transport;
             _priorityQueue.SetBandwidthBudget(_bandwidthBudgetBytes);
@@ -794,6 +808,9 @@ namespace YamaEngine.Network
                 _networkObjects[objectId] = obj;
                 _lastSyncTimes[objectId] = 0;
             }
+
+            // 同步到兴趣图 (提取对象位置)
+            _interestGraph?.RegisterObject(objectId, TryGetObjectPosition(obj, out var pos) ? pos : Vector3.Zero, 100f);
         }
 
         /// <summary>注销网络对象。</summary>
@@ -805,10 +822,12 @@ namespace YamaEngine.Network
                 _lastSyncTimes.Remove(objectId);
                 _deltaSerializer.ClearObject(objectId);
             }
+
+            _interestGraph?.RemoveObject(objectId);
         }
 
         /// <summary>查找网络对象。</summary>
-        public bool TryGetObject(ulong objectId, out object obj)
+        public bool TryGetObject(ulong objectId, out object? obj)
         {
             lock (_registryLock)
             {
@@ -830,6 +849,8 @@ namespace YamaEngine.Network
                 if (!_connections.Contains(endpoint))
                     _connections.Add(endpoint);
             }
+
+            _interestGraph?.AddConnection(endpoint, Vector3.Zero, 1000f);
         }
 
         /// <summary>移除连接。</summary>
@@ -839,6 +860,8 @@ namespace YamaEngine.Network
             {
                 _connections.Remove(endpoint);
             }
+
+            _interestGraph?.RemoveConnection(endpoint);
         }
 
         /// <summary>设置观察者位置 (用于距离优先级计算)。</summary>
@@ -853,6 +876,15 @@ namespace YamaEngine.Network
             _bandwidthBudgetBytes = bytesPerFrame;
             _priorityQueue.SetBandwidthBudget(bytesPerFrame);
         }
+
+        /// <summary>设置兴趣管理图 (ReplicationGraph)。为 null 时回退为广播到所有连接。</summary>
+        public void SetInterestGraph(ReplicationGraphReal graph)
+        {
+            _interestGraph = graph;
+        }
+
+        /// <summary>获取当前兴趣管理图。</summary>
+        public ReplicationGraphReal GetInterestGraph() => _interestGraph;
 
         // ── 每帧复制 ──────────────────────────────────────────────
 
@@ -880,6 +912,10 @@ namespace YamaEngine.Network
                 foreach (var kvp in _networkObjects)
                 {
                     objectsToSync.Add((kvp.Key, kvp.Value));
+
+                    // 同步对象位置到兴趣图 (移动对象实时更新相关性)
+                    if (_interestGraph != null && TryGetObjectPosition(kvp.Value, out var pos))
+                        _interestGraph.UpdateObjectPosition(kvp.Key, pos);
                 }
             }
 
@@ -931,10 +967,11 @@ namespace YamaEngine.Network
                     {
                         byte[] data = writer.ToArray();
 
-                        // 发送到所有相关连接
+                        // 发送到相关连接 (兴趣管理门控; 无图时回退为广播)
                         foreach (var conn in connectionsCopy)
                         {
-                            _transport?.SendReliable(conn, data);
+                            if (_interestGraph == null || _interestGraph.IsRelevant(entry.ObjectId, conn))
+                                _transport?.SendReliable(conn, data);
                         }
 
                         _totalBytesSent += data.Length * connectionsCopy.Count;
@@ -976,7 +1013,7 @@ namespace YamaEngine.Network
             var posProp = obj.GetType().GetProperty("Position");
             if (posProp != null && posProp.PropertyType == typeof(Vector3))
             {
-                var pos = (Vector3)posProp.GetValue(obj);
+                var pos = (Vector3)posProp.GetValue(obj)!;
                 float dist = Vector3.Distance(pos, _viewerPosition);
                 distanceFactor = 1f / (1f + dist * 0.01f);
             }
@@ -988,6 +1025,22 @@ namespace YamaEngine.Network
         }
 
         // ── 接收复制 ──────────────────────────────────────────────
+
+        /// <summary>
+        /// 读取对象 Position 属性 (供兴趣图注册)。无 Position 属性返回 false。
+        /// </summary>
+        private static bool TryGetObjectPosition(object obj, out Vector3 position)
+        {
+            position = default;
+            if (obj == null) return false;
+            var posProp = obj.GetType().GetProperty("Position");
+            if (posProp != null && posProp.PropertyType == typeof(Vector3))
+            {
+                position = (Vector3)posProp.GetValue(obj)!;
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// 接收复制数据。
@@ -1003,7 +1056,7 @@ namespace YamaEngine.Network
             ulong objectId = reader.ReadUInt64();
 
             // 2. 查找对象
-            object obj;
+            object? obj;
             bool existed;
 
             lock (_registryLock)
@@ -1031,7 +1084,7 @@ namespace YamaEngine.Network
                 // 反序列化全部属性
                 _serializer.DeserializeObject(obj, reader);
             }
-            else
+            else if (obj != null)
             {
                 // 对象已存在, 增量反序列化
                 _deltaSerializer.DeserializeDelta(obj, reader);

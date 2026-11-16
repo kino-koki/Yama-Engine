@@ -262,6 +262,7 @@ namespace YamaEngine.Rendering
         private int _leafCount;
         private float _totalPower;
         private float[] _nodeCDF;
+        private int[] _leafLightIndices; // CDF 位置 → 光源索引 (DFS 顺序)
 
         /// <summary>当前光源数量。</summary>
         public int LightCount => _leafCount;
@@ -443,11 +444,14 @@ namespace YamaEngine.Rendering
             List<int> leafOrder = new List<int>(_leafCount);
             CollectLeafNodes(rootIndex, leafOrder);
 
+            // 记录 CDF 位置 → 光源索引 的映射（DFS 顺序不一定等于光源索引顺序）
+            _leafLightIndices = new int[_leafCount];
             _nodeCDF = new float[_leafCount + 1];
             _nodeCDF[0] = 0.0f;
             float cumPower = 0.0f;
             for (int i = 0; i < leafOrder.Count; i++)
             {
+                _leafLightIndices[i] = _nodes[leafOrder[i]].LightIndex;
                 cumPower += _nodes[leafOrder[i]].LuminousPower;
                 _nodeCDF[i + 1] = cumPower;
             }
@@ -472,14 +476,15 @@ namespace YamaEngine.Rendering
             if (node.RightChild >= 0) CollectLeafNodes(node.RightChild, order);
         }
 
-        /// <summary>采样一个光源。返回 (节点索引, 采样PDF)。</summary>
+        /// <summary>采样一个光源。返回 (光源索引, 采样PDF)。</summary>
         public (int LightIndex, float Pdf) SampleLight(ref Random rng)
         {
             if (_leafCount <= 0) return (-1, 0.0f);
 
             float u = (float)rng.NextDouble();
 
-            // CDF 二分查找
+            // 二分查找: 找到第一个 cdf[i] > u 的位置。CDF 区间为 (cdf[j], cdf[j+1]]，
+            // 故该位置 i 对应的样本位置是 j = i-1。
             int lo = 0, hi = _leafCount;
             while (lo < hi)
             {
@@ -488,12 +493,17 @@ namespace YamaEngine.Rendering
                 else hi = mid;
             }
 
-            int lightIdx = lo;
-            if (lightIdx >= _leafCount) lightIdx = _leafCount - 1;
-            if (lightIdx < 0) lightIdx = 0;
+            // lo 是区间上界（CDF 位置），样本位置 = lo-1，再经 DFS 顺序映射回真实光源索引
+            int cdfPos = lo - 1;
+            if (cdfPos >= _leafCount) cdfPos = _leafCount - 1;
+            if (cdfPos < 0) cdfPos = 0;
+            int lightIdx = _leafLightIndices != null ? _leafLightIndices[cdfPos] : cdfPos;
 
-            float pdf = 1.0f / Math.Max(_totalPower, 1e-10f) *
-                        _nodes[lightIdx].LuminousPower;
+            // PDF ∝ 该光源的光度功率（叶节点索引 == 光源索引）
+            float leafPower = (lightIdx >= 0 && lightIdx < _leafCount)
+                ? _nodes[lightIdx].LuminousPower
+                : 0f;
+            float pdf = leafPower / Math.Max(_totalPower, 1e-10f);
 
             return (lightIdx, pdf);
         }

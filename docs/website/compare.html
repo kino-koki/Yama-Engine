@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>引擎对比 — Yama vs Unity / Unreal / Godot</title>
+<meta name="description" content="一张诚实的横向对比表：Yama 与 Unity、Unreal、Godot 在源码开放、许可、语言、渲染后端、物理与成熟度上的真实差异。不吹不黑，连劣势也写在明面上。">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="compare.html">
+<link rel="alternate" hreflang="en" href="compare-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="引擎对比 — Yama vs Unity / Unreal / Godot">
+<meta property="og:description" content="一张诚实的横向对比表：设计取向与真实差距摆在同一张纸上。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+<style>
+/* 对比页专用 */
+.cmp-wrap{overflow-x:auto;padding-bottom:8px}
+.cmp{width:100%;min-width:860px;border-collapse:collapse;font-size:14px;background:var(--paper)}
+.cmp th,.cmp td{border:1px solid var(--rule);padding:13px 16px;text-align:left;vertical-align:top;line-height:1.6}
+.cmp thead th{background:var(--ink);color:var(--paper);font-family:var(--font-display);font-size:14px;letter-spacing:-.01em;border-color:var(--ink)}
+.cmp thead th small{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(250,249,245,.55);margin-top:3px;font-weight:400}
+.cmp tbody th{background:var(--paper-2);font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);font-weight:600;white-space:nowrap}
+.cmp td.yama{background:var(--orange-soft);font-weight:500}
+.cmp td b{color:var(--orange)}
+.cmp .good{color:#1B7F3B;font-weight:600}
+.cmp .mid{color:#B25E00;font-weight:600}
+.cmp .bad{color:#C22B1E;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:-1px}
+</style>
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<nav class="m-past">
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html">为什么</a>
+      <a href="capabilities.html">能力</a>
+      <a href="scenarios.html">场景</a>
+      <a href="compare.html" aria-current="page">对比</a>
+      <a href="architecture.html">架构</a>
+      <a href="status.html">真实状态</a>
+      <a href="get-started.html">快速上手</a>
+      <a href="faq.html">FAQ</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">Honest Compare · 引擎对比</div>
+    <h1>和商业引擎比，<br>我们<em>如实摆数据</em>。</h1>
+    <p class="lede">
+      这张表的目的不是宣称"已经追平"，而是把设计取向和真实差距摆在同一张纸上。Yama 是原型级引擎 — 表里的每一行劣势，我们都认。
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="guide">
+  <div class="wrap" style="padding-top:72px">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">C-1</span>
+        <span class="t">Compare<br>横向对比</span>
+      </div>
+      <div>
+        <h2>同一张表，<br><span class="accent">不吹也不黑</span>。</h2>
+        <p>对比对象为 2026 年在售/最新版：Unity 6、Unreal Engine 5.8、Godot 4.x。事实性条目以官方文档为准；"成熟度"一列来自本仓库 <a href="status.html" style="color:var(--orange);text-decoration:underline">真实状态页</a> 的自评。</p>
+      </div>
+    </div>
+
+    <div class="cmp-wrap reveal">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th style="width:150px">维度</th>
+            <th style="width:24%">Yama<small>本仓库 · 原型</small></th>
+            <th>Unity<small>Unity 6</small></th>
+            <th>Unreal<small>UE 5.8</small></th>
+            <th>Godot<small>4.x</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>源码开放</th>
+            <td class="yama"><b>全部开放</b> — 渲染器、物理、编辑器、AI 每一行都可读</td>
+            <td><span class="mid">部分开放</span> — C# 层可见，核心 C++ 需付费源码授权</td>
+            <td><span class="good">开放</span> — 完整引擎源码可读可改</td>
+            <td><span class="good">开放</span> — 完整源码</td>
+          </tr>
+          <tr>
+            <th>许可 / 分成</th>
+            <td class="yama"><b>MIT</b> — 零分成、零订阅，商用无需授权费</td>
+            <td><span class="bad">订阅制</span> — 按席位付费</td>
+            <td><span class="mid">5% 分成</span> — 收入超过门槛后收取</td>
+            <td><span class="good">MIT</span> — 零分成</td>
+          </tr>
+          <tr>
+            <th>主语言</th>
+            <td class="yama"><b>C# 全栈一致</b> — 从 RHI 到编辑器只有一种语言</td>
+            <td>C# 脚本 + C++ 核心</td>
+            <td>C++ / 蓝图可视化</td>
+            <td>GDScript / C#</td>
+          </tr>
+          <tr>
+            <th>图形后端</th>
+            <td class="yama"><b>Vulkan 1.4 单后端</b>（D3D12 已从工程移除）— 一条代码路径，好读好测</td>
+            <td>多后端：D3D12 / Vulkan / Metal</td>
+            <td>多后端：DX12 / Vulkan / Metal</td>
+            <td>多后端：Vulkan / D3D12 / Metal / OpenGL</td>
+          </tr>
+          <tr>
+            <th>物理</th>
+            <td class="yama"><b>纯手写</b> GJK / EPA / SAT + 9 种关节，零第三方依赖，解析解级测试</td>
+            <td>PhysX 集成</td>
+            <td>Chaos Physics</td>
+            <td>内置 2D / 3D 物理</td>
+          </tr>
+          <tr>
+            <th>AI / 智能体</th>
+            <td class="yama"><b>LLM 驱动 NPC 已接线</b>：NpcBrain 意图 → 行为树 / StateTree，附 GOAP / 行为树 / ORCA 群体避障</td>
+            <td>ML-Agents 工具包</td>
+            <td>State Tree / Behavior Tree + Smart Objects</td>
+            <td>有限状态机（社区扩展）</td>
+          </tr>
+          <tr>
+            <th>2D 支持</th>
+            <td class="yama"><b>Cel2D 子引擎</b>：粒子 / 骨骼 / 图集 / 瓦片 / 2D 物理，带独立沙箱</td>
+            <td><span class="good">成熟</span> — URP 2D 全家桶</td>
+            <td><span class="mid">可用</span> — Paper2D</td>
+            <td><span class="good">成熟</span> — 2D 是强项</td>
+          </tr>
+          <tr>
+            <th>最低门槛</th>
+            <td class="yama"><b>一个 .NET SDK</b> — dotnet build 即可编译，无 IDE 依赖</td>
+            <td>Unity Hub + 编辑器</td>
+            <td>Epic 登录 + 源码编译（较重）</td>
+            <td>单可执行文件，最轻</td>
+          </tr>
+          <tr>
+            <th>成熟度（自评）</th>
+            <td class="yama"><span class="bad">原型级</span> — 算法真实、编译 0 错误；GPU 端到端与运行时稳定性仍在攻坚</td>
+            <td><span class="good">生产级</span></td>
+            <td><span class="good">生产级</span></td>
+            <td><span class="good">生产级</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="legend">
+        <span><i style="background:#1B7F3B"></i>优势 / 已达成</span>
+        <span><i style="background:#B25E00"></i>有条件 / 部分达成</span>
+        <span><i style="background:#C22B1E"></i>劣势 / 未达成</span>
+        <span><i style="background:var(--orange)"></i>橙底列 = Yama</span>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin:40px 0 70px">
+      <span class="callout-tag">Honest Note · 诚实声明</span>
+      <p>Yama 当前是<b>研究 / 原型级引擎</b>：它不能、也不应该在今天被用来交付商业游戏。这张表的存在是为了说明<b>设计取向与差距</b>，而不是宣称已经追平任何成熟引擎。如果你需要"现在就能发货"，请选 Unity / Unreal / Godot；如果你想读懂一个引擎的每一行并参与塑造它 — 这里欢迎你。</p>
+    </div>
+  </div>
+</section>
+
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+        </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="compare.html">引擎对比</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="get-started.html">快速上手</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index-en.html">English</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

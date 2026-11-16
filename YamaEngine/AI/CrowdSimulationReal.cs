@@ -42,10 +42,10 @@ namespace YamaEngine.AI
             Distance = distance;
         }
 
-        /// <summary>检查速度是否在半平面可行侧</summary>
+        /// <summary>检查速度是否在半平面可行侧（约束 v·n >= Distance）</summary>
         public bool IsFeasible(Vector2 velocity)
         {
-            return Vector2.Dot(velocity - Point, Normal) >= -1e-4f;
+            return Vector2.Dot(velocity, Normal) >= Distance - 1e-4f;
         }
     }
 

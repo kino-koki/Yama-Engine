@@ -114,16 +114,16 @@ namespace YamaEngine.Input
         public float Weight { get; set; } = 1.0f;
 
         /// <summary>适用的控制方案 (null = 所有方案)</summary>
-        public string ControlScheme { get; set; }
+        public string? ControlScheme { get; set; }
 
         /// <summary>绑定路径 (序列化用, 如 "Keyboard/W", "Gamepad/LeftStick")</summary>
-        public string Path { get; set; }
+        public string? Path { get; set; }
 
         /// <summary>是否启用</summary>
         public bool Enabled { get; set; } = true;
 
         /// <summary>条件评估委托 (返回 true 时此绑定才生效)</summary>
-        public Func<bool> Condition { get; set; }
+        public Func<bool>? Condition { get; set; }
 
         /// <summary>运行时原始值</summary>
         [System.Text.Json.Serialization.JsonIgnore]
@@ -251,22 +251,22 @@ namespace YamaEngine.Input
         public bool Enabled { get; set; } = true;
 
         /// <summary>上下文全局条件 (返回 false 时整个上下文不生效)</summary>
-        public Func<bool> GlobalCondition { get; set; }
+        public Func<bool>? GlobalCondition { get; set; }
 
         /// <summary>此上下文中的所有动作绑定</summary>
         public Dictionary<string, List<KeyBinding>> ActionBindings { get; }
             = new Dictionary<string, List<KeyBinding>>();
 
         /// <summary>适用的控制方案 (null = 所有方案)</summary>
-        public string ControlScheme { get; set; }
+        public string? ControlScheme { get; set; }
 
         // -- 事件 --
         /// <summary>上下文启用</summary>
-        public event Action<InputMappingContext> OnEnabled;
+        public event Action<InputMappingContext>? OnEnabled;
         /// <summary>上下文禁用</summary>
-        public event Action<InputMappingContext> OnDisabled;
+        public event Action<InputMappingContext>? OnDisabled;
 
-        public InputMappingContext(string name, int priority = 0, string displayName = null)
+        public InputMappingContext(string name, int priority = 0, string? displayName = null)
         {
             Name = name;
             Priority = priority;
@@ -314,7 +314,7 @@ namespace YamaEngine.Input
         }
 
         /// <summary>获取指定动作的所有绑定</summary>
-        public List<KeyBinding> GetBindingsForAction(string actionName)
+        public List<KeyBinding>? GetBindingsForAction(string actionName)
         {
             return ActionBindings.TryGetValue(actionName, out var bindings) ? bindings : null;
         }
@@ -394,7 +394,7 @@ namespace YamaEngine.Input
         public string SwizzleOrder { get; set; } = "XY";
 
         /// <summary>自定义处理委托</summary>
-        public Func<float, float> CustomProcess { get; set; }
+        public Func<float, float>? CustomProcess { get; set; }
 
         // -- 静态工厂方法 --
 
@@ -521,7 +521,7 @@ namespace YamaEngine.Input
         public Dictionary<string, float> Parameters { get; set; } = new Dictionary<string, float>();
 
         /// <summary>自定义评估委托</summary>
-        public Func<float, float, bool, bool> CustomEvaluate { get; set; }
+        public Func<float, float, bool, bool>? CustomEvaluate { get; set; }
 
         // -- 静态工厂 --
 
@@ -781,19 +781,19 @@ namespace YamaEngine.Input
 
         // -- 手势事件 --
         /// <summary>滑动事件 (方向, 速度)</summary>
-        public event Action<TouchGestureType, Vector2, float> OnSwipe;
+        public event Action<TouchGestureType, Vector2, float>? OnSwipe;
         /// <summary>点击事件 (位置)</summary>
-        public event Action<Vector2> OnTap;
+        public event Action<Vector2>? OnTap;
         /// <summary>双击事件 (位置)</summary>
-        public event Action<Vector2> OnDoubleTap;
+        public event Action<Vector2>? OnDoubleTap;
         /// <summary>长按事件 (位置, 持续时间)</summary>
-        public event Action<Vector2, float> OnLongPress;
+        public event Action<Vector2, float>? OnLongPress;
         /// <summary>长按结束事件</summary>
-        public event Action OnLongPressEnded;
+        public event Action? OnLongPressEnded;
         /// <summary>捏合事件 (缩放因子, 中心点)</summary>
-        public event Action<float, Vector2> OnPinch;
+        public event Action<float, Vector2>? OnPinch;
         /// <summary>旋转事件 (角度变化, 中心点)</summary>
-        public event Action<float, Vector2> OnRotate;
+        public event Action<float, Vector2>? OnRotate;
 
         // -- 运行时状态 --
         [System.Text.Json.Serialization.JsonIgnore]
@@ -986,7 +986,7 @@ namespace YamaEngine.Input
         private readonly Dictionary<string, InputTrigger> _actionTriggers = new Dictionary<string, InputTrigger>();
 
         /// <summary>控制方案名称 (null = 自动检测)</summary>
-        public string ActiveControlScheme { get; set; }
+        public string? ActiveControlScheme { get; set; }
 
         /// <summary>输入预处理队列</summary>
         private readonly Queue<Action> _inputPreprocessQueue = new Queue<Action>();
@@ -999,19 +999,19 @@ namespace YamaEngine.Input
 
         // -- 动作事件 --
         /// <summary>动作触发 (满足触发器条件)</summary>
-        public event Action<string, float> OnActionTriggered;
+        public event Action<string, float>? OnActionTriggered;
         /// <summary>动作开始 (按下瞬间)</summary>
-        public event Action<string> OnActionStarted;
+        public event Action<string>? OnActionStarted;
         /// <summary>动作完成 (释放瞬间)</summary>
-        public event Action<string> OnActionCompleted;
+        public event Action<string>? OnActionCompleted;
         /// <summary>动作取消 (条件不满足)</summary>
-        public event Action<string> OnActionCanceled;
+        public event Action<string>? OnActionCanceled;
         /// <summary>动作值变化</summary>
-        public event Action<string, float> OnActionValueChanged;
+        public event Action<string, float>? OnActionValueChanged;
         /// <summary>Vector2 动作值变化</summary>
-        public event Action<string, Vector2> OnActionVector2Changed;
+        public event Action<string, Vector2>? OnActionVector2Changed;
 
-        public PlayerInputComponent(int playerIndex = 0, string playerName = null)
+        public PlayerInputComponent(int playerIndex = 0, string? playerName = null)
         {
             PlayerIndex = playerIndex;
             PlayerName = playerName ?? $"Player{playerIndex}";
@@ -1226,7 +1226,7 @@ namespace YamaEngine.Input
             {
                 var action = _inputPreprocessQueue.Dequeue();
                 try { action(); }
-                catch (Exception) { /* 忽略预处理错误 */ }
+                catch (Exception ex) { Console.WriteLine($"[EnhancedInput] 预处理回调异常: {ex.GetType().Name}: {ex.Message}"); }
             }
         }
 
@@ -1238,7 +1238,7 @@ namespace YamaEngine.Input
                 if (CurrentTime >= execTime)
                 {
                     try { action(); }
-                    catch (Exception) { /* 忽略延迟输入错误 */ }
+                    catch (Exception ex) { Console.WriteLine($"[EnhancedInput] 延迟输入回调异常: {ex.GetType().Name}: {ex.Message}"); }
                 }
                 else
                 {
@@ -1317,9 +1317,9 @@ namespace YamaEngine.Input
     public class InputDeviceHotplugDetector
     {
         /// <summary>设备连接事件 (设备类型, 设备ID, 设备名称)</summary>
-        public event Action<InputDeviceType, string, string> OnDeviceConnected;
+        public event Action<InputDeviceType, string, string>? OnDeviceConnected;
         /// <summary>设备断开事件</summary>
-        public event Action<InputDeviceType, string, string> OnDeviceDisconnected;
+        public event Action<InputDeviceType, string, string>? OnDeviceDisconnected;
 
         /// <summary>已知设备列表 (设备ID → 类型)</summary>
         private readonly Dictionary<string, (InputDeviceType type, string name, float lastSeen)> _knownDevices
@@ -1337,7 +1337,7 @@ namespace YamaEngine.Input
 
         /// <summary>注册外部设备查询回调</summary>
         /// <summary>回调应返回当前连接的设备列表</summary>
-        public Func<List<(InputDeviceType type, string deviceId, string name)>> QueryConnectedDevices { get; set; }
+        public Func<List<(InputDeviceType type, string deviceId, string name)>>? QueryConnectedDevices { get; set; }
 
         /// <summary>每帧更新</summary>
         public void Update(float deltaTime)
@@ -1625,7 +1625,7 @@ namespace YamaEngine.Input
     /// </summary>
     public class EnhancedInputSystem
     {
-        private static EnhancedInputSystem _instance;
+        private static EnhancedInputSystem? _instance;
 
         /// <summary>全局单例</summary>
         public static EnhancedInputSystem Instance
@@ -1672,13 +1672,13 @@ namespace YamaEngine.Input
 
         // -- 事件 --
         /// <summary>玩家注册</summary>
-        public event Action<int> OnPlayerRegistered;
+        public event Action<int>? OnPlayerRegistered;
         /// <summary>玩家注销</summary>
-        public event Action<int> OnPlayerUnregistered;
+        public event Action<int>? OnPlayerUnregistered;
         /// <summary>设备连接</summary>
-        public event Action<InputDeviceType, string, string> OnDeviceConnected;
+        public event Action<InputDeviceType, string, string>? OnDeviceConnected;
         /// <summary>设备断开</summary>
-        public event Action<InputDeviceType, string, string> OnDeviceDisconnected;
+        public event Action<InputDeviceType, string, string>? OnDeviceDisconnected;
 
         /// <summary>是否已初始化</summary>
         public bool IsInitialized { get; private set; }
@@ -1702,7 +1702,7 @@ namespace YamaEngine.Input
         // ========== 玩家管理 ==========
 
         /// <summary>注册玩家输入组件</summary>
-        public PlayerInputComponent RegisterPlayer(int playerIndex, string playerName = null)
+        public PlayerInputComponent RegisterPlayer(int playerIndex, string? playerName = null)
         {
             if (playerIndex < 0 || playerIndex >= MaxPlayers)
                 throw new ArgumentOutOfRangeException(nameof(playerIndex));
@@ -1728,13 +1728,13 @@ namespace YamaEngine.Input
         }
 
         /// <summary>获取玩家输入组件</summary>
-        public PlayerInputComponent GetPlayerInput(int playerIndex)
+        public PlayerInputComponent? GetPlayerInput(int playerIndex)
         {
             return _playerInputs.TryGetValue(playerIndex, out var comp) ? comp : null;
         }
 
         /// <summary>获取或创建玩家输入组件</summary>
-        public PlayerInputComponent GetOrCreatePlayerInput(int playerIndex, string playerName = null)
+        public PlayerInputComponent GetOrCreatePlayerInput(int playerIndex, string? playerName = null)
         {
             if (!_playerInputs.TryGetValue(playerIndex, out var comp))
                 comp = RegisterPlayer(playerIndex, playerName);
@@ -1757,7 +1757,7 @@ namespace YamaEngine.Input
         public bool UnregisterGlobalContext(string name) => _globalContexts.Remove(name);
 
         /// <summary>获取全局映射上下文</summary>
-        public InputMappingContext GetGlobalContext(string name)
+        public InputMappingContext? GetGlobalContext(string name)
         {
             return _globalContexts.TryGetValue(name, out var ctx) ? ctx : null;
         }
@@ -1837,7 +1837,7 @@ namespace YamaEngine.Input
             {
                 var action = _systemPreprocessQueue.Dequeue();
                 try { action(); }
-                catch (Exception) { /* 忽略 */ }
+                catch (Exception ex) { Console.WriteLine($"[EnhancedInput] 系统预处理回调异常: {ex.GetType().Name}: {ex.Message}"); }
             }
 
             // 6. 更新所有玩家输入组件

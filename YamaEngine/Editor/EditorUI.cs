@@ -154,30 +154,30 @@ namespace YamaEngine.Editor
             return JsonSerializer.Serialize(this, opts);
         }
 
-        public static EditorTheme LoadFromJson(string json)
+        public static EditorTheme? LoadFromJson(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
             try { return JsonSerializer.Deserialize<EditorTheme>(json); }
-            catch { return null; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EditorTheme] 反序列化失败: {ex.Message}"); return null; }
         }
 
         public void SaveToFile(string path)
         {
             try { File.WriteAllText(path, SaveToJson()); }
-            catch (Exception) { /* 忽略 */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EditorTheme] 保存 {path} 失败: {ex.Message}"); }
         }
 
-        public static EditorTheme LoadFromFile(string path)
+        public static EditorTheme? LoadFromFile(string path)
         {
             try { return LoadFromJson(File.ReadAllText(path)); }
-            catch (Exception) { return null; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[EditorTheme] 加载 {path} 失败: {ex.Message}"); return null; }
         }
     }
 
     public sealed class EditorThemeManager
     {
         private readonly Dictionary<string, EditorTheme> _themes = new();
-        public EditorTheme Current { get; private set; }
+        public EditorTheme Current { get; private set; } = null!;
 
         public EditorThemeManager()
         {
@@ -199,7 +199,7 @@ namespace YamaEngine.Editor
             _themes[name] = theme;
         }
 
-        public EditorTheme Get(string name) => _themes.TryGetValue(name, out var t) ? t : null;
+        public EditorTheme? Get(string name) => _themes.TryGetValue(name, out var t) ? t : null;
         public IEnumerable<string> Available => _themes.Keys;
 
         public void SetActive(string name)
@@ -216,11 +216,12 @@ namespace YamaEngine.Editor
 
     public struct ConsoleLogEntry
     {
+        public ConsoleLogEntry() { }
         public DateTime Time;
         public LogLevel Level;
-        public string Message;
-        public string Category;
-        public string Source;
+        public string Message = string.Empty;
+        public string Category = string.Empty;
+        public string Source = string.Empty;
     }
 
     /// <summary>控制台日志收集接口, 由 ConsolePanel 实现。</summary>
@@ -262,9 +263,9 @@ namespace YamaEngine.Editor
     {
         public DockNodeType Type = DockNodeType.Empty;
         public RectangleF Rect;
-        public DockNode Parent;
-        public DockNode ChildA;
-        public DockNode ChildB;
+        public DockNode? Parent;
+        public DockNode? ChildA;
+        public DockNode? ChildB;
         public readonly List<string> Panels = new();
     }
 
@@ -279,7 +280,7 @@ namespace YamaEngine.Editor
         private readonly List<string> _order = new();
 
         public Vector2 Size;
-        public DockNode Root;
+        public DockNode? Root;
 
         public DockSpace(Vector2 size)
         {
@@ -382,8 +383,8 @@ namespace YamaEngine.Editor
         public readonly EntityComponentSystem Ecs;
         public readonly InputSystem Input;
         public EditorTheme Theme;
-        public IEditorConsole Console;
-        public MainEditorWindow Editor;
+        public IEditorConsole? Console;
+        public MainEditorWindow? Editor;
 
         public float DeltaTime;
         public float ElapsedTime;
@@ -399,12 +400,15 @@ namespace YamaEngine.Editor
             Theme = theme;
         }
 
-        public SelectionSystem Selection => World?.Selection;
-        public EditorCommandStack Undo => World?.UndoStack;
-        public EditorSceneManager SceneManager => World?.SceneManager;
-        public PieStateMachine Pie => World?.Pie;
-        public LayerSystem Layers => World?.Layers;
-        public EditorCamera Camera => World?.Camera;
+        public SelectionSystem? Selection => World?.Selection;
+        public EditorCommandStack? Undo => World?.UndoStack;
+        public EditorSceneManager? SceneManager => World?.SceneManager;
+        public PieStateMachine? Pie => World?.Pie;
+        public LayerSystem? Layers => World?.Layers;
+        public EditorCamera? Camera => World?.Camera;
+
+        /// <summary>编辑器音频桥（可能为 null，当音频引擎未创建时）。供音频设置面板访问。</summary>
+        public EditorAudioBridge? AudioBridge { get; set; }
     }
 
     // ─────────────────────────── 面板接口与基类 ───────────────────────────
@@ -439,7 +443,7 @@ namespace YamaEngine.Editor
 
         private bool _initialized;
 
-        protected EditorPanel(string title, string id = null)
+        protected EditorPanel(string title, string? id = null)
         {
             Title = title ?? GetType().Name;
             Id = id ?? Title;
@@ -456,7 +460,19 @@ namespace YamaEngine.Editor
         public void Render(EditorContext ctx)
         {
             if (!IsVisible || IsClosed) return;
-            if (!_initialized) { try { Initialize(ctx); } catch (Exception) { } _initialized = true; }
+            if (!_initialized)
+            {
+                try { Initialize(ctx); }
+                catch (Exception ex)
+                {
+                    // 初始化失败不应永久掩盖：保留 _initialized=false 以便下次重试，
+                    // 同时记录异常，避免面板静默空白
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[EditorUI] {WindowLabel} init failed: {ex.Message}");
+                    return;
+                }
+                _initialized = true;
+            }
 
             ImGui.SetNextWindowSizeConstraints(MinSize, new Vector2(float.MaxValue, float.MaxValue));
             var flags = GetWindowFlags();
@@ -620,7 +636,7 @@ namespace YamaEngine.Editor
 
     internal static class LinqHelper
     {
-        public static IEnumerable<T> SelectNotNull<S, T>(this IEnumerable<S> src, Func<S, T> sel) where T : class
+        public static IEnumerable<T> SelectNotNull<S, T>(this IEnumerable<S> src, Func<S, T?> sel) where T : class
         {
             foreach (var s in src) { var v = sel(s); if (v != null) yield return v; }
         }

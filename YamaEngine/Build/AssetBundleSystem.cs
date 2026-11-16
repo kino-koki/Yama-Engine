@@ -549,9 +549,21 @@ namespace YamaEngine.Build
                 var dataStartOffset = entryTableStart + entryTableSize;
 
                 var offsets = new List<(long Offset, long Size, string Path)>();
+                // 工业级防御: entry.AssetPath 来自包条目(未受信), 含 "../" 可逃逸根目录 → 路径穿越。
+                // 计算安全根目录, 用 GetFullPath 归一化后做前缀边界校验。
+                string safeRoot = Path.GetFullPath(
+                    Path.GetDirectoryName(path)!.Replace("Bundles", "Assets") ?? string.Empty);
+                string safeRootWithSep = safeRoot.EndsWith(Path.DirectorySeparatorChar)
+                    ? safeRoot
+                    : safeRoot + Path.DirectorySeparatorChar;
                 foreach (var entry in entries)
                 {
-                    var assetSource = Path.Combine(Path.GetDirectoryName(path)!.Replace("Bundles", "Assets") ?? "", entry.AssetPath.Replace('/', Path.DirectorySeparatorChar));
+                    var assetSource = Path.GetFullPath(Path.Combine(safeRoot,
+                        entry.AssetPath.Replace('/', Path.DirectorySeparatorChar)));
+                    // 前缀边界校验: 解析后必须仍在 safeRoot 之下, 否则拒绝 (防 "../" 逃逸)。
+                    if (!assetSource.StartsWith(safeRootWithSep, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException(
+                            $"Bundle 资产路径逃逸根目录: {entry.AssetPath} → {assetSource}");
                     var offset = fs.Position - dataStartOffset;
                     long size;
 

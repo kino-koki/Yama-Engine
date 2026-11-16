@@ -114,7 +114,7 @@ namespace YamaEngine.UI
         public Color Color = Color.Black;
         public float Thickness = 1f;
         public float CornerRadius;
-        public SlateBrush Brush;
+        public SlateBrush? Brush;
     }
 
     /// <summary>
@@ -248,15 +248,15 @@ namespace YamaEngine.UI
     public sealed class WidgetEventSystem
     {
         // 当前悬停 / 按下 / 焦点控件
-        private Widget _hoveredWidget;
-        private Widget _pressedWidget;
-        private Widget _focusedWidget;
-        private Widget _draggingWidget;
+        private Widget? _hoveredWidget;
+        private Widget? _pressedWidget;
+        private Widget? _focusedWidget;
+        private Widget? _draggingWidget;
         private Vector2 _dragStart;
         private Vector2 _lastMouse;
 
         /// <summary>当前持有键盘焦点的控件。</summary>
-        public Widget FocusedWidget => _focusedWidget;
+        public Widget? FocusedWidget => _focusedWidget;
 
         /// <summary>分发鼠标按下事件。</summary>
         public bool DispatchMouseDown(Widget root, Vector2 mousePos, MouseButton button)
@@ -374,7 +374,7 @@ namespace YamaEngine.UI
         public void EndDrag() => _draggingWidget = null;
 
         /// <summary>命中测试: 自顶向下查找鼠标所在的最上层可见控件。</summary>
-        public Widget HitTest(Widget widget, Vector2 point)
+        public Widget? HitTest(Widget widget, Vector2 point)
         {
             if (!widget.IsVisible) return null;
             var geo = widget.CachedGeometry;
@@ -420,7 +420,7 @@ namespace YamaEngine.UI
         /// <summary>控件名 (便于调试与查找)。</summary>
         public string Name = "Widget";
         /// <summary>父控件。</summary>
-        public Widget Parent;
+        public Widget? Parent;
         /// <summary>锚点。</summary>
         public Anchors Anchors = Anchors.TopLeft;
         /// <summary>偏移边距。</summary>
@@ -445,7 +445,7 @@ namespace YamaEngine.UI
         /// <summary>工具提示文本。</summary>
         public string ToolTip = string.Empty;
         /// <summary>数据上下文 (用于数据绑定)。</summary>
-        public object DataContext;
+        public object? DataContext;
 
         /// <summary>布局缓存几何。</summary>
         public LayoutGeometry CachedGeometry;
@@ -525,7 +525,7 @@ namespace YamaEngine.UI
         public virtual void Paint(UmgRenderer renderer) { }
 
         /// <summary>在子树中按名称查找控件。</summary>
-        public virtual Widget FindChild(string name)
+        public virtual Widget? FindChild(string name)
         {
             if (Name == name) return this;
             return null;
@@ -548,7 +548,7 @@ namespace YamaEngine.UI
         public readonly List<WidgetSlot> Slots = new();
 
         /// <summary>添加子控件。</summary>
-        public virtual Widget AddChild(Widget child, WidgetSlot slot = null)
+        public virtual Widget AddChild(Widget child, WidgetSlot? slot = null)
         {
             child.Parent = this;
             Children.Add(child);
@@ -578,7 +578,7 @@ namespace YamaEngine.UI
             MarkDirty();
         }
 
-        public override Widget FindChild(string name)
+        public override Widget? FindChild(string name)
         {
             if (base.FindChild(name) is Widget found) return found;
             foreach (var c in Children)
@@ -740,7 +740,7 @@ namespace YamaEngine.UI
         public SlateFontInfo LabelFont = new() { Size = 14f };
         public Color LabelColor = Color.White;
         public Vector2 BoxSize = new(16, 16);
-        public event Action<bool> OnCheckChanged;
+        public event Action<bool>? OnCheckChanged;
 
         protected internal override void HandleClick(WidgetEventArgs e)
         {
@@ -783,7 +783,7 @@ namespace YamaEngine.UI
         public Color TrackColor = new(0.2f, 0.2f, 0.25f, 1f);
         public float HandleSize = 12f;
         public bool IsDragging;
-        public event Action<float> OnValueChanged;
+        public event Action<float>? OnValueChanged;
 
         protected internal override void HandleMouseDown(WidgetEventArgs e)
         {
@@ -851,8 +851,8 @@ namespace YamaEngine.UI
         public bool IsPassword;
         public int MaxLength = 256;
         public float CaretBlinkTime;
-        public event Action<string> OnTextChanged;
-        public event Action<string> OnSubmit;
+        public event Action<string>? OnTextChanged;
+        public event Action<string>? OnSubmit;
 
         protected internal override void HandleClick(WidgetEventArgs e)
         {
@@ -919,7 +919,7 @@ namespace YamaEngine.UI
         public Color BackgroundColor = new(0.18f, 0.19f, 0.23f, 1f);
         public bool IsDropdownOpen;
         public float ItemHeight = 22f;
-        public event Action<int, string> OnSelectionChanged;
+        public event Action<int, string>? OnSelectionChanged;
 
         protected internal override void HandleClick(WidgetEventArgs e)
         {
@@ -941,7 +941,7 @@ namespace YamaEngine.UI
             _flags |= WidgetFlags.HandledEvent;
         }
 
-        public string SelectedOption => SelectedIndex >= 0 && SelectedIndex < Options.Count ? Options[SelectedIndex] : null;
+        public string? SelectedOption => SelectedIndex >= 0 && SelectedIndex < Options.Count ? Options[SelectedIndex] : null;
 
         public override Vector2 ComputeDesiredSize(Vector2 available)
         {
@@ -991,7 +991,7 @@ namespace YamaEngine.UI
         public Vector2 Padding = new(12, 6);
         public bool IsHovered;
         public bool IsPressed;
-        public event Action OnClicked;
+        public event Action? OnClicked;
 
         protected internal override void HandleMouseEnter(WidgetEventArgs e) => IsHovered = true;
         protected internal override void HandleMouseLeave(WidgetEventArgs e) { IsHovered = false; IsPressed = false; }
@@ -1184,15 +1184,16 @@ namespace YamaEngine.UI
     /// </summary>
     public sealed class Binding
     {
-        public Widget Target;
-        public string TargetProperty;
-        public string SourcePath;
+        public Widget? Target;
+        public string? TargetProperty;
+        public string? SourcePath;
         public BindingMode Mode = BindingMode.OneWay;
-        public object LastValue;
+        public object? LastValue;
 
         /// <summary>从源读取值并写入目标控件属性 (反射)。</summary>
         public void Pull()
         {
+            if (Target == null || TargetProperty == null || SourcePath == null) return;
             if (Target.DataContext == null) return;
             var value = ResolvePath(Target.DataContext, SourcePath);
             if (value == null) return;
@@ -1206,7 +1207,8 @@ namespace YamaEngine.UI
         /// <summary>从控件读取值回写源 (TwoWay)。</summary>
         public void Push()
         {
-            if (Mode != BindingMode.TwoWay || Target.DataContext == null) return;
+            if (Mode != BindingMode.TwoWay || Target == null || TargetProperty == null || SourcePath == null) return;
+            if (Target.DataContext == null) return;
             var value = GetWidgetProperty(Target, TargetProperty);
             if (!Equals(value, LastValue))
             {
@@ -1215,9 +1217,9 @@ namespace YamaEngine.UI
             }
         }
 
-        private object ResolvePath(object source, string path)
+        private object? ResolvePath(object source, string path)
         {
-            object current = source;
+            object? current = source;
             foreach (var part in path.Split('.'))
             {
                 if (current == null) return null;
@@ -1228,13 +1230,13 @@ namespace YamaEngine.UI
             return current;
         }
 
-        private void SetPathValue(object target, string path, object value)
+        private void SetPathValue(object target, string path, object? value)
         {
-            object current = target;
+            object? current = target;
             var parts = path.Split('.');
             for (int i = 0; i < parts.Length - 1; i++)
             {
-                var prop = current.GetType().GetProperty(parts[i]);
+                var prop = current?.GetType().GetProperty(parts[i]);
                 if (prop == null) return;
                 current = prop.GetValue(current);
             }
@@ -1249,7 +1251,7 @@ namespace YamaEngine.UI
                 prop.SetValue(w, Convert.ChangeType(value, prop.PropertyType));
         }
 
-        private object GetWidgetProperty(Widget w, string name)
+        private object? GetWidgetProperty(Widget w, string name)
         {
             var prop = w.GetType().GetProperty(name);
             return prop?.GetValue(w);
@@ -1568,12 +1570,12 @@ namespace YamaEngine.UI
     public sealed class UmgRenderer
     {
         private readonly UmgPaintContext _ctx = new();
-        private RHIDevice _device;
-        private RHICommandList _cmdList;
-        private RHIBuffer _vertexBuffer;
-        private RHIBuffer _indexBuffer;
-        private RHIRootSignature _rootSig;
-        private RHIPipelineState _pso;
+        private RHIDevice _device = null!;
+        private RHICommandList _cmdList = null!;
+        private RHIBuffer _vertexBuffer = null!;
+        private RHIBuffer _indexBuffer = null!;
+        private RHIRootSignature _rootSig = null!;
+        private RHIPipelineState _pso = null!;
         private bool _resourcesDirty = true;
         private int _drawCallCount;
 

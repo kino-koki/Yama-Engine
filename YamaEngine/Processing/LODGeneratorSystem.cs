@@ -1090,53 +1090,36 @@ namespace YamaEngine.Processing
 
         /// <summary>
         /// 使用 Hysteresis 选择 LOD 级别。
-        /// 升级 (更高质量): 需要超过阈值 + 滞后量
-        /// 降级 (更低质量): 只需低于阈值即可
+        /// 升级 (更高质量): 需要超过下一级阈值 + 滞后量
+        /// 降级 (更低质量): 只需低于当前级阈值
         /// </summary>
         private int SelectLODWithHysteresis(LODChain chain, float coverage, int currentLevel)
         {
-            int bestLevel = chain.Levels.Count - 1; // 默认最低细节
-
-            for (int i = chain.Levels.Count - 1; i >= 0; i--)
+            // 升级检查 (更高质量，索引更小):
+            // 切换离开 level i 的阈值是 threshold[i+1]（低于它才降级到 i+1），
+            // 升级回 level i 需 coverage ≥ threshold[i+1] × (1+滞后)
+            for (int i = currentLevel - 1; i >= 0; i--)
             {
-                float threshold = chain.Levels[i].ScreenSizeThreshold;
-
-                if (i < currentLevel)
+                float switchAwayThreshold = chain.Levels[i + 1].ScreenSizeThreshold;
+                float upgradeThreshold = switchAwayThreshold * (1.0f + HysteresisFactor);
+                if (coverage >= upgradeThreshold)
                 {
-                    // 升级到更高质量: 需要 coverage 超过阈值 + 滞后量
-                    float upgradeThreshold = threshold * (1.0f + HysteresisFactor);
-                    if (coverage >= upgradeThreshold)
-                    {
-                        bestLevel = i;
-                        break;
-                    }
-                }
-                else if (i > currentLevel)
-                {
-                    // 降级到更低质量: 只需 coverage 低于阈值
-                    if (coverage < threshold)
-                    {
-                        bestLevel = i;
-                        break;
-                    }
-                }
-                else
-                {
-                    // 当前级别: 检查是否需要降级
-                    bestLevel = i;
-                    if (coverage < threshold * (1.0f - HysteresisFactor * 0.5f))
-                    {
-                        // 可能需要降级到更低级别
-                        if (i < chain.Levels.Count - 1)
-                        {
-                            bestLevel = i + 1;
-                        }
-                    }
-                    break;
+                    return i;
                 }
             }
 
-            return Math.Clamp(bestLevel, 0, chain.Levels.Count - 1);
+            // 降级检查 (更低质量，索引更大): 只要覆盖率低于阈值
+            for (int i = currentLevel + 1; i < chain.Levels.Count; i++)
+            {
+                float threshold = chain.Levels[i].ScreenSizeThreshold;
+                if (coverage < threshold)
+                {
+                    return i;
+                }
+            }
+
+            // 保持当前级别 (在滞后期内)
+            return currentLevel;
         }
 
         private void StartCrossFade(int meshId, int oldLevel, int newLevel)

@@ -44,9 +44,9 @@ namespace YamaEngine.Rendering
     public sealed class MeshGPUResources : IDisposable
     {
         /// <summary>顶点缓冲区 (Default 堆)</summary>
-        public RHIBuffer VertexBuffer;
+        public RHIBuffer VertexBuffer = null!;
         /// <summary>索引缓冲区 (Default 堆)</summary>
-        public RHIBuffer IndexBuffer;
+        public RHIBuffer IndexBuffer = null!;
         /// <summary>顶点数量</summary>
         public int VertexCount;
         /// <summary>索引数量 (面数 * 3)</summary>
@@ -60,8 +60,8 @@ namespace YamaEngine.Rendering
         {
             VertexBuffer?.Dispose();
             IndexBuffer?.Dispose();
-            VertexBuffer = null;
-            IndexBuffer = null;
+            VertexBuffer = null!;
+            IndexBuffer = null!;
         }
     }
 
@@ -80,22 +80,22 @@ namespace YamaEngine.Rendering
 
         // ── 网格管线资源 (懒初始化) ──
         private bool _meshPipelineInitialized;
-        private RHIRootSignature _rootSignature;
-        private RHIPipelineState _meshPSO;
-        private RHIShaderBytecode _meshVS;
-        private RHIShaderBytecode _meshPS;
+        private RHIRootSignature _rootSignature = null!;
+        private RHIPipelineState _meshPSO = null!;
+        private RHIShaderBytecode _meshVS = default;
+        private RHIShaderBytecode _meshPS = default;
 
         // ── 线段管线资源 (懒初始化) ──
         private bool _linePipelineInitialized;
-        private RHIRootSignature _lineRootSignature;
-        private RHIPipelineState _linePSO;
-        private RHIShaderBytecode _lineVS;
-        private RHIShaderBytecode _linePS;
+        private RHIRootSignature _lineRootSignature = null!;
+        private RHIPipelineState _linePSO = null!;
+        private RHIShaderBytecode _lineVS = default;
+        private RHIShaderBytecode _linePS = default;
 
         // ── 常量缓冲区 ──
-        private RHIBuffer _frameCB;   // b0: FrameConstants
-        private RHIBuffer _objectCB;  // b1: ObjectConstants
-        private RHIBuffer _lineCB;    // b0: LineConstants (线段管线)
+        private RHIBuffer _frameCB = null!;   // b0: FrameConstants
+        private RHIBuffer _objectCB = null!;  // b1: ObjectConstants
+        private RHIBuffer _lineCB = null!;    // b0: LineConstants (线段管线)
 
         // ── 可复用的常量数据数组 (避免每帧分配) ──
         private readonly BuiltinShaders.FrameConstants[] _frameDataArray = new BuiltinShaders.FrameConstants[1];
@@ -107,9 +107,9 @@ namespace YamaEngine.Rendering
 
         // ── 骨骼蒙皮管线资源 (懒初始化) ──
         private bool _skinnedMeshPipelineInitialized;
-        private RHIRootSignature _skinnedRootSignature;
-        private RHIPipelineState _skinnedMeshPSO;
-        private RHIShaderBytecode _skinnedMeshVS;
+        private RHIRootSignature _skinnedRootSignature = null!;
+        private RHIPipelineState _skinnedMeshPSO = null!;
+        private RHIShaderBytecode _skinnedMeshVS = default;
 
         // ── 骨骼矩阵上传缓冲区 ──
         private RHIBuffer? _boneMatrixBuffer;
@@ -121,14 +121,14 @@ namespace YamaEngine.Rendering
         private readonly Dictionary<string, MeshGPUResources> _skinnedMeshCache = new();
 
         // ── 默认立方体 (空场景时使用) ──
-        private MeshGPUResources _defaultCube;
+        private MeshGPUResources _defaultCube = null!;
 
         // ── 动态线段顶点缓冲区 ──
-        private RHIBuffer _lineVB;
+        private RHIBuffer _lineVB = null!;
         private uint _lineVBSize;
 
         // ── 默认纹理（简化版：1x1 白色占位，确保纹理采样器管道通） ──
-        private RHITexture _defaultTexture;
+        private RHITexture _defaultTexture = null!;
         private RHIDescriptorHandle _defaultTextureSRV;
 
         // ── GPU 粒子渲染 ──
@@ -272,7 +272,7 @@ namespace YamaEngine.Rendering
         }
 
         /// <summary>获取或加载纹理 SRV。缓存已加载的纹理 SRV，避免重复创建。</summary>
-        private RHIDescriptorHandle GetOrLoadTextureSRV(string textureAssetPath)
+        private RHIDescriptorHandle GetOrLoadTextureSRV(string? textureAssetPath)
         {
             if (string.IsNullOrEmpty(textureAssetPath))
                 return _defaultTextureSRV;
@@ -309,22 +309,22 @@ namespace YamaEngine.Rendering
             _skinnedMeshCache.Clear();
 
             _defaultCube?.Dispose();
-            _defaultCube = null;
+            _defaultCube = null!;
 
             _lineVB?.Dispose();
-            _lineVB = null;
+            _lineVB = null!;
             _lineVBSize = 0;
 
             _defaultTexture?.Dispose();
-            _defaultTexture = null;
+            _defaultTexture = null!;
 
             _frameCB?.Dispose();
             _objectCB?.Dispose();
             _lineCB?.Dispose();
             _boneMatrixBuffer?.Dispose();
-            _frameCB = null;
-            _objectCB = null;
-            _lineCB = null;
+            _frameCB = null!;
+            _objectCB = null!;
+            _lineCB = null!;
             _boneMatrixBuffer = null;
 
             _meshPSO?.Dispose();
@@ -333,12 +333,12 @@ namespace YamaEngine.Rendering
             _rootSignature?.Dispose();
             _lineRootSignature?.Dispose();
             _skinnedRootSignature?.Dispose();
-            _meshPSO = null;
-            _linePSO = null;
-            _skinnedMeshPSO = null;
-            _rootSignature = null;
-            _lineRootSignature = null;
-            _skinnedRootSignature = null;
+            _meshPSO = null!;
+            _linePSO = null!;
+            _skinnedMeshPSO = null!;
+            _rootSignature = null!;
+            _lineRootSignature = null!;
+            _skinnedRootSignature = null!;
 
             _meshPipelineInitialized = false;
             _linePipelineInitialized = false;
@@ -1023,7 +1023,7 @@ namespace YamaEngine.Rendering
                     if (renderMesh == null || !renderMesh.IsVisible) continue;
 
                     // 查找已缓存的 GPU 资源
-                    MeshGPUResources gpuMesh = null;
+                    MeshGPUResources? gpuMesh = null;
                     if (!string.IsNullOrEmpty(renderMesh.MeshAssetPath) &&
                         _meshCache.TryGetValue(renderMesh.MeshAssetPath, out var cached))
                     {
@@ -1040,7 +1040,7 @@ namespace YamaEngine.Rendering
                     if (gpuMesh == null) continue;
 
                     // ── 纹理绑定：按材质的 TextureAssetPath 加载真实纹理 ──
-                    string texPath = renderMesh.Material?.TextureAssetPath;
+                    string? texPath = renderMesh.Material?.TextureAssetPath;
                     var textureSRV = GetOrLoadTextureSRV(texPath);
                     bool useRealTexture = textureSRV.IsValid &&
                                           (!_lastBoundTextureSRV.IsValid ||
@@ -1113,7 +1113,7 @@ namespace YamaEngine.Rendering
                         _lastBoundTextureSRV = _defaultTextureSRV;
                     }
 
-                    UpdateObjectConstants(null, 0.0f);
+                    UpdateObjectConstants(null!, 0.0f);
                     cmd.SetGraphicsRootConstantBufferView(1, _objectCB);
 
                     cmd.IASetVertexBuffers(
@@ -1147,7 +1147,7 @@ namespace YamaEngine.Rendering
         /// <summary>
         /// 渲染 FlowVFX GPU 粒子。
         /// </summary>
-        private void RenderParticles(RHICommandList cmd, IRenderScene scene, in CameraData camera)
+        private void RenderParticles(RHICommandList cmd, IRenderScene? scene, in CameraData camera)
         {
             if (_particleRenderer == null || _particleBridge == null || ActiveParticleSimulation == null)
                 return;
@@ -1173,7 +1173,7 @@ namespace YamaEngine.Rendering
                     if (renderMesh == null || !renderMesh.IsVisible || !renderMesh.CastShadow) continue;
 
                     // 查找已缓存的 GPU 资源
-                    MeshGPUResources gpuMesh = null;
+                    MeshGPUResources? gpuMesh = null;
                     if (!string.IsNullOrEmpty(renderMesh.MeshAssetPath) &&
                         _meshCache.TryGetValue(renderMesh.MeshAssetPath, out var cached))
                     {
@@ -1262,7 +1262,7 @@ namespace YamaEngine.Rendering
 
             // 4. 绑定常量缓冲区
             cmd.SetGraphicsRootConstantBufferView(0, _frameCB);
-            cmd.SetGraphicsRootConstantBufferView(2, _boneMatrixBuffer);
+            cmd.SetGraphicsRootConstantBufferView(2, _boneMatrixBuffer!);
 
             // 5. 绑定阴影资源 (b3 ShadowConstants + t1 ShadowMap)
             if (_shadowCB != null)

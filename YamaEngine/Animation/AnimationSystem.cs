@@ -520,6 +520,10 @@ namespace YamaEngine.Animation
         public Skeleton? RuntimeSkeleton;
         /// <summary>运行时动画剪辑资源（按 AnimationClipId 解析）。</summary>
         public AnimationClip? RuntimeClip;
+        /// <summary>动画蓝图资产 Id (按 AnimationBlueprintId 解析为 AnimatorController)。</summary>
+        public Guid AnimationBlueprintId;
+        /// <summary>已构建的运行时控制器 (由 EcsAnimationBridge 从蓝图资产填充)。</summary>
+        public AnimatorController? RuntimeController;
         /// <summary>骨骼资源 Id。</summary>
         public Guid SkeletonId;
         /// <summary>动画剪辑资源 Id。</summary>
@@ -547,6 +551,8 @@ namespace YamaEngine.Animation
             Enabled = true;
             RuntimeSkeleton = null;
             RuntimeClip = null;
+            AnimationBlueprintId = default;
+            RuntimeController = null;
             SkeletonId = default;
             AnimationClipId = default;
             CurrentState = string.Empty;

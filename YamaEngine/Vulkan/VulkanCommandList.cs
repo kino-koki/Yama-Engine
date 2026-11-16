@@ -435,6 +435,14 @@ namespace YamaEngine.RHI.Vulkan
             VkHelper.Check(Device.Vk.BeginCommandBuffer(CmdBuffer, &beginInfo),
                 "Failed to begin command buffer");
             _isRecording = true;
+
+            // 生命周期防护（诊断文档 §3.3 / 隐患 E）：命令缓冲重启时清空跨帧缓存的
+            // PSO 与根签名引用，避免上一帧已销毁的 PSO 仍被 SetPipelineState 之外的路径引用。
+            _currentPSO = null;
+            _currentGraphicsRoot = null;
+            _currentComputeRoot = null;
+            _currentBindPoint = 0;
+            _isRendering = false;
         }
 
         public override void Close()
@@ -1153,11 +1161,17 @@ namespace YamaEngine.RHI.Vulkan
 
         public override void SetPipelineState(RHIPipelineState pso)
         {
-            _currentPSO = (VulkanPipelineState)pso;
-            Device.Vk.CmdBindPipeline(CmdBuffer, _currentPSO.BindPoint, _currentPSO.VkPipeline);
-            _currentBindPoint = _currentPSO.BindPoint;
+            if (pso is not VulkanPipelineState vk)
+                throw new ArgumentNullException(nameof(pso));
+            if (vk.VkPipeline.Handle == 0UL)
+                throw new InvalidOperationException(
+                    $"Pipeline '{vk.Name}' has no valid VkPipeline (create failed or was disposed).");
 
-            if (_currentPSO.BindPoint == PipelineBindPoint.Graphics)
+            _currentPSO = vk;
+            Device.Vk.CmdBindPipeline(CmdBuffer, vk.BindPoint, vk.VkPipeline);
+            _currentBindPoint = vk.BindPoint;
+
+            if (vk.BindPoint == PipelineBindPoint.Graphics)
                 _currentGraphicsRoot = null; // Will need to be set explicitly
             else
                 _currentComputeRoot = null;

@@ -284,7 +284,7 @@ namespace YamaEngine.Animation
         /// Compute the weighted Euclidean distance between two feature vectors.
         /// Weights control the relative importance of each feature group.
         /// </summary>
-        public static float WeightedDistance(float[] a, float[] b, float[] weights)
+        public static float WeightedDistance(float[] a, float[] b, float[]? weights)
         {
             int len = Math.Min(a.Length, b.Length);
             float sum = 0f;
@@ -318,7 +318,7 @@ namespace YamaEngine.Animation
         /// Uses finite differences for velocity and acceleration.
         /// </summary>
         public static MotionMatchingFeature ComputeFromClip(
-            AnimationClipReal clip, Skeleton skeleton, int rootBoneIndex,
+            AnimationClipReal? clip, Skeleton? skeleton, int rootBoneIndex,
             int leftFootIndex, int rightFootIndex, float time, float dt = 0.033f)
         {
             var feature = new MotionMatchingFeature();
@@ -407,16 +407,16 @@ namespace YamaEngine.Animation
         public int FrameIndex { get; set; }
 
         /// <summary>Computed feature vector.</summary>
-        public MotionMatchingFeature Feature { get; set; }
+        public MotionMatchingFeature Feature { get; set; } = null!;
 
         /// <summary>Cached float array of the feature.</summary>
-        public float[] FeatureArray { get; set; }
+        public float[] FeatureArray { get; set; } = null!;
 
         /// <summary>Sampled pose at this frame.</summary>
-        public SkeletonPose Pose { get; set; }
+        public SkeletonPose Pose { get; set; } = null!;
 
         /// <summary>Source clip reference.</summary>
-        public AnimationClipReal Clip { get; set; }
+        public AnimationClipReal Clip { get; set; } = null!;
     }
 
     // ========================================================================
@@ -437,13 +437,13 @@ namespace YamaEngine.Animation
         {
             public int SplitDimension;
             public float SplitValue;
-            public KDNode Left;
-            public KDNode Right;
-            public MotionMatchingFrame Frame; // Only for leaf nodes
+            public KDNode? Left;
+            public KDNode? Right;
+            public MotionMatchingFrame? Frame; // Only for leaf nodes
             public bool IsLeaf => Frame != null;
         }
 
-        private KDNode _root;
+        private KDNode? _root;
         private int _dimensions;
 
         /// <summary>Maximum number of frames in a leaf node before splitting.</summary>
@@ -470,7 +470,7 @@ namespace YamaEngine.Animation
         /// <summary>
         /// Recursively build a kd-tree node from a list of frames.
         /// </summary>
-        private KDNode BuildNode(List<MotionMatchingFrame> frames, int depth)
+        private KDNode? BuildNode(List<MotionMatchingFrame> frames, int depth)
         {
             if (frames.Count == 0) return null;
 
@@ -568,12 +568,12 @@ namespace YamaEngine.Animation
         /// Uses branch-and-bound: traverses the tree, pruning branches that
         /// cannot contain a closer point.
         /// </summary>
-        public MotionMatchingFrame FindNearest(float[] query, float[] weights = null)
+        public MotionMatchingFrame? FindNearest(float[] query, float[]? weights = null)
         {
             if (_root == null || query == null) return null;
 
             float bestDist = float.MaxValue;
-            MotionMatchingFrame bestFrame = null;
+            MotionMatchingFrame? bestFrame = null;
 
             SearchNearest(_root, query, weights, ref bestDist, ref bestFrame);
             return bestFrame;
@@ -582,15 +582,15 @@ namespace YamaEngine.Animation
         /// <summary>
         /// Recursively search for the nearest neighbor.
         /// </summary>
-        private void SearchNearest(KDNode node, float[] query, float[] weights,
-            ref float bestDist, ref MotionMatchingFrame bestFrame)
+        private void SearchNearest(KDNode? node, float[] query, float[]? weights,
+            ref float bestDist, ref MotionMatchingFrame? bestFrame)
         {
             if (node == null) return;
 
             if (node.IsLeaf)
             {
                 float dist = MotionMatchingFeature.WeightedDistance(
-                    query, node.Frame.FeatureArray, weights);
+                    query, node.Frame!.FeatureArray, weights);
                 if (dist < bestDist)
                 {
                     bestDist = dist;
@@ -601,7 +601,7 @@ namespace YamaEngine.Animation
 
             // Determine which side to search first
             float queryVal = query[node.SplitDimension];
-            KDNode near, far;
+            KDNode? near, far;
             if (queryVal <= node.SplitValue)
             {
                 near = node.Left;
@@ -633,7 +633,7 @@ namespace YamaEngine.Animation
         /// Returns up to k frames sorted by distance.
         /// </summary>
         public List<(MotionMatchingFrame frame, float distance)> FindKNearest(
-            float[] query, int k, float[] weights = null)
+            float[] query, int k, float[]? weights = null)
         {
             if (_root == null || query == null) return new List<(MotionMatchingFrame, float)>();
 
@@ -645,7 +645,7 @@ namespace YamaEngine.Animation
             return results;
         }
 
-        private void SearchKNearest(KDNode node, float[] query, int k, float[] weights,
+        private void SearchKNearest(KDNode? node, float[] query, int k, float[]? weights,
             List<(MotionMatchingFrame frame, float distance)> results)
         {
             if (node == null) return;
@@ -653,13 +653,13 @@ namespace YamaEngine.Animation
             if (node.IsLeaf)
             {
                 float dist = MotionMatchingFeature.WeightedDistance(
-                    query, node.Frame.FeatureArray, weights);
-                results.Add((node.Frame, dist));
+                    query, node.Frame!.FeatureArray, weights);
+                results.Add((node.Frame!, dist));
                 return;
             }
 
             float queryVal = query[node.SplitDimension];
-            KDNode near, far;
+            KDNode? near, far;
             if (queryVal <= node.SplitValue)
             {
                 near = node.Left;
@@ -707,7 +707,7 @@ namespace YamaEngine.Animation
         public List<AnimationClipReal> Clips { get; } = new List<AnimationClipReal>();
 
         /// <summary>Skeleton used for pose sampling.</summary>
-        public Skeleton Skeleton { get; set; }
+        public Skeleton? Skeleton { get; set; }
 
         /// <summary>Root bone index for feature extraction.</summary>
         public int RootBoneIndex { get; set; } = 0;
@@ -722,19 +722,20 @@ namespace YamaEngine.Animation
         public float SampleRate { get; set; } = 30f;
 
         /// <summary>KD-tree for accelerated nearest-neighbor search.</summary>
-        public KDTree Tree { get; private set; }
+        public KDTree? Tree { get; private set; }
 
         /// <summary>
         /// Build the database from a set of animation clips. For each clip,
         /// samples at regular intervals (1/SampleRate seconds) and computes
         /// a feature vector for each frame.
         /// </summary>
-        public void Build(List<AnimationClipReal> clips, Skeleton skeleton,
+        public void Build(List<AnimationClipReal>? clips, Skeleton? skeleton,
             int rootBoneIndex, int leftFootIndex, int rightFootIndex)
         {
             Frames.Clear();
             Clips.Clear();
-            Clips.AddRange(clips);
+            if (clips != null)
+                foreach (var c in clips) Clips.Add(c);
             Skeleton = skeleton;
             RootBoneIndex = rootBoneIndex;
             LeftFootBoneIndex = leftFootIndex;
@@ -785,7 +786,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get a frame by its global index.</summary>
-        public MotionMatchingFrame GetFrame(int index)
+        public MotionMatchingFrame? GetFrame(int index)
         {
             if (index < 0 || index >= Frames.Count) return null;
             return Frames[index];
@@ -813,7 +814,7 @@ namespace YamaEngine.Animation
         /// Feature weights for distance computation. Controls the relative
         /// importance of each feature component.
         /// </summary>
-        public float[] FeatureWeights { get; set; }
+        public float[]? FeatureWeights { get; set; }
 
         /// <summary>Currently playing frame index in the database.</summary>
         public int CurrentFrameIndex { get; set; } = -1;
@@ -828,7 +829,7 @@ namespace YamaEngine.Animation
         public float RemainingBlendTime { get; set; }
 
         /// <summary>Pose at the start of the blend (for crossfading).</summary>
-        public SkeletonPose BlendStartPose { get; set; }
+        public SkeletonPose? BlendStartPose { get; set; }
 
         /// <summary>
         /// Minimum time between search queries. Prevents matching too frequently.
@@ -841,7 +842,7 @@ namespace YamaEngine.Animation
         /// <summary>
         /// Build the database from a set of clips.
         /// </summary>
-        public void BuildDatabase(List<AnimationClipReal> clips, Skeleton skeleton,
+        public void BuildDatabase(List<AnimationClipReal>? clips, Skeleton? skeleton,
             int rootBoneIndex, int leftFootIndex, int rightFootIndex)
         {
             Database.Build(clips, skeleton, rootBoneIndex, leftFootIndex, rightFootIndex);
@@ -853,7 +854,7 @@ namespace YamaEngine.Animation
         /// Find the best matching frame for the given query feature and
         /// desired trajectory. Uses the KD-tree for accelerated search.
         /// </summary>
-        public MotionMatchingFrame FindBestMatch(MotionMatchingFeature currentFeature,
+        public MotionMatchingFrame? FindBestMatch(MotionMatchingFeature currentFeature,
             MotionMatchingTrajectory desiredTrajectory)
         {
             if (Database.FrameCount == 0) return null;
@@ -891,10 +892,10 @@ namespace YamaEngine.Animation
         /// Linear search fallback (no KD-tree). Iterates through all frames
         /// and finds the one with the minimum weighted distance.
         /// </summary>
-        private MotionMatchingFrame FindBestMatchLinear(float[] query)
+        private MotionMatchingFrame? FindBestMatchLinear(float[] query)
         {
             float bestDist = float.MaxValue;
-            MotionMatchingFrame bestFrame = null;
+            MotionMatchingFrame? bestFrame = null;
 
             foreach (var frame in Database.Frames)
             {
@@ -928,12 +929,12 @@ namespace YamaEngine.Animation
         /// </summary>
         /// <param name="query">Query feature array.</param>
         /// <param name="searchRadius">Number of frames to search around the current position.</param>
-        public MotionMatchingFrame Search(float[] query, int searchRadius)
+        public MotionMatchingFrame? Search(float[] query, int searchRadius)
         {
             if (Database.FrameCount == 0) return null;
 
             float bestDist = float.MaxValue;
-            MotionMatchingFrame bestFrame = null;
+            MotionMatchingFrame? bestFrame = null;
 
             int center = CurrentFrameIndex >= 0 ? CurrentFrameIndex : 0;
             int start = Math.Max(0, center - searchRadius);
@@ -963,7 +964,7 @@ namespace YamaEngine.Animation
         /// <param name="currentFeature">Current character feature.</param>
         /// <param name="desiredTrajectory">Desired future trajectory.</param>
         /// <returns>The current pose (blended if transitioning).</returns>
-        public SkeletonPose Update(float dt, MotionMatchingFeature currentFeature,
+        public SkeletonPose? Update(float dt, MotionMatchingFeature currentFeature,
             MotionMatchingTrajectory desiredTrajectory)
         {
             if (Database.FrameCount == 0 || Database.Skeleton == null)
@@ -1028,7 +1029,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get the pose at the current matched frame.</summary>
-        private SkeletonPose GetMatchedPose()
+        private SkeletonPose? GetMatchedPose()
         {
             if (CurrentFrameIndex < 0 || CurrentFrameIndex >= Database.FrameCount)
                 return Database.Skeleton.CreateBindPose();
@@ -1045,7 +1046,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get the current pose without advancing time.</summary>
-        public SkeletonPose GetCurrentPose()
+        public SkeletonPose? GetCurrentPose()
         {
             return GetMatchedPose();
         }
@@ -1054,8 +1055,8 @@ namespace YamaEngine.Animation
         /// Blend between the current frame and a newly matched frame over
         /// the specified blend time.
         /// </summary>
-        public SkeletonPose Blending(MotionMatchingFrame currentFrame,
-            MotionMatchingFrame matchedFrame, float blendTime)
+        public SkeletonPose? Blending(MotionMatchingFrame? currentFrame,
+            MotionMatchingFrame? matchedFrame, float blendTime)
         {
             if (matchedFrame == null) return currentFrame?.Pose;
             if (currentFrame == null) return matchedFrame.Pose;

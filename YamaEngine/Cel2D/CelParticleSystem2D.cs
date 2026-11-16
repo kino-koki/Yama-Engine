@@ -66,6 +66,8 @@ namespace YamaEngine.Cel2D
 
         // 运行时累计（内部）
         internal float _accum;
+        internal float _elapsed; // 非 Loop 发射器已流逝的总时间
+        internal bool _finished; // 非 Loop 发射器是否已发射完 Lifetime
     }
 
     /// <summary>
@@ -96,13 +98,23 @@ namespace YamaEngine.Cel2D
         /// <summary>持续发射（按速率）。</summary>
         public void Emit(in CelParticleEmitter2D emitter, float deltaTime)
         {
-            if (!emitter.Loop && emitter._accum >= emitter.Lifetime) return;
-            emitter._accum += deltaTime;
+            // 非 Loop：累计流逝时间达到 Lifetime 后永久停止
+            if (!emitter.Loop && emitter._elapsed >= emitter.Lifetime) return;
+            emitter._elapsed += deltaTime;
+            bool cappedThisCall = !emitter.Loop && emitter._elapsed >= emitter.Lifetime;
+
             float interval = emitter.EmissionRate > 0 ? 1f / emitter.EmissionRate : float.MaxValue;
+            emitter._accum += deltaTime;
             while (emitter._accum >= interval)
             {
                 emitter._accum -= interval;
                 SpawnOne(emitter);
+                // 非 Loop 且本次调用已跨越 Lifetime 边界 → 停止本次后续 spawn
+                if (cappedThisCall)
+                {
+                    emitter._finished = true;
+                    return;
+                }
             }
         }
 

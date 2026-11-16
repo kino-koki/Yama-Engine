@@ -1052,6 +1052,8 @@ namespace YamaEngine.RHI.Vulkan
             nuint size = 0;
             Vk.GetPipelineCacheData(VkDevice, VkPipelineCache, &size, null);
             if (size == 0) return Array.Empty<byte>();
+            if (size > int.MaxValue)
+                throw new InvalidOperationException($"PipelineCache 数据过大({size} 字节)，超过 int.MaxValue，无法分配托管数组");
 
             byte[] data = new byte[(int)size];
             fixed (byte* pData = data)

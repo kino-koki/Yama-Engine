@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>真实状态与路线图 — Yama Engine</title>
+<meta name="description" content="817 个源文件、319K 行代码，全部托管项目 0 编译错误。但编译通过不等于 GPU 已验证 — 我们把完成与未完成同样清楚地摆出来。">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="status.html">
+<link rel="alternate" hreflang="en" href="status-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<meta property="og:title" content="真实状态与路线图 — Yama Engine">
+<meta property="og:description" content="817 个源文件、319K 行代码，全部托管项目 0 编译错误。但编译通过不等于 GPU 已验证 — 我们把完成与未完成同样清楚地摆出来。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html" data-nav="why">为什么</a>
+      <a href="capabilities.html" data-nav="capabilities">能力</a>
+      <a href="scenarios.html" data-nav="scenarios">场景</a>
+      <a href="architecture.html" data-nav="architecture">架构</a>
+      <a href="compare.html">对比</a>
+      <a href="status.html" data-nav="status" aria-current="page">真实状态</a>
+      <a href="faq.html" data-nav="faq">FAQ</a>
+      <a href="poem.html" data-nav="poem">诗</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+<!-- ══════════ PAGE HERO ══════════ -->
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">05 / Honest Status</div>
+    <h1>我们告诉你<em>真实状态</em>，<br>而不是营销话术。</h1>
+    <p class="lede">
+      很多引擎官网只展示成功的部分。Yama 反过来 — 我们把已完成和未完成的事情同样清楚地摆出来，因为透明才是开源项目最大的价值。这里按成熟度、编译结果、路线图三段完整呈现。
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="open">
+  <div class="wrap">
+    <div class="sec-head reveal" style="padding-top:64px">
+      <div class="sec-index">
+        <span class="n">05-A</span>
+        <span class="t">Maturity<br>成熟度</span>
+      </div>
+      <div>
+        <h2>哪些是真的，<br>哪些还需要时间。</h2>
+        <p>Yama 的物理、AI、动画、音频、ECS 系统在算法层面已完整实现。渲染管线中的 PBR、级联阴影、骨骼蒙皮已接入主管线。但 ReSTIR 全局光照、路径追踪、MicroCluster 等高级特性目前停留在算法原型阶段。</p>
+      </div>
+    </div>
+
+    <div class="open-grid reveal" style="padding-top:28px">
+      <div class="open-left">
+        <p>所有托管项目在 2026-11-01 达到 0 编译错误，但编译通过不等于 GPU 已端到端验证 — Vulkan 运行时崩溃仍需在真实硬件上调试。</p>
+        <ul class="open-list">
+          <li>物理引擎的 GJK / EPA / SAT 碰撞检测、9 种关节约束已全部实现，有单元测试覆盖</li>
+          <li>渲染管线的 PBR + 级联阴影 + TSR 已接入 SceneRendererReal，但尚需在独显机器上验证运行时稳定性</li>
+          <li>ReSTIR、SVGF、路径追踪已写出完整算法代码，等待接入主管线并在 GPU 上跑通</li>
+          <li>DCC 桥接（Blender / Maya / Max）处于骨架级实现，能收发基本数据，但未做生产级测试</li>
+          <li>C++ 原生桥接（YamaEngineBridge）需要 Visual Studio MSBuild 单独编译，暂未纳入自动化 CI</li>
+        </ul>
+      </div>
+
+      <div class="open-metrics">
+        <h4>Maturity · 子系统成熟度</h4>
+        <div class="metric">
+          <div class="metric-row"><span class="metric-label">物理引擎</span><span class="metric-val">90<span class="unit">%</span></span></div>
+          <div class="bar"><div class="bar-fill" style="width:90%"></div></div>
+          <div class="bar-note">碰撞检测完整 · 流体/布料算法完成 · 待集成测试</div>
+        </div>
+        <div class="metric">
+          <div class="metric-row"><span class="metric-label">ECS 架构</span><span class="metric-val">85<span class="unit">%</span></span></div>
+          <div class="bar"><div class="bar-fill" style="width:85%"></div></div>
+          <div class="bar-note">Archetype / Scheduler / CommandBuffer 已落地</div>
+        </div>
+        <div class="metric">
+          <div class="metric-row"><span class="metric-label">AI 系统</span><span class="metric-val">80<span class="unit">%</span></span></div>
+          <div class="bar"><div class="bar-fill" style="width:80%"></div></div>
+          <div class="bar-note">NavMesh / GOAP / 行为树完整 · LLM 集成开发中</div>
+        </div>
+        <div class="metric">
+          <div class="metric-row"><span class="metric-label">动画系统</span><span class="metric-val">75<span class="unit">%</span></span></div>
+          <div class="bar"><div class="bar-fill" style="width:75%"></div></div>
+          <div class="bar-note">Motion Matching / IK 完成 · 需运行时验证</div>
+        </div>
+        <div class="metric">
+          <div class="metric-row"><span class="metric-label">渲染管线</span><span class="metric-val">60<span class="unit">%</span></span></div>
+          <div class="bar"><div class="bar-fill" style="width:60%"></div></div>
+          <div class="bar-note">PBR / 阴影已接入 · 高级特性待 GPU 验证</div>
+        </div>
+        <div class="metric">
+          <div class="metric-row"><span class="metric-label">DCC 桥接</span><span class="metric-val">30<span class="unit">%</span></span></div>
+          <div class="bar"><div class="bar-fill" style="width:30%"></div></div>
+          <div class="bar-note">骨架实现 · 数据能收发 · 未做生产级测试</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="build" id="build">
+  <div class="wrap">
+    <div class="sec-head reveal" style="padding-top:64px">
+      <div class="sec-index">
+        <span class="n">05-B</span>
+        <span class="t">Build<br>Status</span>
+      </div>
+      <div>
+        <h2>全部托管项目，<br><span class="accent">0 编译错误</span>。</h2>
+        <p>2026-11-01 逐项目实测。从历史峰值 1414 个编译错误一路清到今天，每一步都按根因归类留了修复记录。</p>
+      </div>
+    </div>
+
+    <table class="build-table" style="margin-top:28px">
+      <thead><tr><th>项目</th><th class="col-type">类型</th><th>编译结果</th></tr></thead>
+      <tbody>
+        <tr><td><span class="proj-name">YamaEngine</span></td><td class="col-type proj-type">C# net10.0 · 引擎核心库</td><td><span class="status pass">0 错误</span></td></tr>
+        <tr><td><span class="proj-name">YamaEditor</span></td><td class="col-type proj-type">C# net10.0-windows · WinUI 3</td><td><span class="status pass">0 错误</span></td></tr>
+        <tr><td><span class="proj-name">YamaEngine.Tests</span></td><td class="col-type proj-type">C# net8.0 · 单元测试</td><td><span class="status pass">0 错误</span></td></tr>
+        <tr><td><span class="proj-name">YamaRuntime</span></td><td class="col-type proj-type">C# net8.0 · 运行时</td><td><span class="status pass">0 错误</span></td></tr>
+        <tr><td><span class="proj-name">BlenderBridge</span></td><td class="col-type proj-type">C# net8.0 · Blender 插件</td><td><span class="status pass">0 错误</span></td></tr>
+        <tr><td><span class="proj-name">YamaCel2DSandbox / YamaVulkanSandbox</span></td><td class="col-type proj-type">C# net8.0 · 沙盒示例</td><td><span class="status pass">0 错误</span></td></tr>
+        <tr><td><span class="proj-name">YamaEngineBridge</span></td><td class="col-type proj-type">C++ vcxproj · Assimp 桥接</td><td><span class="status warn">需 VS MSBuild</span></td></tr>
+      </tbody>
+    </table>
+    <p class="build-note">注：编译通过不等于 GPU 已验证。高级渲染特性与运行时稳定性仍需在真实硬件上完成端到端确认。</p>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="wrap">
+    <div class="sec-head reveal" style="padding-top:64px">
+      <div class="sec-index">
+        <span class="n">05-C</span>
+        <span class="t">Roadmap</span>
+      </div>
+      <div>
+        <h2>下一步：<br>让它<span class="accent">真的跑起来</span>。</h2>
+        <p>从"能编译"到"能跑"，中间隔着一个真实的 GPU 端到端验证。这是 Yama 当前最集中的一块工作。</p>
+      </div>
+    </div>
+    <div class="road" style="margin-top:28px">
+      <div class="road-item done">
+        <div class="road-phase">已完成 · 2026-11-01</div>
+        <div class="road-title">全部托管项目编译清零</div>
+        <div class="road-desc">引擎库、编辑器、测试、运行时与桥接工程全部 0 错误。P0 崩溃防御补丁已落地：PSO 空句柄防护、管线创建校验、跨帧缓存清空。</div>
+      </div>
+      <div class="road-item now">
+        <div class="road-phase">进行中 · Phase 1</div>
+        <div class="road-title">真实 GPU 端到端验证</div>
+        <div class="road-desc">在独显 Windows 机器上复现并消除 VulkanPipelineState 0xC0000005 崩溃，开启 Khronos 验证层定位根因，把渲染闭环从第一个三角形推到完整 PBR 场景。</div>
+      </div>
+      <div class="road-item">
+        <div class="road-phase">规划中 · Phase 2</div>
+        <div class="road-title">高级渲染特性接入主管线</div>
+        <div class="road-desc">把 ReSTIR、SVGF、路径追踪、MicroCluster 从算法原型接进 SceneRendererReal，在真实 GPU 上验证性能与画质。</div>
+      </div>
+      <div class="road-item">
+        <div class="road-phase">规划中 · Phase 3</div>
+        <div class="road-title">工程卫生与 CI 闭环</div>
+        <div class="road-desc">清理根目录的历史分析文档与 D3D12 残留代码，补齐 C++ 桥接工程的自动化构建覆盖，建立完整的 CI/CD 流水线。</div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ══════════ FOOTER (Mistral 1:1) ══════════ -->
+
+<!-- ══════════ 《盘铭》引言带（借鉴 SenseNova）══════════ -->
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+      <div class="foot-social">
+        <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+      </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="scenarios.html">使用场景</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="get-started.html">快速上手</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="status.html">成熟度评估</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

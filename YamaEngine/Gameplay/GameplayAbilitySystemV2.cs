@@ -1930,9 +1930,10 @@ namespace YamaEngine.Gameplay
                 {
                     cb(evt);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // 吞掉异常 别让一个监听崩了整个分发
+                    // 吞掉异常 别让一个监听崩了整个分发 (记录以便排查)。
+                    System.Diagnostics.Debug.WriteLine($"[GameplayAbility] 事件监听器异常: {ex.GetType().Name}: {ex.Message}");
                 }
             }
         }
@@ -2964,9 +2965,10 @@ namespace YamaEngine.Gameplay
                             return constructor.Invoke(new object[] { spec }) as AbilityInstance;
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // 反射失败 回退到基类
+                        // 反射失败 回退到基类 (记录以便排查)。
+                        System.Diagnostics.Debug.WriteLine($"[GameplayAbility] 实例化 {type.FullName} 失败: {ex.Message}");
                     }
                 }
             }
@@ -2995,9 +2997,10 @@ namespace YamaEngine.Gameplay
                     count++;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 扫描失败 忽略
+                // 扫描失败 忽略 (记录以便排查)。
+                System.Diagnostics.Debug.WriteLine($"[GameplayAbility] 程序集扫描失败: {ex.Message}");
             }
 
             return count;

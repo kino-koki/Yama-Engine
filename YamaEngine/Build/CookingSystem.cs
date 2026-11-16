@@ -1125,7 +1125,12 @@ namespace YamaEngine.Build
                     cacheEntries = JsonSerializer.Deserialize<Dictionary<string, CookCacheEntry>>(json)
                         ?? new Dictionary<string, CookCacheEntry>();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // 烹饪缓存损坏: 记录并重建, 不静默。
+                    System.Diagnostics.Debug.WriteLine($"[Cooking] 加载烹饪缓存 {cacheFile} 失败: {ex.Message}");
+                    cacheEntries = new Dictionary<string, CookCacheEntry>();
+                }
             }
 
             foreach (var r in results)

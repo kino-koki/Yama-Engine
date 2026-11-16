@@ -312,6 +312,18 @@ namespace YamaEngine.Vulkan
                 }
 
                 UIntPtr len = ShadercNative.shaderc_result_get_length(result);
+                if (len > int.MaxValue)
+                {
+                    ShadercNative.shaderc_result_release(result);
+                    sw.Stop();
+                    return new ShaderCompileResult
+                    {
+                        Success = false,
+                        ErrorMsg = "编译结果过大，超过 int.MaxValue 字节",
+                        Stage = stage,
+                        SourcePath = fileName,
+                    };
+                }
                 byte* bytes = ShadercNative.shaderc_result_get_bytes(result);
                 byte[] spv = new byte[(int)len];
                 Marshal.Copy((IntPtr)bytes, spv, 0, (int)len);

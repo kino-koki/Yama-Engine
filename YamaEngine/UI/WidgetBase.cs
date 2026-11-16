@@ -105,7 +105,7 @@ namespace YamaEngine.UI
     {
         // ── 标识 ──────────────────────────────────────────────────
         public string Name { get; set; } = "Widget";
-        public object Tag { get; set; }
+        public object? Tag { get; set; }
         public string TooltipText { get; set; } = string.Empty;
 
         // ── 生命周期状态 ──────────────────────────────────────────
@@ -175,28 +175,28 @@ namespace YamaEngine.UI
         public bool LayoutDirty { get; protected set; } = true;
 
         // ── 父子关系 ──────────────────────────────────────────────
-        public WidgetBase Parent { get; private set; }
+        public WidgetBase? Parent { get; private set; }
         private readonly List<WidgetBase> _children = new();
         public IReadOnlyList<WidgetBase> Children => _children;
 
         // ── 事件 ──────────────────────────────────────────────────
-        public event Action<WidgetBase, Vector2, MouseButton> MouseDown;
-        public event Action<WidgetBase, Vector2, MouseButton> MouseUp;
-        public event Action<WidgetBase, Vector2, MouseButton> Click;
-        public event Action<WidgetBase> MouseEnter;
-        public event Action<WidgetBase> MouseLeave;
-        public event Action<WidgetBase, Vector2> MouseMove;
-        public event Action<WidgetBase, Vector2> DragStart;
-        public event Action<WidgetBase, Vector2> DragMove;
-        public event Action<WidgetBase, Vector2> DragEnd;
-        public event Action<WidgetBase, InputKey> KeyDown;
-        public event Action<WidgetBase, InputKey> KeyUp;
-        public event Action<WidgetBase, char> TextInput;
-        public event Action<WidgetBase> FocusGained;
-        public event Action<WidgetBase> FocusLost;
-        public event Action<WidgetBase, float> Scroll;
-        public event Action<WidgetBase> Hover;
-        public event Action<WidgetBase> Unhover;
+        public event Action<WidgetBase, Vector2, MouseButton>? MouseDown;
+        public event Action<WidgetBase, Vector2, MouseButton>? MouseUp;
+        public event Action<WidgetBase, Vector2, MouseButton>? Click;
+        public event Action<WidgetBase>? MouseEnter;
+        public event Action<WidgetBase>? MouseLeave;
+        public event Action<WidgetBase, Vector2>? MouseMove;
+        public event Action<WidgetBase, Vector2>? DragStart;
+        public event Action<WidgetBase, Vector2>? DragMove;
+        public event Action<WidgetBase, Vector2>? DragEnd;
+        public event Action<WidgetBase, InputKey>? KeyDown;
+        public event Action<WidgetBase, InputKey>? KeyUp;
+        public event Action<WidgetBase, char>? TextInput;
+        public event Action<WidgetBase>? FocusGained;
+        public event Action<WidgetBase>? FocusLost;
+        public event Action<WidgetBase, float>? Scroll;
+        public event Action<WidgetBase>? Hover;
+        public event Action<WidgetBase>? Unhover;
 
         // ── 构造与生命周期 ──────────────────────────────────────
         protected WidgetBase()
@@ -304,7 +304,7 @@ namespace YamaEngine.UI
             Parent?.RemoveChild(this);
         }
 
-        public WidgetBase FindChild(string name)
+        public WidgetBase? FindChild(string name)
         {
             if (Name == name) return this;
             foreach (var child in _children)

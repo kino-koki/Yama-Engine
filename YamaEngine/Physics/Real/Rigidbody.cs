@@ -49,7 +49,7 @@ namespace YamaEngine.Physics.Real
         public Vector3 Torque { get; set; }
         public Vector3 ExternalForce { get; set; }
         public Vector3 ExternalTorque { get; set; }
-        
+
         // 材质属性
         public PhysicsMaterial? Material { get; set; }
         public float LinearDamping { get; set; } = 0.01f;
@@ -110,9 +110,15 @@ namespace YamaEngine.Physics.Real
         /// </summary>
         public void ApplyForce(Vector3 force)
         {
-            if (IsStatic || IsKinematic || IsSleeping)
+            if (IsStatic || IsKinematic)
                 return;
-                
+
+            // 外力应唤醒睡眠刚体（Box2D/PhysX 标准行为）。否则 Settle 入睡的静摩擦
+            // 盒子收到 F < μmg 的推力时力被忽略，永远保持睡眠（见 PhysicsRealismTests
+            // TestStaticFrictionHoldsBelowThreshold：报 0.9097m 漂移）。
+            if (IsSleeping)
+                WakeUp();
+
             Force += force;
         }
 
@@ -134,11 +140,15 @@ namespace YamaEngine.Physics.Real
         /// </summary>
         public void ApplyImpulse(Vector3 impulse)
         {
-            if (IsStatic || IsKinematic || IsSleeping)
+            if (IsStatic || IsKinematic)
                 return;
-                
+
+            // 外部冲量应唤醒睡眠刚体（与 ApplyForce 同理）。原实现在 IsSleeping 时
+            // 直接 return，导致 settle 入睡的盒子收到 ApplyImpulse 后速度根本没变，
+            // 后续摩擦测量建立在错误的 v0 上（见 PhysicsRealismTests.TestKineticFrictionDeceleration）。
             Velocity += impulse * InverseMass;
-            WakeUp();
+            if (IsSleeping)
+                WakeUp();
         }
 
         /// <summary>
@@ -146,13 +156,14 @@ namespace YamaEngine.Physics.Real
         /// </summary>
         public void ApplyImpulseAtPoint(Vector3 impulse, Vector3 worldPoint)
         {
-            if (IsStatic || IsKinematic || IsSleeping)
+            if (IsStatic || IsKinematic)
                 return;
-                
+
             Velocity += impulse * InverseMass;
             Vector3 r = worldPoint - Position;
             AngularVelocity += Vector3.Transform(Vector3.Cross(r, impulse), InverseInertiaTensor);
-            WakeUp();
+            if (IsSleeping)
+                WakeUp();
         }
 
         /// <summary>

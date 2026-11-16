@@ -43,6 +43,9 @@ Builds/
 *.yama.bak
 *.log
 
+# ── 测试结果 ──
+TestResults/
+
 # ── 可再生日录（不入库）──
 third_party/
 third_party/vcpkg/
@@ -102,3 +105,38 @@ test_write.txt
 /_*.json
 /_*.md
 /_repair/
+
+# ── 根目录历史分析脚本与构建日志（一次性清理后保持忽略）──
+/analyze*.py
+/fix_*.py
+/perfile.py
+/engine_build.txt
+/eval_build*.txt
+/eval_restore*.txt
+/phys_run.log
+/ai_npc.json
+/friction_dbg.txt
+/test_out.txt
+/b*.txt
+/t*.txt
+/nd*.txt
+/nb*.txt
+/tb*.txt
+/ab*.txt
+/rb*.txt
+/sd.txt
+/kd.txt
+/tbc.txt
+/test_full.txt
+
+# ── 构建/探测临时产物（根目录，不入库）──
+/build.log
+/build_out.log
+/build_log.txt
+/probe_log.txt
+/_probe*.txt
+/NuGet.fix.config
+/.gen
+/.screenshots
+/project_memory.md
+.env

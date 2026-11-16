@@ -48,7 +48,7 @@ namespace YamaEngine.AI
         public const int SaltBits = 12;
         public const int TileBits = 20;
         public const int PolyBits = 32;
-        public const int PolyIdMask = (1 << PolyBits) - 1;
+        public const uint PolyIdMask = 0xFFFFFFFF;
         public const ulong SaltMask = (1UL << SaltBits) - 1UL;
         public const ulong TileMask = (1UL << TileBits) - 1UL;
 
@@ -76,19 +76,19 @@ namespace YamaEngine.AI
     public class NavMeshPoly
     {
         public NavMeshPolyRef FirstLink; // 第一个链接
-        public int[] Verts;              // 顶点索引 (最多6个)
-        public int[] Neighbors;          // 邻居多边形索引 (最多6个)
+        public int[] Verts = Array.Empty<int>();    // 顶点索引 (最多6个)
+        public int[] Neighbors = Array.Empty<int>(); // 邻居多边形索引 (最多6个)
         public ushort Flags;              // 标志
         public byte Area;                 // 区域类型
         public int Parent;                // 父多边形 (寻路时使用)
 
         /// <summary>从旧 NavPoly 隐式转换 (兼容 NavigationSystem 数据源)。</summary>
-        public static implicit operator NavMeshPoly(NavPoly p)
+        public static implicit operator NavMeshPoly?(NavPoly p)
         {
             if (p == null) return null;
             return new NavMeshPoly
             {
-                Verts = p.Verts ?? p.VertexIndices,
+                Verts = p.Verts ?? p.VertexIndices ?? Array.Empty<int>(),
                 Neighbors = p.Neighbors ?? Array.Empty<int>(),
                 Flags = p.Flags,
                 Area = p.Area,
@@ -269,7 +269,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>提取最小节点 (ExtractMin)</summary>
-        public AStarNode ExtractMin()
+        public AStarNode? ExtractMin()
         {
             if (_heap.Count == 0) return null;
 
@@ -468,7 +468,7 @@ namespace YamaEngine.AI
             _tileLookup[(x, y)] = tile;
 
             // 为瓦片中的多边形创建引用
-            if (tile.Polys.Count > 0)
+            if (tile.Polys!.Count > 0)
             {
                 return NavMeshPolyRef.Create(tile.Salt, polyIdx, 0);
             }
@@ -499,14 +499,14 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取瓦片</summary>
-        public NavMeshTile GetTileAt(int x, int y)
+        public NavMeshTile? GetTileAt(int x, int y)
         {
             _tileLookup.TryGetValue((x, y), out var tile);
             return tile;
         }
 
         /// <summary>获取瓦片 (通过引用)</summary>
-        public NavMeshTile GetTile(NavMeshPolyRef ref_)
+        public NavMeshTile? GetTile(NavMeshPolyRef ref_)
         {
             if (!ref_.IsValid) return null;
             int tileIdx = ref_.Tile;
@@ -515,13 +515,13 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取多边形</summary>
-        public NavMeshPoly GetPoly(NavMeshPolyRef ref_)
+        public NavMeshPoly? GetPoly(NavMeshPolyRef ref_)
         {
             var tile = GetTile(ref_);
             if (tile == null) return null;
             int polyIdx = ref_.Poly;
-            if (polyIdx < 0 || polyIdx >= tile.Polys.Count) return null;
-            return tile.Polys[polyIdx];
+            if (polyIdx < 0 || polyIdx >= tile.Polys!.Count) return null;
+            return tile.Polys[polyIdx]!;
         }
 
         /// <summary>更新瓦片</summary>
@@ -553,7 +553,7 @@ namespace YamaEngine.AI
         /// <summary>获取多边形顶点 (世界坐标)</summary>
         public Vector3 GetPolyVertex(NavMeshTile tile, int vertIdx)
         {
-            if (tile == null || vertIdx < 0 || vertIdx >= tile.Verts.Count)
+            if (tile == null || vertIdx < 0 || vertIdx >= tile.Verts!.Count)
                 return Vector3.Zero;
             return tile.Verts[vertIdx];
         }
@@ -566,15 +566,15 @@ namespace YamaEngine.AI
             if (tile == null) return result;
 
             int polyIdx = ref_.Poly;
-            if (polyIdx < 0 || polyIdx >= tile.Polys.Count) return result;
+            if (polyIdx < 0 || polyIdx >= tile.Polys!.Count) return result;
 
-            var poly = tile.Polys[polyIdx];
+            var poly = tile.Polys[polyIdx]!;
             if (poly.Neighbors == null) return result;
 
             for (int i = 0; i < poly.Neighbors.Length; i++)
             {
                 int ni = poly.Neighbors[i];
-                if (ni < 0 || ni >= tile.Polys.Count) continue;
+                if (ni < 0 || ni >= tile.Polys!.Count) continue;
 
                 // 创建邻居引用
                 var nRef = NavMeshPolyRef.Create(tile.Salt, _data.Tiles.IndexOf(tile), ni);
@@ -585,7 +585,7 @@ namespace YamaEngine.AI
             foreach (var omc in tile.OffMeshCons)
             {
                 var omcRef = NavMeshPolyRef.Create(tile.Salt,
-                    _data.Tiles.IndexOf(tile), tile.Polys.Count - tile.OffMeshCons.Count +
+                    _data.Tiles.IndexOf(tile), tile.Polys!.Count - tile.OffMeshCons.Count +
                     tile.OffMeshCons.IndexOf(omc));
                 result.Add((omcRef, -1));
             }
@@ -719,7 +719,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取或创建节点</summary>
-        private AStarNode GetNode(NavMeshPolyRef ref_)
+        private AStarNode? GetNode(NavMeshPolyRef ref_)
         {
             if (_nodePool.TryGetValue(ref_.Value, out var node))
                 return node;
@@ -769,7 +769,7 @@ namespace YamaEngine.AI
                 var tile = _navMesh.GetTile(neighborRef);
                 if (tile != null && edge >= 0)
                 {
-                    int omcIdx = edge - tile.Polys.Count;
+                    int omcIdx = edge - tile.Polys!.Count;
                     // 普通边连接使用默认代价
                 }
 
@@ -819,21 +819,21 @@ namespace YamaEngine.AI
             if (tile == null) return;
 
             int polyIdx = current.PolyRef.Poly;
-            if (polyIdx < 0 || polyIdx >= tile.Polys.Count) return;
+            if (polyIdx < 0 || polyIdx >= tile.Polys!.Count) return;
 
-            var poly = tile.Polys[polyIdx];
+            var poly = tile.Polys[polyIdx]!;
 
             // 检查多边形是否在瓦片边缘
-            for (int ei = 0; ei < poly.Verts.Length; ei++)
+            for (int ei = 0; ei < poly.Verts!.Length; ei++)
             {
-                int ni = poly.Neighbors[ei];
+                int ni = poly.Neighbors![ei];
                 if (ni >= 0) continue; // 同瓦片邻居已处理
 
                 // 检查是否跨越到相邻瓦片
                 int v1 = poly.Verts[ei];
                 int v2 = poly.Verts[(ei + 1) % poly.Verts.Length];
 
-                if (v1 < 0 || v1 >= tile.Verts.Count || v2 < 0 || v2 >= tile.Verts.Count)
+                if (v1 < 0 || v1 >= tile.Verts!.Count || v2 < 0 || v2 >= tile.Verts.Count)
                     continue;
 
                 Vector3 eMid = (tile.Verts[v1] + tile.Verts[v2]) * 0.5f;
@@ -890,10 +890,11 @@ namespace YamaEngine.AI
             int tileIdx = _navMesh.Data.Tiles.IndexOf(tile);
             if (tileIdx < 0) return bestRef;
 
-            for (int i = 0; i < tile.Polys.Count; i++)
+            List<NavPoly> polys = tile.Polys!;
+            for (int i = 0; i < polys.Count; i++)
             {
-                var poly = tile.Polys[i];
-                if (!filter.IsPassable(poly)) continue;
+                NavPoly poly = polys[i]!;
+                if (!filter.IsPassable(poly!)) continue;
 
                 Vector3 center = GetPolyCenterInTile(tile, i);
                 float dist = Vector3.Distance(point, center);
@@ -947,15 +948,15 @@ namespace YamaEngine.AI
 
         private Vector3 GetPolyCenterInTile(NavMeshTile tile, int polyIdx)
         {
-            if (polyIdx < 0 || polyIdx >= tile.Polys.Count) return Vector3.Zero;
-            var poly = tile.Polys[polyIdx];
+            if (polyIdx < 0 || polyIdx >= tile.Polys!.Count) return Vector3.Zero;
+            var poly = tile.Polys[polyIdx]!;
             if (poly.Verts == null || poly.Verts.Length == 0) return Vector3.Zero;
 
             Vector3 center = Vector3.Zero;
             int count = 0;
             foreach (int vi in poly.Verts)
             {
-                if (vi >= 0 && vi < tile.Verts.Count)
+                if (vi >= 0 && vi < tile.Verts!.Count)
                 {
                     center += tile.Verts[vi];
                     count++;
@@ -1005,7 +1006,7 @@ namespace YamaEngine.AI
                 var edge = GetSharedEdge(polyPath[i], polyPath[i + 1]);
                 if (edge.Item1 != null && edge.Item2 != null)
                 {
-                    portalVerts.Add((edge.Item1, edge.Item2));
+                    portalVerts.Add((edge.Item1.Value, edge.Item2.Value));
                 }
                 else
                 {
@@ -1108,13 +1109,13 @@ namespace YamaEngine.AI
             return true;
         }
 
-        /// <summary>获取两个相邻多边形的共享边顶点</summary>
-        private (Vector3, Vector3) GetSharedEdge(NavMeshPolyRef refA, NavMeshPolyRef refB)
+        /// <summary>获取两个相邻多边形的共享边顶点。返回 (Vector3?, Vector3?)，共享边缺失时元素为 null。</summary>
+        private (Vector3?, Vector3?) GetSharedEdge(NavMeshPolyRef refA, NavMeshPolyRef refB)
         {
             var tileA = _navMesh.GetTile(refA);
             var tileB = _navMesh.GetTile(refB);
 
-            if (tileA == null || tileB == null) return (Vector3.Zero, Vector3.Zero);
+            if (tileA == null || tileB == null) return (null, null);
 
             // 如果在不同瓦片中, 用中心点近似
             if (refA.Tile != refB.Tile)
@@ -1122,23 +1123,23 @@ namespace YamaEngine.AI
                 return (GetPolyCenter(refA), GetPolyCenter(refB));
             }
 
-            var polyA = tileA.Polys[refA.Poly];
+            var polyA = tileA.Polys![refA.Poly];
             var polyB = tileA.Polys[refB.Poly];
 
             // 找共享边
-            for (int i = 0; i < polyA.Verts.Length; i++)
+            for (int i = 0; i < polyA.Verts!.Length; i++)
             {
                 int v1 = polyA.Verts[i];
                 int v2 = polyA.Verts[(i + 1) % polyA.Verts.Length];
 
-                for (int j = 0; j < polyB.Verts.Length; j++)
+                for (int j = 0; j < polyB.Verts!.Length; j++)
                 {
                     int w1 = polyB.Verts[j];
                     int w2 = polyB.Verts[(j + 1) % polyB.Verts.Length];
 
                     if ((v1 == w2 && v2 == w1) || (v1 == w1 && v2 == w2))
                     {
-                        return (tileA.Verts[v1], tileA.Verts[v2]);
+                        return (tileA.Verts![v1], tileA.Verts[v2]);
                     }
                 }
             }
@@ -1182,13 +1183,13 @@ namespace YamaEngine.AI
                 if (tile == null) break;
 
                 int polyIdx = curRef.Poly;
-                if (polyIdx < 0 || polyIdx >= tile.Polys.Count) break;
+                if (polyIdx < 0 || polyIdx >= tile.Polys!.Count) break;
 
-                var poly = tile.Polys[polyIdx];
+                var poly = tile.Polys[polyIdx]!;
 
-                // 检查射线下一步是否还在当前多边形内
-                Vector3 nextPos = startPos + dir * (t + Epsilon);
-                if (PointInPoly(nextPos, poly, tile))
+                // 检查射线终点是否在当前多边形内（终点在当前 poly → 通路畅通）
+                Vector3 targetPos = startPos + dir * maxDist;
+                if (PointInPoly(targetPos, poly!, tile))
                 {
                     t = maxDist;
                     break;
@@ -1199,22 +1200,22 @@ namespace YamaEngine.AI
                 int bestEdge = -1;
                 NavMeshPolyRef bestNeighbor = NavMeshPolyRef.Invalid;
 
-                for (int ei = 0; ei < poly.Verts.Length; ei++)
+                for (int ei = 0; ei < poly.Verts!.Length; ei++)
                 {
                     int v1 = poly.Verts[ei];
                     int v2 = poly.Verts[(ei + 1) % poly.Verts.Length];
 
-                    if (v1 < 0 || v1 >= tile.Verts.Count || v2 < 0 || v2 >= tile.Verts.Count)
+                    if (v1 < 0 || v1 >= tile.Verts!.Count || v2 < 0 || v2 >= tile.Verts.Count)
                         continue;
 
                     Vector3 ea = tile.Verts[v1];
                     Vector3 eb = tile.Verts[v2];
 
-                    // 射线-线段相交
+                    // 射线-线段相交（只接受已经越过当前 t 的交点，防止跨 poly 后回弹到共享边）
                     float edgeT, rayT;
                     if (RaySegmentIntersect(startPos, dir, ea, eb, out rayT, out edgeT))
                     {
-                        if (rayT > Epsilon && rayT < bestT)
+                        if (rayT > t + Epsilon && rayT < bestT)
                         {
                             bestT = rayT;
                             bestEdge = ei;
@@ -1227,14 +1228,14 @@ namespace YamaEngine.AI
 
                 t = bestT;
                 Vector3 hitPt = startPos + dir * t;
-                hitNormal = ComputeEdgeNormal(poly, bestEdge, tile);
+                hitNormal = ComputeEdgeNormal(poly!, bestEdge, tile);
 
                 // 获取邻居
-                int ni = poly.Neighbors[bestEdge];
-                if (ni >= 0 && ni < tile.Polys.Count)
+                int ni = poly.Neighbors![bestEdge];
+                if (ni >= 0 && ni < tile.Polys!.Count)
                 {
-                    var neighborPoly = tile.Polys[ni];
-                    if (filter.IsPassable(neighborPoly))
+                    var neighborPoly = tile.Polys[ni]!;
+                    if (filter.IsPassable(neighborPoly!))
                     {
                         int tileIdx = _navMesh.Data.Tiles.IndexOf(tile);
                         curRef = NavMeshPolyRef.Create(tile.Salt, tileIdx, ni);
@@ -1282,17 +1283,34 @@ namespace YamaEngine.AI
         /// <summary>计算边法线</summary>
         private Vector3 ComputeEdgeNormal(NavMeshPoly poly, int edgeIdx, NavMeshTile tile)
         {
-            int v1 = poly.Verts[edgeIdx];
+            int v1 = poly.Verts![edgeIdx];
             int v2 = poly.Verts[(edgeIdx + 1) % poly.Verts.Length];
 
-            if (v1 < 0 || v1 >= tile.Verts.Count || v2 < 0 || v2 >= tile.Verts.Count)
+            if (v1 < 0 || v1 >= tile.Verts!.Count || v2 < 0 || v2 >= tile.Verts.Count)
                 return Vector3.UnitY;
 
-            Vector3 edge = tile.Verts[v2] - tile.Verts[v1];
+            Vector3 va = tile.Verts[v1];
+            Vector3 vb = tile.Verts[v2];
+            Vector3 edge = vb - va;
+            // 垂直于 XZ 平面内的边：(edge.Z, 0, -edge.X) 或 (-edge.Z, 0, edge.X)
+            // 选择指向多边形外部（远离 poly 中心）的那个方向
             Vector3 normal = new Vector3(-edge.Z, 0, edge.X);
             float len = normal.Length();
             if (len > Epsilon)
                 normal /= len;
+
+            // 用多边形质心判定朝向：若法线指向质心（朝内）则翻转，使其指向外部
+            Vector3 centroid = Vector3.Zero;
+            for (int i = 0; i < poly.Verts!.Length; i++)
+            {
+                int vi = poly.Verts[i];
+                if (vi >= 0 && vi < tile.Verts!.Count) centroid += tile.Verts[vi];
+            }
+            centroid /= Math.Max(1, poly.Verts.Length);
+            Vector3 mid = (va + vb) * 0.5f;
+            if (Vector3.Dot(normal, centroid - mid) > 0f)
+                normal = -normal;
+
             return normal;
         }
 
@@ -1373,16 +1391,16 @@ namespace YamaEngine.AI
 
                 foreach (int polyIdx in candidates)
                 {
-                    if (polyIdx < 0 || polyIdx >= tile.Polys.Count) continue;
-                    var poly = tile.Polys[polyIdx];
-                    if (!filter.IsPassable(poly)) continue;
+                    if (polyIdx < 0 || polyIdx >= tile.Polys!.Count) continue;
+                    NavPoly poly = tile.Polys[polyIdx]!;
+                    if (!filter.IsPassable(poly!)) continue;
 
                     // 点投影到多边形平面
                     Vector3 polyCenter = GetPolyCenterInTile(tile, polyIdx);
-                    Vector3 projected = ProjectPointToPoly(point, poly, tile);
+                    Vector3 projected = ProjectPointToPoly(point, poly!, tile);
 
                     // 检查是否在多边形内
-                    if (PointInPoly(projected, poly, tile))
+                    if (PointInPoly(projected, poly!, tile))
                     {
                         float dist = Vector3.Distance(point, projected);
                         if (dist < bestDist)
@@ -1395,7 +1413,7 @@ namespace YamaEngine.AI
                     else
                     {
                         // 点不在多边形内, 找最近边
-                        Vector3 closest = ClosestPointOnPoly(point, poly, tile);
+                        Vector3 closest = ClosestPointOnPoly(point, poly!, tile);
                         float dist = Vector3.Distance(point, closest);
                         if (dist < bestDist)
                         {
@@ -1514,7 +1532,7 @@ namespace YamaEngine.AI
                 if (tile?.Polys == null) continue;
                 for (int p = 0; p < tile.Polys.Count; p++)
                 {
-                    var poly = tile.Polys[p];
+                    var poly = tile.Polys[p]!;
                     var verts = poly.GetVertices(tile);
                     if (verts.Count < 3) continue;
                     Vector3 c = Vector3.Zero;
@@ -1555,7 +1573,7 @@ namespace YamaEngine.AI
             if (tile.BVTree.Count == 0)
             {
                 // 没有BVH, 返回所有多边形
-                for (int i = 0; i < tile.Polys.Count; i++)
+                for (int i = 0; i < tile.Polys!.Count; i++)
                     result.Add(i);
                 return result;
             }
@@ -1601,7 +1619,7 @@ namespace YamaEngine.AI
             if (poly.Verts == null || poly.Verts.Length < 3) return point;
 
             // 计算多边形平面
-            Vector3 v0 = tile.Verts[poly.Verts[0]];
+            Vector3 v0 = tile.Verts![poly.Verts[0]];
             Vector3 v1 = tile.Verts[poly.Verts[1]];
             Vector3 v2 = tile.Verts[poly.Verts[2]];
             Vector3 normal = Vector3.Normalize(Vector3.Cross(v1 - v0, v2 - v0));
@@ -1629,7 +1647,7 @@ namespace YamaEngine.AI
                 int vi = poly.Verts[i];
                 int vj = poly.Verts[j];
 
-                if (vi < 0 || vi >= tile.Verts.Count || vj < 0 || vj >= tile.Verts.Count)
+                if (vi < 0 || vi >= tile.Verts!.Count || vj < 0 || vj >= tile.Verts.Count)
                     continue;
 
                 float xi = tile.Verts[vi].X;
@@ -1663,7 +1681,7 @@ namespace YamaEngine.AI
                 int v1 = poly.Verts[i];
                 int v2 = poly.Verts[(i + 1) % n];
 
-                if (v1 < 0 || v1 >= tile.Verts.Count || v2 < 0 || v2 >= tile.Verts.Count)
+                if (v1 < 0 || v1 >= tile.Verts!.Count || v2 < 0 || v2 >= tile.Verts.Count)
                     continue;
 
                 Vector3 a = tile.Verts[v1];

@@ -73,10 +73,10 @@ namespace YamaEngine.VFX
         public string Name { get; set; } = "Input";
         public string DisplayName { get; set; } = "Input";
         public PinDataType DataType { get; set; } = PinDataType.Float;
-        public object DefaultValue { get; set; }
+        public object? DefaultValue { get; set; }
         public bool IsRequired { get; set; } = true;
         public bool IsConnected { get; private set; }
-        public ModuleOutputPin ConnectedSource { get; private set; }
+        public ModuleOutputPin? ConnectedSource { get; private set; }
 
         /// <summary>引脚描述。</summary>
         public string Description { get; set; } = "";
@@ -105,7 +105,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>获取当前值 (如果已连接则从源获取)。</summary>
-        public object GetValue(StackParameterCollection parameters)
+        public object? GetValue(StackParameterCollection parameters)
         {
             if (IsConnected && ConnectedSource != null)
                 return ConnectedSource.GetValue(parameters);
@@ -114,7 +114,7 @@ namespace YamaEngine.VFX
             return GetDefaultForType(DataType);
         }
 
-        private static object GetDefaultForType(PinDataType type) => type switch
+        private static object? GetDefaultForType(PinDataType type) => type switch
         {
             PinDataType.Float => 0f,
             PinDataType.Int => 0,
@@ -135,7 +135,7 @@ namespace YamaEngine.VFX
         public string Name { get; set; } = "Output";
         public string DisplayName { get; set; } = "Output";
         public PinDataType DataType { get; set; } = PinDataType.Float;
-        public object Value { get; set; }
+        public object? Value { get; set; }
         public string Description { get; set; } = "";
 
         private readonly List<ModuleInputPin> _connections = new List<ModuleInputPin>();
@@ -144,12 +144,12 @@ namespace YamaEngine.VFX
         public void AddConnection(ModuleInputPin target) => _connections.Add(target);
         public void RemoveConnection(ModuleInputPin target) => _connections.Remove(target);
 
-        public object GetValue(StackParameterCollection parameters)
+        public object? GetValue(StackParameterCollection parameters)
         {
             return Value ?? GetDefaultForType(DataType);
         }
 
-        private static object GetDefaultForType(PinDataType type) => type switch
+        private static object? GetDefaultForType(PinDataType type) => type switch
         {
             PinDataType.Float => 0f,
             PinDataType.Int => 0,
@@ -338,8 +338,8 @@ namespace YamaEngine.VFX
         public string Name { get; set; } = "Param";
         public string DisplayName { get; set; } = "Param";
         public StackParameterType Type { get; set; }
-        public object Value { get; set; }
-        public object DefaultValue { get; set; }
+        public object? Value { get; set; }
+        public object? DefaultValue { get; set; }
         public string Description { get; set; } = "";
         public bool IsExposed { get; set; }
         public float MinFloat { get; set; } = float.MinValue;
@@ -347,7 +347,7 @@ namespace YamaEngine.VFX
         public int MinInt { get; set; } = int.MinValue;
         public int MaxInt { get; set; } = int.MaxValue;
 
-        public StackParameter(string name, StackParameterType type, object defaultValue)
+        public StackParameter(string name, StackParameterType type, object? defaultValue)
         {
             Name = name;
             DisplayName = name;
@@ -359,10 +359,10 @@ namespace YamaEngine.VFX
         public T GetValue<T>()
         {
             if (Value is T t) return t;
-            return default;
+            return default!;
         }
 
-        public void SetValue(object value)
+        public void SetValue(object? value)
         {
             Value = value;
         }
@@ -377,7 +377,7 @@ namespace YamaEngine.VFX
     public class StackParameterCollection
     {
         private readonly Dictionary<string, StackParameter> _parameters = new Dictionary<string, StackParameter>();
-        private readonly Dictionary<string, object> _runtimeValues = new Dictionary<string, object>();
+        private readonly Dictionary<string, object?> _runtimeValues = new Dictionary<string, object?>();
 
         public int Count => _parameters.Count;
 
@@ -388,7 +388,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>获取参数。</summary>
-        public StackParameter GetParameter(string name)
+        public StackParameter? GetParameter(string name)
         {
             _parameters.TryGetValue(name, out var param);
             return param;
@@ -401,11 +401,11 @@ namespace YamaEngine.VFX
                 return rt;
             if (_parameters.TryGetValue(name, out var param) && param.Value is T val)
                 return val;
-            return default;
+            return default!;
         }
 
         /// <summary>设置参数值。</summary>
-        public void SetParameterValue(string name, object value)
+        public void SetParameterValue(string name, object? value)
         {
             _runtimeValues[name] = value;
             if (_parameters.TryGetValue(name, out var param))
@@ -466,7 +466,7 @@ namespace YamaEngine.VFX
         public abstract void Unbind();
 
         /// <summary>获取数据 (按索引)。</summary>
-        public abstract object GetData(int index);
+        public abstract object? GetData(int index);
 
         /// <summary>获取数据数量。</summary>
         public abstract int GetDataCount();
@@ -478,14 +478,14 @@ namespace YamaEngine.VFX
     /// <summary>数组数据接口。</summary>
     public class ArrayDataInterface : StackDataInterface
     {
-        private Array _array;
+        private Array? _array;
 
         public ArrayDataInterface()
         {
             InterfaceName = "ArrayDataInterface";
         }
 
-        public void SetArray(Array array)
+        public void SetArray(Array? array)
         {
             _array = array;
             IsBound = array != null;
@@ -508,7 +508,7 @@ namespace YamaEngine.VFX
             IsBound = false;
         }
 
-        public override object GetData(int index)
+        public override object? GetData(int index)
         {
             if (_array == null || index < 0 || index >= _array.Length)
                 return null;
@@ -558,14 +558,14 @@ namespace YamaEngine.VFX
             IsBound = false;
         }
 
-        public override object GetData(int index) => null;
+        public override object? GetData(int index) => null;
         public override int GetDataCount() => _curves.Count;
     }
 
     /// <summary>纹理数据接口。</summary>
     public class TextureDataInterface : StackDataInterface
     {
-        private object _texture;
+        private object? _texture;
         private int _width;
         private int _height;
 
@@ -574,7 +574,7 @@ namespace YamaEngine.VFX
             InterfaceName = "TextureDataInterface";
         }
 
-        public void SetTexture(object texture, int width, int height)
+        public void SetTexture(object? texture, int width, int height)
         {
             _texture = texture;
             _width = width;
@@ -595,7 +595,7 @@ namespace YamaEngine.VFX
             IsBound = false;
         }
 
-        public override object GetData(int index) => _texture;
+        public override object? GetData(int index) => _texture;
         public override int GetDataCount() => 1;
     }
 
@@ -650,10 +650,10 @@ namespace YamaEngine.VFX
         public Dictionary<string, StackDataInterface> DataInterfaces = new Dictionary<string, StackDataInterface>();
 
         /// <summary>所属发射器 (运行时设置)。</summary>
-        internal StackEmitter OwnerEmitter;
+        internal StackEmitter? OwnerEmitter;
 
         /// <summary>添加输入引脚。</summary>
-        public ModuleInputPin AddInput(string name, PinDataType type, object defaultValue = null, bool required = true)
+        public ModuleInputPin AddInput(string name, PinDataType type, object? defaultValue = null, bool required = true)
         {
             var pin = new ModuleInputPin
             {
@@ -668,7 +668,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>添加输出引脚。</summary>
-        public ModuleOutputPin AddOutput(string name, PinDataType type, object value = null)
+        public ModuleOutputPin AddOutput(string name, PinDataType type, object? value = null)
         {
             var pin = new ModuleOutputPin
             {
@@ -682,7 +682,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>获取输入引脚。</summary>
-        public ModuleInputPin GetInput(string name)
+        public ModuleInputPin? GetInput(string name)
         {
             foreach (var pin in Inputs)
                 if (pin.Name == name) return pin;
@@ -690,7 +690,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>获取输出引脚。</summary>
-        public ModuleOutputPin GetOutput(string name)
+        public ModuleOutputPin? GetOutput(string name)
         {
             foreach (var pin in Outputs)
                 if (pin.Name == name) return pin;
@@ -768,7 +768,7 @@ namespace YamaEngine.VFX
         // ── 运行时 ──
         public float EmitterTime { get; private set; }
         private float _spawnAccumulator;
-        private List<StackModule> _sortedModules;
+        private List<StackModule> _sortedModules = null!;
 
         /// <summary>参数绑定映射。</summary>
         private readonly Dictionary<string, string> _paramBindings = new Dictionary<string, string>();
@@ -808,7 +808,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>查找模块。</summary>
-        public T FindModule<T>(string name) where T : StackModule
+        public T? FindModule<T>(string name) where T : StackModule
         {
             foreach (var m in ModuleStack)
             {
@@ -863,7 +863,7 @@ namespace YamaEngine.VFX
         {
             if (_sortedModules == null)
                 RebuildDependencyGraph();
-            return _sortedModules;
+            return _sortedModules!;
         }
 
         /// <summary>初始化发射器。</summary>
@@ -1452,7 +1452,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>获取发射器。</summary>
-        public StackEmitter GetEmitter(string emitterId)
+        public StackEmitter? GetEmitter(string emitterId)
         {
             foreach (var e in _emitters)
                 if (e.EmitterId == emitterId) return e;
@@ -1490,7 +1490,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>为发射器生成 GPU 计算着色器。</summary>
-        public string GenerateComputeShaderForEmitter(string emitterId)
+        public string? GenerateComputeShaderForEmitter(string emitterId)
         {
             var emitter = GetEmitter(emitterId);
             if (emitter == null) return null;
@@ -1498,7 +1498,7 @@ namespace YamaEngine.VFX
         }
 
         /// <summary>为发射器生成 GPU 顶点着色器。</summary>
-        public string GenerateVertexShaderForEmitter(string emitterId)
+        public string? GenerateVertexShaderForEmitter(string emitterId)
         {
             var emitter = GetEmitter(emitterId);
             if (emitter == null) return null;

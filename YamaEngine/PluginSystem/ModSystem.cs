@@ -202,7 +202,7 @@ namespace YamaEngine.PluginSystem
 
             string json = File.ReadAllText(path);
             var manifest = JsonSerializer.Deserialize<ModManifest>(json, JsonOpts) ?? new ModManifest();
-            manifest.ModPath = Path.GetDirectoryName(path);
+            manifest.ModPath = Path.GetDirectoryName(path) ?? string.Empty;
 
             if (string.IsNullOrEmpty(manifest.Info.ModId))
                 manifest.Info.ModId = manifest.Info.Name;
@@ -211,7 +211,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>保存清单到文件。</summary>
-        public void SaveToFile(string path = null)
+        public void SaveToFile(string? path = null)
         {
             path ??= Path.Combine(ModPath, "mod.json");
             string json = JsonSerializer.Serialize(this, JsonOpts);
@@ -220,7 +220,7 @@ namespace YamaEngine.PluginSystem
 
         public static bool TryLoadFromFile(string path, out ModManifest manifest)
         {
-            manifest = null;
+            manifest = null!;
             try
             {
                 if (!File.Exists(path)) return false;
@@ -268,11 +268,11 @@ namespace YamaEngine.PluginSystem
     public sealed class ModConflict
     {
         public ModConflictType ConflictType { get; set; }
-        public string ModId1 { get; set; }
-        public string ModId2 { get; set; }
-        public string ResourcePath { get; set; }
-        public string Description { get; set; }
-        public string Resolution { get; set; }
+        public string ModId1 { get; set; } = string.Empty;
+        public string ModId2 { get; set; } = string.Empty;
+        public string ResourcePath { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Resolution { get; set; } = string.Empty;
 
         public override string ToString() =>
             $"[{ConflictType}] {ModId1} vs {ModId2}: {ResourcePath} - {Description}";
@@ -285,7 +285,7 @@ namespace YamaEngine.PluginSystem
     /// <summary>Mod 内容包。</summary>
     public sealed class ModContentPackage
     {
-        public string ModId { get; set; }
+        public string ModId { get; set; } = string.Empty;
         public List<string> AssetFiles { get; } = new List<string>();
         public List<string> ScriptFiles { get; } = new List<string>();
         public Dictionary<string, object> ConfigValues { get; } = new Dictionary<string, object>();
@@ -326,12 +326,12 @@ namespace YamaEngine.PluginSystem
     /// <summary>Mod 实例。</summary>
     public sealed class Mod
     {
-        public ModManifest Manifest { get; set; }
-        public ModInfo Info => Manifest?.Info;
+        public ModManifest? Manifest { get; set; }
+        public ModInfo? Info => Manifest?.Info;
         public ModState State { get; internal set; } = ModState.Inactive;
         public ModContentPackage Content { get; } = new ModContentPackage();
-        public PluginConfig Config { get; internal set; }
-        public PluginLogger Logger { get; internal set; }
+        public PluginConfig? Config { get; internal set; }
+        public PluginLogger? Logger { get; internal set; }
         public string ModId => Info?.ModId ?? string.Empty;
         public DateTime InstallDate { get; set; } = DateTime.Now;
         public DateTime LastLoadTime { get; internal set; }
@@ -479,11 +479,11 @@ namespace YamaEngine.PluginSystem
         private readonly PluginLogger _logger = new PluginLogger("ModManager");
 
         // 事件
-        public event Action<Mod> OnModInstalled;
-        public event Action<Mod> OnModUninstalled;
-        public event Action<Mod> OnModEnabled;
-        public event Action<Mod> OnModDisabled;
-        public event Action<Mod, ModConflict> OnModConflict;
+        public event Action<Mod>? OnModInstalled;
+        public event Action<Mod>? OnModUninstalled;
+        public event Action<Mod>? OnModEnabled;
+        public event Action<Mod>? OnModDisabled;
+        public event Action<Mod, ModConflict>? OnModConflict;
 
         private ModManager()
         {
@@ -573,7 +573,7 @@ namespace YamaEngine.PluginSystem
                 }
 
                 string manifestFile = manifestFiles[0];
-                string modDir = Path.GetDirectoryName(manifestFile);
+                string modDir = Path.GetDirectoryName(manifestFile) ?? string.Empty;
                 var manifest = ModManifest.LoadFromFile(manifestFile);
                 manifest.Source = ModSource.CompressedPackage;
 
@@ -866,6 +866,7 @@ namespace YamaEngine.PluginSystem
                     foreach (var kv in _mods)
                     {
                         if (kv.Key == manifest.Info.ModId) continue;
+                        if (kv.Value.Manifest is null) continue;
                         string otherAsset = Path.Combine(kv.Value.Manifest.FullAssetsPath, relPath);
                         if (File.Exists(otherAsset))
                         {
@@ -892,6 +893,7 @@ namespace YamaEngine.PluginSystem
                     foreach (var kv in _mods)
                     {
                         if (kv.Key == manifest.Info.ModId) continue;
+                        if (kv.Value.Manifest is null) continue;
                         string otherScript = Path.Combine(kv.Value.Manifest.FullScriptsPath, relPath);
                         if (File.Exists(otherScript))
                         {
@@ -909,7 +911,7 @@ namespace YamaEngine.PluginSystem
             }
 
             foreach (var conflict in conflicts)
-                OnModConflict?.Invoke(null, conflict);
+                OnModConflict?.Invoke(null!, conflict);
 
             return conflicts;
         }
@@ -1069,7 +1071,7 @@ namespace YamaEngine.PluginSystem
 
         /// <summary>获取 Mod。</summary>
         public Mod GetMod(string modId) =>
-            _mods.TryGetValue(modId, out var mod) ? mod : null;
+            _mods.TryGetValue(modId, out var mod) ? mod : null!;
 
         /// <summary>获取所有活跃 Mod。</summary>
         public IEnumerable<Mod> GetActiveMods() =>
@@ -1116,7 +1118,7 @@ namespace YamaEngine.PluginSystem
     /// <summary>Mod 兼容性报告。</summary>
     public sealed class ModCompatibilityReport
     {
-        public string ModId { get; set; }
+        public string ModId { get; set; } = string.Empty;
         public bool IsCompatible { get; set; }
         public bool EngineCompatible { get; set; }
         public bool GameCompatible { get; set; }

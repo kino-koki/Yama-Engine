@@ -131,6 +131,9 @@ namespace YamaEngine.Assets.Importers
         private readonly List<string> _messages = new();
         private PlyImportOptions _options = new();
 
+        /// <summary>单面最大索引数 (工业级防御上限, 防损坏二进制面索引 OOM)。</summary>
+        private const int MaxIndicesPerFace = 1024 * 1024;
+
         // PLY 头部信息
         private PlyFormat _format = PlyFormat.Ascii;
         private string _version = "1.0";
@@ -255,10 +258,14 @@ namespace YamaEngine.Assets.Importers
                     case "element":
                         if (parts.Length >= 3)
                         {
+                            // 工业级防御: Count 来自未受信头部, 可为负数 → new List<T>(负) 抛异常。
+                            int count = int.Parse(parts[2], CultureInfo.InvariantCulture);
+                            if (count < 0)
+                                throw new InvalidDataException($"PLY 元素数量非法 (负): {parts[1]}={count}");
                             currentElement = new PlyElement
                             {
                                 Name = parts[1],
-                                Count = int.Parse(parts[2], CultureInfo.InvariantCulture)
+                                Count = count
                             };
                             _elements.Add(currentElement);
                         }
@@ -362,7 +369,9 @@ namespace YamaEngine.Assets.Importers
             {
                 if (element.Name == "vertex")
                 {
-                    _vertices = new List<PlyVertex>(element.Count);
+                    // 工业级防御: element.Count 来自未受信头部, 可为 2^31-1;
+                    // new List<T>(huge) 预分配会 OOM。容量钳制到剩余行数与绝对上限。
+                    _vertices = new List<PlyVertex>(SafeAsciiCapacity(element.Count, lines.Length - lineIdx));
                     for (int i = 0; i < element.Count && lineIdx < lines.Length; i++, lineIdx++)
                     {
                         _vertices.Add(ParseAsciiVertex(lines[lineIdx], element));
@@ -370,7 +379,7 @@ namespace YamaEngine.Assets.Importers
                 }
                 else if (element.Name == "face")
                 {
-                    _faces = new List<PlyFace>(element.Count);
+                    _faces = new List<PlyFace>(SafeAsciiCapacity(element.Count, lines.Length - lineIdx));
                     for (int i = 0; i < element.Count && lineIdx < lines.Length; i++, lineIdx++)
                     {
                         _faces.Add(ParseAsciiFace(lines[lineIdx], element));
@@ -378,10 +387,24 @@ namespace YamaEngine.Assets.Importers
                 }
                 else
                 {
-                    // 跳过其他元素
-                    lineIdx += element.Count;
+                    // 跳过其他元素 (工业级防御: 防 lineIdx 溢出为负)
+                    if (element.Count > 0)
+                        lineIdx += Math.Min(element.Count, Math.Max(0, lines.Length - lineIdx));
                 }
             }
+        }
+
+        /// <summary>
+        /// 工业级防御: 计算 ASCII 列表预分配容量。
+        /// element.Count 来自未受信头部; 每个元素至少占一行, 故容量不超过剩余行数;
+        /// 再钳制绝对上限防止 new List<T>(huge) OOM。
+        /// </summary>
+        private static int SafeAsciiCapacity(int declaredCount, int remainingLines)
+        {
+            const int MaxListCapacity = 16 * 1024 * 1024; // 1600万
+            if (declaredCount < 0) return 0;
+            int byLines = declaredCount <= remainingLines ? declaredCount : Math.Max(0, remainingLines);
+            return Math.Min(byLines, MaxListCapacity);
         }
 
         private List<PlyVertex> _vertices = new();
@@ -479,7 +502,8 @@ namespace YamaEngine.Assets.Importers
             if (parts.Length > 0)
             {
                 int count = int.Parse(parts[0], CultureInfo.InvariantCulture);
-                int actualCount = Math.Min(count, parts.Length - 1);
+                // 负 count（损坏文件）clamp 为 0；实际索引数不超过剩余 token 数。
+                int actualCount = Math.Clamp(count, 0, parts.Length - 1);
                 face.Indices = new int[actualCount];
 
                 for (int i = 0; i < actualCount; i++)
@@ -515,6 +539,11 @@ namespace YamaEngine.Assets.Importers
 
             foreach (var element in _elements)
             {
+                // 头部声明的元素数量来自未受信文本，可能巨大 → OOM；
+                // 每个元素至少占 1 字节，因此 Count 不能超过剩余数据字节数。
+                if (element.Count < 0 || element.Count > data.Length - offset)
+                    throw new InvalidDataException($"PLY 元素数量非法: {element.Name}={element.Count}, 剩余 {data.Length - offset}B");
+
                 if (element.Name == "vertex")
                 {
                     _vertices = new List<PlyVertex>(element.Count);
@@ -631,6 +660,10 @@ namespace YamaEngine.Assets.Importers
                 {
                     // 面索引列表
                     int count = (int)ReadBinaryValue(data, ref offset, prop.ListCountType, isLittleEndian);
+                    // count 来自损坏字节时可能为巨大值 → OOM；每个索引至少 1 字节，
+                    // 因此 count 不能超过剩余数据字节数；再钳制绝对上限防大缓冲 OOM。
+                    if (count < 0 || count > data.Length - offset || count > MaxIndicesPerFace)
+                        throw new InvalidDataException($"PLY 面索引数量非法: {count}, 剩余 {data.Length - offset}B");
                     face.Indices = new int[count];
                     for (int i = 0; i < count; i++)
                         face.Indices[i] = (int)ReadBinaryValue(data, ref offset, prop.ListElementType, isLittleEndian);
@@ -648,6 +681,19 @@ namespace YamaEngine.Assets.Importers
         /// <summary>读取二进制值。</summary>
         private static double ReadBinaryValue(byte[] data, ref int offset, PlyDataType type, bool isLittleEndian)
         {
+            // 统一前置守卫：确保本次读取所需的字节完整落在 data 内，
+            // 否则损坏的二进制 PLY 会触发 IndexOutOfRange（而非可诊断的 InvalidData）。
+            int needed = type switch
+            {
+                PlyDataType.Char or PlyDataType.UChar => 1,
+                PlyDataType.Short or PlyDataType.UShort => 2,
+                PlyDataType.Int or PlyDataType.UInt or PlyDataType.Float => 4,
+                PlyDataType.Double => 8,
+                _ => 1
+            };
+            if (offset < 0 || offset + needed > data.Length)
+                throw new InvalidDataException($"PLY 二进制值越界: offset={offset}, 需要 {needed}B, 数据 {data.Length}B");
+
             double result = 0;
 
             switch (type)
@@ -727,6 +773,10 @@ namespace YamaEngine.Assets.Importers
                 if (prop.IsList)
                 {
                     int count = (int)ReadBinaryValue(data, ref offset, prop.ListCountType, isLittleEndian);
+                    // 列表元素数量不能超过剩余数据字节（每个元素至少 1 字节），
+                    // 否则损坏文件会导致海量循环或越界。
+                    if (count < 0 || count > data.Length - offset)
+                        throw new InvalidDataException($"PLY 列表元素数量非法: {count}, 剩余 {data.Length - offset}B");
                     for (int i = 0; i < count; i++)
                         ReadBinaryValue(data, ref offset, prop.ListElementType, isLittleEndian);
                 }
@@ -762,10 +812,21 @@ namespace YamaEngine.Assets.Importers
             }
 
             // 添加面索引（三角化）
+            // 工业级防御: face.Indices 来自文件, 可为负/巨值 → mesh.Indices 含越界索引,
+            // 下游渲染/法线生成有 OOB 风险。统一校验 0 <= idx < _vertices.Count。
+            int vertexCount = _vertices.Count;
             foreach (var face in _faces)
             {
                 if (face.Indices == null || face.Indices.Length < 3)
                     continue;
+
+                for (int fi = 0; fi < face.Indices.Length; fi++)
+                {
+                    int idx = face.Indices[fi];
+                    if (idx < 0 || idx >= vertexCount)
+                        throw new InvalidDataException(
+                            $"PLY 面索引越界: {idx} (顶点数 {vertexCount})");
+                }
 
                 if (face.Indices.Length == 3)
                 {

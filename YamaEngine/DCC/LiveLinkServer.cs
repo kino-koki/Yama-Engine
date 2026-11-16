@@ -17,19 +17,19 @@ namespace YamaEngine.DCC
     /// </summary>
     public class LiveLinkServer
     {
-        private TcpListener _listener;
-        private TcpClient _client;
-        private NetworkStream _stream;
-        private CancellationTokenSource _cts;
+        private TcpListener _listener = null!;
+        private TcpClient? _client;
+        private NetworkStream? _stream;
+        private CancellationTokenSource _cts = null!;
         private readonly int _port;
         private bool _isRunning;
-        private Task _receiveTask;
-        private Task _heartbeatTask;
+        private Task? _receiveTask;
+        private Task? _heartbeatTask;
         private readonly List<byte> _receiveBuffer = new();
-        
+
         // UDP 支持 (用于高频动画数据和广播发现)
-        private UdpClient _udpClient;
-        private Task _udpReceiveTask;
+        private UdpClient? _udpClient;
+        private Task? _udpReceiveTask;
         private readonly int _udpPort;
         
         // 时间同步状态
@@ -37,14 +37,14 @@ namespace YamaEngine.DCC
         private double _roundTripTimeMs;     // 最近一次 RTT (ms)
         private long _timeSyncCounter;
         
-        public event Action<string> OnLogMessage;
-        public event Action<DCCSceneData> OnSceneReceived;
-        public event Action<string[]> OnSelectionReceived;
-        public event Action<string, Matrix4x4> OnTransformReceived;
-        public event Action<LiveLinkAnimationFrame> OnAnimationFrameReceived;
-        public event Action<TimeSyncResult> OnTimeSyncCompleted;
-        public event Action OnClientConnected;
-        public event Action OnClientDisconnected;
+        public event Action<string>? OnLogMessage;
+        public event Action<DCCSceneData>? OnSceneReceived;
+        public event Action<string[]>? OnSelectionReceived;
+        public event Action<string, Matrix4x4>? OnTransformReceived;
+        public event Action<LiveLinkAnimationFrame>? OnAnimationFrameReceived;
+        public event Action<TimeSyncResult>? OnTimeSyncCompleted;
+        public event Action? OnClientConnected;
+        public event Action? OnClientDisconnected;
 
         public bool IsConnected => _client?.Connected ?? false;
         public bool IsRunning => _isRunning;
@@ -226,7 +226,7 @@ namespace YamaEngine.DCC
                     {
                         var names = new List<string>();
                         foreach (var item in objects.EnumerateArray())
-                            names.Add(item.GetString());
+                            names.Add(item.GetString() ?? string.Empty);
                         OnSelectionReceived?.Invoke(names.ToArray());
                     }
                     break;
@@ -237,7 +237,7 @@ namespace YamaEngine.DCC
                         trPayload.TryGetProperty("transform", out var transform))
                     {
                         var matrix = ParseTransform(transform);
-                        OnTransformReceived?.Invoke(name.GetString(), matrix);
+                        OnTransformReceived?.Invoke(name.GetString() ?? string.Empty, matrix);
                     }
                     break;
 
@@ -276,7 +276,7 @@ namespace YamaEngine.DCC
             try
             {
                 if (root.TryGetProperty("name", out var nameEl))
-                    scene.Name = nameEl.GetString();
+                    scene.Name = nameEl.GetString() ?? string.Empty;
                 if (root.TryGetProperty("source", out var sourceEl))
                     scene.SourceApplication = ParseDCCApp(sourceEl.GetString());
 
@@ -332,7 +332,7 @@ namespace YamaEngine.DCC
         {
             var mesh = new DCCMeshData
             {
-                Name = el.TryGetProperty("name", out var n) ? n.GetString() : "Unknown",
+                Name = el.TryGetProperty("name", out var n) ? (n.GetString() ?? "Unknown") : "Unknown",
                 Vertices = new List<DCCVertex>(),
                 Indices = new List<int>(),
                 MaterialNames = new List<string>(),
@@ -409,7 +409,7 @@ namespace YamaEngine.DCC
                     {
                         if (m.TryGetProperty("name", out var mn))
                         {
-                            mesh.MaterialNames.Add(mn.GetString());
+                            mesh.MaterialNames.Add(mn.GetString() ?? string.Empty);
                             if (m.TryGetProperty("diffuseColor", out var dc))
                             {
                                 var arr = dc.EnumerateArray().ToArray();
@@ -436,7 +436,7 @@ namespace YamaEngine.DCC
         {
             var mat = new DCCMaterialData
             {
-                Name = el.TryGetProperty("name", out var n) ? n.GetString() : "Default"
+                Name = el.TryGetProperty("name", out var n) ? (n.GetString() ?? "Default") : "Default"
             };
 
             if (el.TryGetProperty("diffuseColor", out var dc))
@@ -461,11 +461,11 @@ namespace YamaEngine.DCC
         {
             var light = new DCCLightData
             {
-                Name = el.TryGetProperty("name", out var n) ? n.GetString() : "Light"
+                Name = el.TryGetProperty("name", out var n) ? (n.GetString() ?? "Light") : "Light"
             };
 
             if (el.TryGetProperty("type", out var t))
-                light.Type = t.GetString();
+                light.Type = t.GetString() ?? "directional";
             
             if (el.TryGetProperty("color", out var c))
             {
@@ -483,7 +483,7 @@ namespace YamaEngine.DCC
         {
             var cam = new DCCCameraData
             {
-                Name = el.TryGetProperty("name", out var n) ? n.GetString() : "Camera"
+                Name = el.TryGetProperty("name", out var n) ? (n.GetString() ?? "Camera") : "Camera"
             };
             
             cam.FOV = el.TryGetProperty("fov", out var fov) ? (float)fov.GetDouble() : 50f;
@@ -494,7 +494,7 @@ namespace YamaEngine.DCC
             return cam;
         }
 
-        private DCCApplication ParseDCCApp(string app)
+        private DCCApplication ParseDCCApp(string? app)
         {
             return app?.ToLower() switch
             {
@@ -542,7 +542,7 @@ namespace YamaEngine.DCC
             return System.Numerics.Matrix4x4.Identity;
         }
 
-        public void SendCommand(string type, object payload = null)
+        public void SendCommand(string type, object? payload = null)
         {
             if (_client?.Connected != true || _stream == null) return;
 
@@ -637,7 +637,7 @@ namespace YamaEngine.DCC
         }
 
         /// <summary>通过 UDP 发送数据 (用于高频命令, 无可靠保证)。</summary>
-        public void SendUdp(string host, int port, string type, object payload = null)
+        public void SendUdp(string host, int port, string type, object? payload = null)
         {
             if (_udpClient == null) return;
             var message = new LiveLinkMessage { Type = type, Payload = payload };
@@ -667,7 +667,7 @@ namespace YamaEngine.DCC
                     {
                         var bt = new LiveLinkBoneTransform
                         {
-                            BoneName = bone.TryGetProperty("name", out var bn) ? bn.GetString() : ""
+                            BoneName = bone.TryGetProperty("name", out var bn) ? (bn.GetString() ?? "") : ""
                         };
                         if (bone.TryGetProperty("position", out var pos))
                         {
@@ -790,8 +790,8 @@ namespace YamaEngine.DCC
 
     public class LiveLinkMessage
     {
-        public string Type { get; set; }
-        public object Payload { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public object? Payload { get; set; }
     }
 
     /// <summary>LiveLink 动画帧数据: 包含骨骼变换和变形目标权重。</summary>

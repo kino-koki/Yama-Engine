@@ -1059,6 +1059,10 @@ namespace YamaEngine.Network
 
             if (length < offset + payloadLength) return false;
 
+            // 上限防御: 对端可伪造 126/127 扩展长度字段。
+            // 超过 MaxPacketSize 的帧直接丢弃, 防止分配巨量内存 (OOM DoS)。
+            if (payloadLength < 0 || payloadLength > MaxPacketSize) return false;
+
             payload = new byte[payloadLength];
             Array.Copy(data, offset, payload, 0, (int)payloadLength);
 

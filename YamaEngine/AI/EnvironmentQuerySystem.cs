@@ -127,6 +127,14 @@ namespace YamaEngine.AI
             IsSuccessful = Items.Count > 0;
         }
 
+        /// <summary>截断结果到指定数量 (用于应用 EQSQuery.MaxResults)。</summary>
+        internal void TruncateTo(int count)
+        {
+            if (count <= 0 || Items.Count <= count) return;
+            Items = Items.Take(count).ToList();
+            BestItem = Items.Count > 0 ? Items[0] : null;
+        }
+
         /// <summary>获取前N个最佳项。</summary>
         public List<EQSQueryItem> GetTopItems(int count)
         {
@@ -762,6 +770,9 @@ namespace YamaEngine.AI
             // 3. 构建结果
             var result = new EQSResult();
             result.SetItems(items);
+            // 4. 应用最大结果数量限制
+            if (MaxResults > 0)
+                result.TruncateTo(MaxResults);
             return result;
         }
 

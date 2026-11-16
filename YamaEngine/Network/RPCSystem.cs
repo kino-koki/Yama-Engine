@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -347,6 +348,11 @@ namespace YamaEngine.Network
             if (type == typeof(decimal))
             {
                 int count = reader.ReadInt();
+                // 工业级防御: count 来自未受信网络字节, 可为 int.MaxValue。
+                // decimal 恒由 4 个 int 组成, count != 4 即损坏数据。
+                // 否则 `new int[count]` 触发 OOM 崩溃。
+                if (count != 4) throw new InvalidDataException(
+                    $"Network data corrupt: decimal requires 4 int bits, got {count}.");
                 int[] bits = new int[count];
                 for (int i = 0; i < count; i++) bits[i] = reader.ReadInt();
                 return new decimal(bits);
@@ -667,6 +673,12 @@ namespace YamaEngine.Network
         public event Action<string, uint, int>? OnRpcReceived;
         public event Action<string, string, Exception>? OnRpcError;
 
+        /// <summary>
+        /// 实例目标解析器（接收端）：给定方法 ID，返回要在本端执行 RPC 的目标实例。
+        /// <para>静态 RPC 方法不需要；实例 RPC 方法必须由宿主（如 NetworkObject 系统）注册此解析器才能执行。</para>
+        /// </summary>
+        public Func<uint, object?>? TargetResolver { get; set; }
+
         /// <summary>RPC 调用统计 (按方法名)。</summary>
         private readonly ConcurrentDictionary<string, RpcCallStats> _callStats
             = new ConcurrentDictionary<string, RpcCallStats>();
@@ -674,6 +686,20 @@ namespace YamaEngine.Network
         public RpcDispatcher(RpcRegistry registry)
         {
             _registry = registry;
+        }
+
+        /// <summary>
+        /// 序列化一次 RPC 调用为字节负载（methodId + 参数），不依赖传输层。
+        /// <para>用于端到端链路：发送端序列化 → 传输 → 接收端反序列化执行。与 <c>SendRpc</c> 共用同一序列化路径。</para>
+        /// </summary>
+        public byte[] BuildPayload(RpcMethodInfo methodInfo, object?[] args)
+        {
+            var writer = new NetworkWriter(256);
+            writer.WriteUInt(methodInfo.MethodId);
+            RpcParameterSerializer.SerializeParameters(writer, methodInfo.ParameterTypes, args);
+            var result = new byte[writer.Length];
+            Array.Copy(writer.Data, result, writer.Length);
+            return result;
         }
 
         /// <summary>
@@ -708,11 +734,8 @@ namespace YamaEngine.Network
         {
             try
             {
-                // 序列化参数
-                var writer = new NetworkWriter(256);
-                writer.WriteUInt(methodInfo.MethodId);
-                RpcParameterSerializer.SerializeParameters(
-                    writer, methodInfo.ParameterTypes, args);
+                // 序列化参数（与 BuildPayload 共用同一序列化路径）
+                var payload = BuildPayload(methodInfo, args);
 
                 var manager = NetworkManager.Instance;
                 int targetConnId = 0;
@@ -746,7 +769,7 @@ namespace YamaEngine.Network
                         break;
                 }
 
-                var call = new RpcCall(methodInfo.MethodId, writer.Data, writer.Length)
+                var call = new RpcCall(methodInfo.MethodId, payload, payload.Length)
                 {
                     TargetConnectionId = targetConnId,
                     SenderConnectionId = manager.ServerConnection?.ConnectionId ?? 0,
@@ -759,21 +782,21 @@ namespace YamaEngine.Network
                 bool sent;
                 if (targetConnId != 0)
                 {
-                    sent = manager.SendTo(targetConnId, writer.Data, writer.Length);
+                    sent = manager.SendTo(targetConnId, payload, payload.Length);
                 }
                 else
                 {
-                    manager.BroadcastToAll(writer.Data, writer.Length);
+                    manager.BroadcastToAll(payload, payload.Length);
                     sent = true;
                 }
 
                 if (sent)
                 {
                     Interlocked.Increment(ref _totalCallsSent);
-                    Interlocked.Add(ref _totalBytesSent, writer.Length);
+                    Interlocked.Add(ref _totalBytesSent, payload.Length);
                     call.IsSent = true;
 
-                    RecordCall(methodInfo.FullName, writer.Length);
+                    RecordCall(methodInfo.FullName, payload.Length);
 
                     OnRpcInvoked?.Invoke("Send", methodInfo, args);
                 }
@@ -823,9 +846,24 @@ namespace YamaEngine.Network
                 object? targetInstance = null;
                 if (!methodInfo.MethodInfo.IsStatic)
                 {
-                    // 需要从上下文中获取目标实例
-                    // 实际实现中, 由 NetworkObject 系统提供
-                    return;
+                    // 实例方法：通过 TargetResolver 从宿主（NetworkObject 系统等）解析目标实例
+                    if (TargetResolver == null)
+                    {
+                        OnRpcError?.Invoke("Execute", methodInfo.FullName,
+                            new InvalidOperationException(
+                                $"RPC '{methodInfo.FullName}' 是实例方法，但未注册 TargetResolver。"));
+                        Interlocked.Increment(ref _totalErrors);
+                        return;
+                    }
+                    targetInstance = TargetResolver(methodInfo.MethodId);
+                    if (targetInstance == null)
+                    {
+                        OnRpcError?.Invoke("Execute", methodInfo.FullName,
+                            new InvalidOperationException(
+                                $"RPC '{methodInfo.FullName}' 的目标实例无法解析（MethodId={methodId}）。"));
+                        Interlocked.Increment(ref _totalErrors);
+                        return;
+                    }
                 }
 
                 methodInfo.MethodInfo.Invoke(targetInstance, args);
@@ -836,6 +874,8 @@ namespace YamaEngine.Network
 
                 Interlocked.Increment(ref _totalCallsReceived);
                 Interlocked.Add(ref _totalBytesReceived, length);
+
+                RecordCall(methodInfo.FullName, length);
 
                 OnRpcReceived?.Invoke("Execute", methodId, length);
                 OnRpcInvoked?.Invoke("Receive", methodInfo, args);

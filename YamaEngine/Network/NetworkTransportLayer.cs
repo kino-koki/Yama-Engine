@@ -287,7 +287,7 @@ namespace YamaEngine.Network
         public uint Sequence { get; set; }
 
         /// <summary>数据</summary>
-        public byte[] Data { get; set; }
+        public byte[] Data { get; set; } = System.Array.Empty<byte>();
 
         /// <summary>首次发送时间</summary>
         public long FirstSendTime { get; set; }
@@ -314,8 +314,8 @@ namespace YamaEngine.Network
     public class ConnectionEventArgs : EventArgs
     {
         public int ConnectionId { get; set; }
-        public IPEndPoint RemoteEndpoint { get; set; }
-        public string Reason { get; set; }
+        public IPEndPoint? RemoteEndpoint { get; set; }
+        public string Reason { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -337,10 +337,10 @@ namespace YamaEngine.Network
         private readonly TransportConfig _config;
 
         // UDP socket
-        private UdpClient _udpClient;
+        private UdpClient? _udpClient;
 
         // TCP listener (服务端用)
-        private TcpListener _tcpListener;
+        private TcpListener? _tcpListener;
 
         // TCP clients
         private readonly Dictionary<int, TcpClient> _tcpClients = new Dictionary<int, TcpClient>();
@@ -367,10 +367,10 @@ namespace YamaEngine.Network
         private volatile bool _running = false;
 
         // 线程
-        private Thread _sendThread;
-        private Thread _receiveThread;
-        private Thread _heartbeatThread;
-        private Thread _resendThread;
+        private Thread? _sendThread;
+        private Thread? _receiveThread;
+        private Thread? _heartbeatThread;
+        private Thread? _resendThread;
 
         // 信号量 - 有数据可发送时触发
         private readonly AutoResetEvent _sendSignal = new AutoResetEvent(false);
@@ -388,7 +388,7 @@ namespace YamaEngine.Network
         private bool _isServer = false;
 
         // 本地绑定端点
-        private IPEndPoint _localEndpoint;
+        private IPEndPoint? _localEndpoint;
 
         // 统计数据
         private long _totalBytesSent;
@@ -425,16 +425,16 @@ namespace YamaEngine.Network
         // ==================== 事件 ====================
 
         /// <summary>新连接建立时触发</summary>
-        public event EventHandler<ConnectionEventArgs> OnConnected;
+        public event EventHandler<ConnectionEventArgs>? OnConnected;
 
         /// <summary>连接断开时触发</summary>
-        public event EventHandler<ConnectionEventArgs> OnDisconnected;
+        public event EventHandler<ConnectionEventArgs>? OnDisconnected;
 
         /// <summary>收到数据包时触发</summary>
-        public event EventHandler<PacketReceivedEventArgs> OnPacketReceived;
+        public event EventHandler<PacketReceivedEventArgs>? OnPacketReceived;
 
         /// <summary>连接超时时触发</summary>
-        public event EventHandler<ConnectionEventArgs> OnConnectionTimedOut;
+        public event EventHandler<ConnectionEventArgs>? OnConnectionTimedOut;
 
         // ==================== 构造函数 ====================
 
@@ -442,7 +442,7 @@ namespace YamaEngine.Network
         /// 创建传输层实例
         /// </summary>
         /// <param name="config">传输配置</param>
-        public NetworkTransportLayer(TransportConfig config = null)
+        public NetworkTransportLayer(TransportConfig? config = null)
         {
             _config = config ?? TransportConfig.Default;
 
@@ -524,7 +524,8 @@ namespace YamaEngine.Network
                 // 启动工作线程
                 StartWorkerThreads();
 
-                Console.WriteLine($"[NetworkTransport] 客户端启动成功, 本地端口: {((IPEndPoint)_udpClient.Client.LocalEndPoint).Port}");
+                var localPort = (_udpClient?.Client?.LocalEndPoint as IPEndPoint)?.Port ?? 0;
+                Console.WriteLine($"[NetworkTransport] 客户端启动成功, 本地端口: {localPort}");
             }
             catch (Exception ex)
             {
@@ -624,7 +625,7 @@ namespace YamaEngine.Network
         /// <returns>连接ID</returns>
         public int Connect(string host, int port)
         {
-            IPAddress address;
+            IPAddress? address;
             if (!IPAddress.TryParse(host, out address))
             {
                 var addresses = Dns.GetHostAddresses(host);
@@ -1052,7 +1053,7 @@ namespace YamaEngine.Network
             }
 
             // 查找连接
-            ConnectionInfo conn = null;
+            ConnectionInfo? conn = null;
             int connectionId = -1;
             lock (_connectionLock)
             {
@@ -1287,8 +1288,10 @@ namespace YamaEngine.Network
                     }
                     continue;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    // 非 Socket 异常(如畸形包/内部错误): 记录但保持接收循环存活。
+                    Console.WriteLine($"[NetworkTransport] UDP接收异常: {ex.GetType().Name}: {ex.Message}");
                     if (_running) continue;
                     break;
                 }
@@ -1302,8 +1305,18 @@ namespace YamaEngine.Network
                 // 查找或创建连接
                 int connectionId = GetOrCreateConnection(remoteEP, out bool isNewConnection);
 
-                // 处理接收到的数据
-                ProcessReceivedData(connectionId, data, remoteEP, isNewConnection);
+                // 工业级防御: 畸形包 (如伪造分片头) 可抛异常, 若逃逸则杀死接收线程 (DoS)。
+                // 逐包捕获并跳过损坏包, 保持接收循环存活。
+                try
+                {
+                    ProcessReceivedData(connectionId, data, remoteEP, isNewConnection);
+                }
+                catch (Exception ex)
+                {
+                    // 忽略损坏包, 继续接收 (防 DoS: 畸形包不杀接收线程)。
+                    // 记录异常类型与来源连接, 便于网络故障排查。
+                    Console.WriteLine($"[NetworkTransport] 跳过损坏包 (连接 {connectionId}, {ex.GetType().Name}: {ex.Message})");
+                }
             }
         }
 
@@ -1332,7 +1345,10 @@ namespace YamaEngine.Network
                     }
 
                     int dataLength = BitConverter.ToInt32(lengthBuffer, 0);
-                    if (dataLength <= 0 || dataLength > _config.MaxPacketSize * 1000)
+                    // 工业级防御: 长度前缀来自未受信对端。原 MaxPacketSize*1000 过宽且
+                    // 可 int 溢出; 改为绝对上限 (64MB) 且用 long 校验防伪造长度 OOM。
+                    const int MaxTcpPacketBytes = 64 * 1024 * 1024; // 64MB
+                    if (dataLength <= 0 || dataLength > MaxTcpPacketBytes)
                     {
                         InternalDisconnect(connectionId, "无效的数据长度");
                         return;
@@ -1418,7 +1434,7 @@ namespace YamaEngine.Network
         /// </summary>
         private void ProcessReceivedData(int connectionId, byte[] data, IPEndPoint remoteEndpoint, bool isNewConnection)
         {
-            ConnectionInfo conn = null;
+            ConnectionInfo? conn = null;
             lock (_connectionLock)
             {
                 if (connectionId >= 0 && _connections.TryGetValue(connectionId, out conn))
@@ -1526,7 +1542,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 处理数据包
         /// </summary>
-        private void HandlePacket(int connectionId, NetworkPacket packet, ConnectionInfo conn, bool isNewConnection)
+        private void HandlePacket(int connectionId, NetworkPacket packet, ConnectionInfo? conn, bool isNewConnection)
         {
             switch (packet.Type)
             {
@@ -1591,7 +1607,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 处理握手包
         /// </summary>
-        private void HandleHandshake(int connectionId, NetworkPacket packet, ConnectionInfo conn, bool isNewConnection)
+        private void HandleHandshake(int connectionId, NetworkPacket packet, ConnectionInfo? conn, bool isNewConnection)
         {
             if (_isServer && isNewConnection)
             {
@@ -1624,7 +1640,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 处理握手ACK
         /// </summary>
-        private void HandleHandshakeAck(int connectionId, ConnectionInfo conn)
+        private void HandleHandshakeAck(int connectionId, ConnectionInfo? conn)
         {
             if (!_isServer && conn != null && conn.State == ConnectionState.Connecting)
             {
@@ -1857,6 +1873,12 @@ namespace YamaEngine.Network
 
                 if (!connectionBuffers.TryGetValue(groupId, out var assembler))
                 {
+                    // 工业级防御: 对端可伪造海量不同 groupId 分片组头, 每组分配分片数组,
+                    // 灌满内存。限制每组最大分片数 (构造器内) 与并发组数上限。
+                    const int MaxActiveFragmentGroups = 512;
+                    if (connectionBuffers.Count >= MaxActiveFragmentGroups)
+                        return;
+
                     assembler = new FragmentAssembler(totalFragments);
                     connectionBuffers[groupId] = assembler;
                 }
@@ -2083,7 +2105,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 获取连接信息
         /// </summary>
-        public ConnectionInfo GetConnection(int connectionId)
+        public ConnectionInfo? GetConnection(int connectionId)
         {
             lock (_connectionLock)
             {
@@ -2282,6 +2304,11 @@ namespace YamaEngine.Network
 
         public FragmentAssembler(int totalFragments)
         {
+            // 工业级防御: totalFragments 来自未受信包头, 可为巨大值 → new byte[][]
+            // OOM。钳制到合理上限 (16384 分片), 超出视为无效。
+            const int MaxFragments = 16384;
+            if (totalFragments < 0 || totalFragments > MaxFragments)
+                throw new InvalidDataException($"分片数量非法: {totalFragments}");
             _total = totalFragments;
             _fragments = new byte[totalFragments][];
             _received = new bool[totalFragments];
@@ -2300,17 +2327,21 @@ namespace YamaEngine.Network
 
         public bool IsComplete => _count == _total;
 
-        public byte[] Assemble()
+        public byte[]? Assemble()
         {
             if (!IsComplete) return null;
 
-            int totalSize = 0;
+            // 工业级防御: 累计分片大小可 int 溢出 (负) → new byte[负] 抛异常或
+            // 回绕后 BlockCopy OOB。用 long 累加并校验上限。
+            long totalSize = 0;
             for (int i = 0; i < _total; i++)
             {
                 totalSize += _fragments[i].Length;
+                if (totalSize > int.MaxValue)
+                    return null; // 组装结果超 int 范围 → 无效
             }
 
-            var result = new byte[totalSize];
+            var result = new byte[(int)totalSize];
             int offset = 0;
             for (int i = 0; i < _total; i++)
             {

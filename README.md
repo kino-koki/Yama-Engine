@@ -1,28 +1,31 @@
 # yama游戏引擎 Yama GamesEngine（仓库名：Yama-Engine）
 
-> 使用 C# (.NET 8) 从零构建的游戏/建模引擎原型，目标对标 UE5 级渲染管线，同时保持轻量级一体化工作流。
+> 使用 C# (.NET 10) 从零构建的游戏/建模引擎原型，目标对标 UE5 级渲染管线，同时保持轻量级一体化工作流。
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![.NET](https://img.shields.io/badge/.NET-8.0-512bd4.svg)
+![.NET](https://img.shields.io/badge/.NET-10.0--203-512bd4.svg)
 ![Vulkan](https://img.shields.io/badge/Vulkan-1.4-b71b1b.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078d4.svg)
-![Build](https://img.shields.io/badge/build-PASSING-brightgreen.svg)
+![Build](https://github.com/kino-koki/Yama-Engine/actions/workflows/build.yml/badge.svg)
+![Tests](https://github.com/kino-koki/Yama-Engine/actions/workflows/build.yml/badge.svg)
 
 ---
 
-## ✅ 当前真实构建状态（2026-11-01 实测）
+## ✅ 当前真实构建状态（2026-11-15 实测）
 
-**全部托管 C# 项目均以 0 错误通过 `dotnet build`。** 以下是 2026-11-01 逐项目实测结果：
+**全部托管 C# 项目均以 0 错误 / 0 警告通过 `dotnet build`。** `Directory.Build.props` 统一维护可空性
+等存量噪声的显式抑制清单，`-warnaserror` 让任何未被抑制的警告直接失败。CI 门禁：
+`build.yml` 以 `-warnaserror` 构建三个托管项目，并以 `dotnet test`（xUnit 套件，1559 用例）作为回归门禁。
 
-| 项目 | 类型 | 编译错误 |
-|---|---|---|
-| `YamaEngine`（引擎核心库） | C# net8.0 | **0** |
-| `YamaEditor`（WinUI 3 编辑器） | C# net10.0-windows | **0** |
-| `YamaEngine.Tests`（单元测试） | C# net8.0 | **0** |
-| `YamaRuntime` | C# net8.0 | **0** |
-| `BlenderBridge` | C# net8.0 | **0** |
-| `YamaCel2DSandbox` / `YamaVulkanSandbox` | C# net8.0 | **0** |
-| `YamaEngineBridge`（C++ 原生桥接） | C++ vcxproj | 需 Visual Studio MSBuild（`dotnet CLI` 无法导入 `Microsoft.Cpp.Default.props`，属构建环境限制，非代码错误） |
+| 项目 | 类型 | 编译错误 | 编译警告 |
+|---|---|---|---|
+| `YamaEngine`（引擎核心库） | C# net10.0 | **0** | **0** |
+| `YamaEngine.Tests`（单元测试） | C# net10.0-windows（xUnit） | **0** | **0** |
+| `YamaCLI`（无头引擎 smoke） | C# net10.0 | **0** | **0** |
+| `YamaEditor`（WinUI 3 编辑器） | C# net10.0-windows | 需 Windows App SDK / VS 环境，不在无头门禁内 | — |
+| `YamaRuntime` | C# net10.0-windows | 同上 | — |
+| `BlenderBridge` / `YamaCel2DSandbox` / `YamaVulkanSandbox` | C# net10.0 | 同上 | — |
+| `YamaEngineBridge`（C++ 原生桥接） | C++ vcxproj | 需 Visual Studio MSBuild（`dotnet CLI` 无法导入 `Microsoft.Cpp.Default.props`，属构建环境限制，非代码错误） | — |
 
 > **历史轨迹**：2026-08-07 引擎库实测 1414 个编译错误（177/766 文件受影响）→ 2026-08-22 降至 374 → 逐步清零。2026-11-01 完成 `YamaEngine.Tests`（115→0，commit `2f4f8b8`）与 `YamaEditor`（56→0，commit `b900c87`）收尾，实现**全部托管项目 0 错误**。
 >
@@ -32,7 +35,7 @@
 
 ## 项目是什么
 
-一个以 C#/.NET 8 为主干、目标对标 UE5 渲染管线的**桌面端游戏/建模引擎原型**。架构意图清晰：RHI 抽象层 + 单一 Vulkan 1.4 后端、数据驱动的项目/资产/场景管线、一体化编辑器工作流。
+一个以 C#/.NET 10 为主干、目标对标 UE5 渲染管线的**桌面端游戏/建模引擎原型**。架构意图清晰：RHI 抽象层 + 单一 Vulkan 1.4 后端、数据驱动的项目/资产/场景管线、一体化编辑器工作流。
 
 **真正的亮点（已抽读代码确认，是真写的）：**
 - **渲染底层**：Vulkan 交换链/管线真实实现；`TriangleRenderer.cs` 是内嵌 SPIR-V、含顶点缓冲/PSO/`DrawInstanced` 闭环的"第一个三角形"真实代码。
@@ -84,7 +87,7 @@
 ## 项目结构（实测）
 
 ```
-YamaEngine/              引擎核心库 (C# .NET 8, 766 文件, ~26.8 万行；编译通过)
+YamaEngine/              引擎核心库 (C# .NET 10, 766 文件, ~26.8 万行；编译通过)
   ├── Rendering/           渲染管线 (113 文件)
   ├── Physics/             物理引擎 (82 文件)
   ├── AI/                  人工智能 (35 文件)
@@ -106,7 +109,7 @@ BlenderBridge / MayaBridge / MaxBridge   DCC 端插件
 
 | 依赖 | 版本 |
 |------|------|
-| [.NET SDK](https://dotnet.microsoft.com/download) | 8.0.422（仓库 `global.json` 已锁定） |
+| [.NET SDK](https://dotnet.microsoft.com/download) | 10.0.203（仓库 `global.json` 锁定；旧文误写为 8.0.422，2026-11-02 更正） |
 | [Visual Studio 2022](https://visualstudio.microsoft.com/) | 17.8+（含桌面开发 & C++ 工作负载） |
 | Windows App SDK | 1.8+ |
 | Vulkan 驱动 | 1.3+（推荐 1.4） |
@@ -119,8 +122,8 @@ dotnet restore YamaEditor.sln
 dotnet build YamaEngine\YamaEngine.csproj -c Debug
 # 构建编辑器（0 错误）
 dotnet build YamaEditor\YamaEditor.csproj -c Debug
-# 运行测试（引擎库已可编译，测试可执行）
-dotnet test YamaEngine.Tests\YamaEngine.Tests.csproj
+# 运行测试（自定义控制台运行器，非 xUnit；2026-11-02 实测全部通过）
+dotnet run --project YamaEngine.Tests\YamaEngine.Tests.csproj
 ```
 
 ---
@@ -131,6 +134,23 @@ dotnet test YamaEngine.Tests\YamaEngine.Tests.csproj
 2. **运行时排查**：解决 `VulkanPipelineState` 原生崩溃（0xC0000005）等运行时问题。
 3. **工程卫生**：清理根目录历史脚本（`_analyze*.py`、`fix_dups*.py`、失真错误日志与 `_dup_backup/`）。
 4. **测试跑通**：确认 `YamaEngine.Tests` 全用例在真实环境通过。
+
+---
+
+## 官网（docs/website/）
+
+项目官网位于 [docs/website/](./docs/website/)，纯静态 HTML/CSS/JS，无构建步骤。本地预览：
+
+```bash
+cd docs/website
+python -m http.server 8899
+# 打开 http://127.0.0.1:8899/index.html
+```
+
+- **设计语言**：Mistral 编辑风（米黄纸底 `#FFFAEB`、主橙 `#FA500F`、日落六色带）+ SenseNova 式模型卡/引言带元素
+- **页面**：首页（中/EN）、为什么、能力、场景、架构、快速上手、真实状态、对比、FAQ、诗、404
+- **页首图**：由 SenseNova U1.5-lite 生成（4K 源图 + 2048px WebP），生成脚本见 `scripts/generate_hero_images.py`（需 `SENSENOVA_API_KEY` 环境变量）
+- **工程细节**：全站链接/锚点体检通过、`sitemap.xml`、`robots.txt`、`manifest.webmanifest`、JSON-LD、hreflang、skip-link、`prefers-reduced-motion` 适配
 
 ---
 

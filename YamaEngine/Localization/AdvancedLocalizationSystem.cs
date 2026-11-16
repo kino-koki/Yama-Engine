@@ -148,7 +148,7 @@ namespace YamaEngine.Localization
             {
                 sb.Append(pattern, lastIndex, m.Index - lastIndex);
                 string name = m.Groups["name"].Value;
-                string format = m.Groups["format"].Success ? m.Groups["format"].Value : null;
+                string? format = m.Groups["format"].Success ? m.Groups["format"].Value : null;
                 string replacement = ResolvePlaceholder(name, format, values, culture);
                 sb.Append(replacement);
                 lastIndex = m.Index + m.Length;
@@ -157,7 +157,7 @@ namespace YamaEngine.Localization
             return sb.ToString();
         }
 
-        private static string ResolvePlaceholder(string name, string format, IReadOnlyDictionary<string, object> values, string culture)
+        private static string ResolvePlaceholder(string name, string? format, IReadOnlyDictionary<string, object> values, string culture)
         {
             if (!values.TryGetValue(name, out var value))
                 return $"{{{name}}}";
@@ -221,14 +221,14 @@ namespace YamaEngine.Localization
 
     public class TranslationEntry
     {
-        public string Key { get; set; }
-        public string SourceText { get; set; }
-        public string TranslatedText { get; set; }
-        public string Context { get; set; }
+        public string Key { get; set; } = string.Empty;
+        public string SourceText { get; set; } = string.Empty;
+        public string TranslatedText { get; set; } = string.Empty;
+        public string? Context { get; set; }
         public TranslationStatus Status { get; set; }
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
         public DateTime LastModified { get; set; }
-        public string Author { get; set; }
+        public string? Author { get; set; }
     }
 
     /// <summary>
@@ -255,9 +255,9 @@ namespace YamaEngine.Localization
 
     public class LocaleCultureInfo
     {
-        public string Name { get; set; }
-        public string DisplayName { get; set; }
-        public string NativeName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string NativeName { get; set; } = string.Empty;
         public TextDirection Direction { get; set; }
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string TimeFormat { get; set; } = "HH:mm:ss";
@@ -278,12 +278,12 @@ namespace YamaEngine.Localization
 
     public class LocaleData
     {
-        public string Locale { get; set; }
+        public string Locale { get; set; } = string.Empty;
         public StringTable Strings { get; set; } = new StringTable();
         public TranslationMemory Memory { get; set; } = new TranslationMemory();
         public LocaleCultureInfo Culture { get; set; } = new LocaleCultureInfo();
 
-        public string GetString(string key, string fallback = null)
+        public string GetString(string key, string? fallback = null)
         {
             var text = Strings[key];
             if (!string.IsNullOrEmpty(text))
@@ -292,7 +292,7 @@ namespace YamaEngine.Localization
             return mem ?? fallback ?? key;
         }
 
-        public string GetFormattedString(string key, IReadOnlyDictionary<string, object> args, string fallback = null)
+        public string GetFormattedString(string key, IReadOnlyDictionary<string, object> args, string? fallback = null)
         {
             var pattern = GetString(key, fallback);
             return FormatString.FormatNamed(pattern, args, Locale);
@@ -363,22 +363,23 @@ namespace YamaEngine.Localization
         {
             var data = new LocaleData { Locale = locale };
             var doc = XDocument.Load(filePath);
-            var ns = doc.Root.GetDefaultNamespace();
-            foreach (var file in doc.Root.Elements(ns + "file"))
+            var root = doc.Root!;
+            var ns = root.GetDefaultNamespace();
+            foreach (var file in root.Elements(ns + "file"))
             {
                 foreach (var unit in file.Descendants(ns + "trans-unit"))
                 {
-                    string id = unit.Attribute("id")?.Value;
-                    string source = unit.Element(ns + "source")?.Value;
-                    string target = unit.Element(ns + "target")?.Value;
-                    string note = unit.Element(ns + "note")?.Value;
+                    string? id = unit.Attribute("id")?.Value;
+                    string? source = unit.Element(ns + "source")?.Value;
+                    string? target = unit.Element(ns + "target")?.Value;
+                    string? note = unit.Element(ns + "note")?.Value;
                     if (string.IsNullOrEmpty(id)) continue;
-                    data.Strings[id] = target ?? source ?? id;
+                    data.Strings[id!] = target ?? source ?? id!;
                     data.Memory.AddOrUpdate(new TranslationEntry
                     {
-                        Key = id,
-                        SourceText = source,
-                        TranslatedText = target,
+                        Key = id!,
+                        SourceText = source ?? "",
+                        TranslatedText = target ?? "",
                         Context = note,
                         Status = string.IsNullOrEmpty(target) ? TranslationStatus.Untranslated : TranslationStatus.Final
                     });
@@ -414,9 +415,9 @@ namespace YamaEngine.Localization
         {
             var data = new LocaleData { Locale = locale };
             var lines = File.ReadAllLines(filePath, Encoding.UTF8);
-            string currentMsgId = null;
-            string currentMsgStr = null;
-            string currentContext = null;
+            string? currentMsgId = null;
+            string? currentMsgStr = null;
+            string? currentContext = null;
             var sb = new StringBuilder();
             bool inMsgId = false;
             bool inMsgStr = false;
@@ -572,9 +573,9 @@ namespace YamaEngine.Localization
     public class LocalizationLivePreview
     {
         private readonly LocalizationManager _manager;
-        private string _previewLocale;
+        private string? _previewLocale;
         private bool _isPreviewActive;
-        private string _originalLocale;
+        private string? _originalLocale;
 
         public LocalizationLivePreview(LocalizationManager manager)
         {
@@ -582,7 +583,7 @@ namespace YamaEngine.Localization
         }
 
         public bool IsPreviewActive => _isPreviewActive;
-        public string PreviewLocale => _previewLocale;
+        public string? PreviewLocale => _previewLocale;
 
         public void BeginPreview(string locale)
         {

@@ -474,12 +474,20 @@ namespace YamaEngine.ECS
             EntityManagerReal dest, EntityReal destEntity,
             Type componentType)
         {
-            // 获取泛型方法
-            var getSourceMethod = typeof(EntityManagerReal).GetMethod(nameof(EntityManagerReal.GetComponentData));
+            // 获取泛型方法（明确匹配 1-参 GetComponentData<T> 与 2-参 AddComponent<T>(entity, component) 重载）
+            var getSourceMethod = typeof(EntityManagerReal).GetMethods()
+                .FirstOrDefault(m => m.Name == nameof(EntityManagerReal.GetComponentData)
+                                     && m.IsGenericMethodDefinition
+                                     && m.GetParameters().Length == 1)
+                ?? throw new MissingMethodException(nameof(EntityManagerReal), nameof(EntityManagerReal.GetComponentData));
             var getTyped = getSourceMethod.MakeGenericMethod(componentType);
             var data = getTyped.Invoke(source, new object[] { srcEntity });
 
-            var setDestMethod = typeof(EntityManagerReal).GetMethod(nameof(EntityManagerReal.AddComponent));
+            var setDestMethod = typeof(EntityManagerReal).GetMethods()
+                .FirstOrDefault(m => m.Name == nameof(EntityManagerReal.AddComponent)
+                                     && m.IsGenericMethodDefinition
+                                     && m.GetParameters().Length == 2)
+                ?? throw new MissingMethodException(nameof(EntityManagerReal), nameof(EntityManagerReal.AddComponent));
             var setTyped = setDestMethod.MakeGenericMethod(componentType);
             setTyped.Invoke(dest, new object[] { destEntity, data });
         }

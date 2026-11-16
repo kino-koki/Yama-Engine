@@ -770,7 +770,7 @@ namespace YamaEngine.Assets.Importers
                     var ints = new List<int>();
                     foreach (var item in list)
                     {
-                        if (item is double d) ints.Add((int)d);
+                        if (item is double d && d >= int.MinValue && d <= int.MaxValue) ints.Add((int)d);
                         if (item is int i) ints.Add(i);
                     }
                     return ints.ToArray();
@@ -780,9 +780,15 @@ namespace YamaEngine.Assets.Importers
             var result = new List<int>();
             foreach (var prop in node.Properties)
             {
-                if (prop is double d) result.Add((int)d);
+                if (prop is double d)
+                {
+                    if (d >= int.MinValue && d <= int.MaxValue) result.Add((int)d);
+                }
                 if (prop is int i) result.Add(i);
-                if (prop is long l) result.Add((int)l);
+                if (prop is long l)
+                {
+                    if (l >= int.MinValue && l <= int.MaxValue) result.Add((int)l);
+                }
             }
 
             return result.ToArray();
@@ -1253,7 +1259,12 @@ namespace YamaEngine.Assets.Importers
                     if (idx < 0)
                     {
                         polygonSizes.Add(count + 1);
-                        polygonVertexIds.Add((-idx) - 1); // 取绝对值然后 -1
+                        // 负索引表示多边形结束, 取绝对值-1。用 long 计算防 idx=int.MinValue 时 -idx 溢出。
+                        long absIdx = -(long)idx;
+                        long resolved = absIdx - 1;
+                        if (resolved < 0 || resolved > int.MaxValue)
+                            throw new InvalidDataException($"FBX 多边形顶点索引无效: {idx}");
+                        polygonVertexIds.Add((int)resolved);
                         vi++;
                         break;
                     }
@@ -1265,23 +1276,24 @@ namespace YamaEngine.Assets.Importers
 
             // 构建顶点映射（去重）
             var vertMap = new Dictionary<int, int>(); // FBX 顶点索引 -> 去重后索引
+            int fbxVertexCount = fbxMesh.Vertices != null ? fbxMesh.Vertices.Length / 3 : 0;
             for (int i = 0; i < polygonVertexIds.Count; i++)
             {
                 int fbxIdx = polygonVertexIds[i];
+                // 防御: 负索引或超出顶点数即损坏数据 (避免 Vertices[fbxIdx*3] 越界/负索引)。
+                if (fbxIdx < 0 || fbxIdx >= fbxVertexCount)
+                    throw new InvalidDataException($"FBX 顶点索引越界: {fbxIdx} (顶点数 {fbxVertexCount})");
                 if (!vertMap.ContainsKey(fbxIdx))
                 {
                     int newIdx = mesh.Vertices.Count;
                     vertMap[fbxIdx] = newIdx;
 
-                    // 添加顶点位置
-                    if (fbxMesh.Vertices != null && fbxIdx * 3 + 2 < fbxMesh.Vertices.Length)
-                    {
-                        mesh.Vertices.Add(new Vector3(
-                            fbxMesh.Vertices[fbxIdx * 3],
-                            fbxMesh.Vertices[fbxIdx * 3 + 1],
-                            fbxMesh.Vertices[fbxIdx * 3 + 2]
-                        ));
-                    }
+                    // 添加顶点位置 (fbxIdx 已校验非负且 < 顶点数, fbxIdx*3+2 必然 < Length)
+                    mesh.Vertices.Add(new Vector3(
+                        fbxMesh.Vertices![fbxIdx * 3],
+                        fbxMesh.Vertices[fbxIdx * 3 + 1],
+                        fbxMesh.Vertices[fbxIdx * 3 + 2]
+                    ));
                 }
             }
 
@@ -1289,6 +1301,10 @@ namespace YamaEngine.Assets.Importers
             int vertCounter = 0;
             foreach (int polySize in polygonSizes)
             {
+                // 防御: polySize < 3 或多边形索引越界即损坏数据。
+                if (polySize < 3 || vertCounter + polySize > polygonVertexIds.Count)
+                    throw new InvalidDataException($"FBX 多边形尺寸/索引越界: polySize={polySize}, vertCounter={vertCounter}, total={polygonVertexIds.Count}");
+
                 // 扇形三角化
                 int firstVert = vertMap[polygonVertexIds[vertCounter]];
                 int prevVert = vertMap[polygonVertexIds[vertCounter + 1]];
@@ -1428,6 +1444,9 @@ namespace YamaEngine.Assets.Importers
                     for (int i = 0; i < cluster.Indices.Count && i < cluster.Weights.Count; i++)
                     {
                         int vertIdx = cluster.Indices[i];
+                        // 防御: 负顶点索引会导致 while 循环无限增长/负索引越界 (OOM 向量)。
+                        if (vertIdx < 0)
+                            throw new InvalidDataException($"FBX 顶点权重索引无效: {vertIdx}");
                         float weight = (float)cluster.Weights[i];
 
                         // 确保顶点权重数组足够大

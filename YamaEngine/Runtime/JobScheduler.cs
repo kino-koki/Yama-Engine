@@ -549,19 +549,11 @@ namespace YamaEngine.Runtime
 
         private void EnqueueToWorker(PendingJob pending)
         {
-            // 选择队列最短的 Worker
-            int minIdx = 0;
-            int minCount = int.MaxValue;
-            for (int i = 0; i < _workerCount; i++)
-            {
-                int count = _workerQueues[i].Count;
-                if (count < minCount)
-                {
-                    minCount = count;
-                    minIdx = i;
-                }
-            }
-            _workerQueues[minIdx].Push(new ExecuteJobWrapper(pending.Job, pending.Handle));
+            // 关键修复：原实现从主线程 Push 到 WorkStealingDeque（Chase-Lev 单生产者假设），
+            // 与 worker 的 Pop/Steal 竞态导致任务丢失（Flush 差计数）和偶发卡死。
+            // 改用线程安全的 ConcurrentQueue（MPSC 安全）作为提交入口；
+            // WorkStealingDeque 保留用于 worker 窃取（见 WorkerLoop steal 分支）。
+            _pendingQueue.Enqueue(pending);
         }
 
         /// <summary>
@@ -570,54 +562,74 @@ namespace YamaEngine.Runtime
         private void WorkerLoop(object state)
         {
             int myIdx = (int)state;
-            var myQueue = _workerQueues[myIdx];
             SpinWait spinner = default;
 
             while (_isRunning)
             {
-                // 1. 从自己的队列取任务
-                IJob? job = myQueue.Pop();
+                bool didWork = false;
 
-                // 2. 窃取其他队列的任务
-                if (job == null)
+                // 1. 优先从共享提交队列取任务（主线程 Schedule 入口，MPSC 安全）
+                while (_pendingQueue.TryDequeue(out var dequeued))
                 {
-                    for (int attempts = 0; attempts < _workerCount && job == null; attempts++)
+                    ExecutePending(dequeued);
+                    didWork = true;
+                }
+
+                // 2. 共享队列空则窃取其他 worker 的本地队列（work-stealing）
+                for (int attempts = 0; attempts < _workerCount; attempts++)
+                {
+                    int stealIdx = (myIdx + attempts) % _workerCount;
+                    var stolen = _workerQueues[stealIdx].Steal();
+                    if (stolen != null)
                     {
-                        int stealIdx = (myIdx + attempts + 1) % _workerCount;
-                        job = _workerQueues[stealIdx].Steal();
+                        ExecuteWrapped(stolen!);
+                        didWork = true;
+                        // 窃取到任务后再尝试共享队列（新任务可能已提交）
+                        while (_pendingQueue.TryDequeue(out var more))
+                        {
+                            ExecutePending(more);
+                        }
                     }
                 }
 
-                // 3. 执行任务
-                if (job != null)
+                // 3. 无任务时空闲退让
+                if (!didWork)
                 {
-                    try
-                    {
-                        job.Execute();
-                        if (job is ExecuteJobWrapper wrapper)
-                            wrapper.Handle.CompletionSource?.TrySetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (job is ExecuteJobWrapper wrapper)
-                            wrapper.Handle.CompletionSource?.TrySetException(ex);
-                    }
-                }
-                else
-                {
-                    // 空闲时等待
                     if (_shutdownEvent.Wait(0))
                         break;
-
                     if (spinner.NextSpinWillYield)
-                    {
                         Thread.Yield();
-                    }
                     else
-                    {
                         spinner.SpinOnce();
-                    }
                 }
+            }
+        }
+
+        private void ExecutePending(PendingJob pending)
+        {
+            try
+            {
+                pending.Job.Execute();
+                pending.Handle.CompletionSource?.TrySetResult(true);
+            }
+            catch (Exception ex)
+            {
+                pending.Handle.CompletionSource?.TrySetException(ex);
+            }
+        }
+
+        private void ExecuteWrapped(IJob job)
+        {
+            try
+            {
+                job.Execute();
+                if (job is ExecuteJobWrapper wrapper)
+                    wrapper.Handle.CompletionSource?.TrySetResult(true);
+            }
+            catch (Exception ex)
+            {
+                if (job is ExecuteJobWrapper wrapper)
+                    wrapper.Handle.CompletionSource?.TrySetException(ex);
             }
         }
 

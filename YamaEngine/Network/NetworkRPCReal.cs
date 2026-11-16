@@ -51,22 +51,22 @@ namespace YamaEngine.Network
         public uint MethodId;
 
         /// <summary>方法名。</summary>
-        public string MethodName;
+        public required string MethodName;
 
         /// <summary>反射方法信息。</summary>
-        public MethodInfo Method;
+        public required MethodInfo Method;
 
         /// <summary>参数类型数组。</summary>
-        public Type[] ParameterTypes;
+        public required Type[] ParameterTypes;
 
         /// <summary>返回类型。</summary>
-        public Type ReturnType;
+        public required Type ReturnType;
 
         /// <summary>RPC 属性。</summary>
-        public RpcAttribute Attribute;
+        public required RpcAttribute Attribute;
 
         /// <summary>目标对象 (实例方法时非 null, 静态方法时 null)。</summary>
-        public object Target;
+        public object? Target;
 
         /// <summary>是否静态方法。</summary>
         public bool IsStatic => Target == null && Method.IsStatic;
@@ -109,7 +109,7 @@ namespace YamaEngine.Network
         /// <param name="method">要注册的方法。</param>
         /// <param name="target">目标对象 (实例方法时非 null)。</param>
         /// <returns>生成的方法 ID, 0 表示注册失败。</returns>
-        public uint RegisterMethod(MethodInfo method, object target = null)
+        public uint RegisterMethod(MethodInfo method, object? target = null)
         {
             if (method == null) return 0;
 
@@ -153,7 +153,7 @@ namespace YamaEngine.Network
         /// <param name="type">要扫描的类型。</param>
         /// <param name="target">目标对象 (实例方法)。</param>
         /// <returns>注册的方法数。</returns>
-        public int ScanType(Type type, object target = null)
+        public int ScanType(Type type, object? target = null)
         {
             int count = 0;
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
@@ -163,11 +163,11 @@ namespace YamaEngine.Network
                 if (method.GetCustomAttribute<RpcAttribute>() != null)
                 {
                     // 对于实例方法, 需要 target; 对于静态方法, target 为 null
-                    object t = method.IsStatic ? null : target;
+                    object? t = method.IsStatic ? null : target;
                     if (!method.IsStatic && t == null)
                         continue; // 实例方法但无目标对象, 跳过
 
-                    if (RegisterMethod(method, t) != 0)
+                    if (RegisterMethod(method, t!) != 0)
                         count++;
                 }
             }
@@ -186,7 +186,7 @@ namespace YamaEngine.Network
         }
 
         /// <summary>按 ID 查找方法。</summary>
-        public RPCMethodEntry GetMethod(uint methodId)
+        public RPCMethodEntry? GetMethod(uint methodId)
         {
             lock (_lock)
             {
@@ -196,7 +196,7 @@ namespace YamaEngine.Network
         }
 
         /// <summary>按名称查找方法。</summary>
-        public RPCMethodEntry GetMethod(string methodName)
+        public RPCMethodEntry? GetMethod(string methodName)
         {
             lock (_lock)
             {
@@ -206,7 +206,7 @@ namespace YamaEngine.Network
         }
 
         /// <summary>尝试按 ID 查找方法。</summary>
-        public bool TryGetMethod(uint methodId, out RPCMethodEntry entry)
+        public bool TryGetMethod(uint methodId, out RPCMethodEntry? entry)
         {
             lock (_lock)
             {
@@ -278,7 +278,7 @@ namespace YamaEngine.Network
         // ── 依赖 ──────────────────────────────────────────────────
 
         private readonly RPCRegistryReal _registry;
-        private readonly UDPTransportReal _transport;
+        private readonly UDPTransportReal? _transport;
 
         // ── 请求/响应关联 ──────────────────────────────────────────
 
@@ -290,9 +290,9 @@ namespace YamaEngine.Network
         {
             public uint RequestId;
             public uint MethodId;
-            public Type ExpectedReturnType;
-            public Action<object> Callback;
-            public Action<Exception> ErrorCallback;
+            public Type? ExpectedReturnType;
+            public Action<object>? Callback;
+            public Action<Exception>? ErrorCallback;
             public double SendTime;
         }
 
@@ -325,7 +325,7 @@ namespace YamaEngine.Network
 
         // ── 构造函数 ──────────────────────────────────────────────
 
-        public RPCDispatcherReal(RPCRegistryReal registry, UDPTransportReal transport = null)
+        public RPCDispatcherReal(RPCRegistryReal registry, UDPTransportReal? transport = null)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _transport = transport;
@@ -377,7 +377,7 @@ namespace YamaEngine.Network
             IPEndPoint target,
             uint methodId,
             Action<T> callback,
-            Action<Exception> errorCallback = null,
+            Action<Exception>? errorCallback = null,
             params object[] args)
         {
             SendRpcInternal(target, methodId, true, (result) =>
@@ -404,8 +404,8 @@ namespace YamaEngine.Network
             IPEndPoint target,
             uint methodId,
             bool expectsResponse,
-            Action<object> callback,
-            Action<Exception> errorCallback,
+            Action<object>? callback,
+            Action<Exception>? errorCallback,
             object[] args)
         {
             using (var writer = new NetworkWriterReal(8192))
@@ -452,7 +452,7 @@ namespace YamaEngine.Network
                     foreach (var arg in args)
                     {
                         Type argType = arg?.GetType() ?? typeof(object);
-                        NetworkValueSerializer.SerializeValue(writer, arg, argType);
+                        NetworkValueSerializer.SerializeValue(writer, arg!, argType);
                     }
                 }
 
@@ -463,7 +463,7 @@ namespace YamaEngine.Network
                     // 查找方法的可靠设置
                     bool reliable = true;
                     if (_registry.TryGetMethod(methodId, out var entry))
-                        reliable = entry.Attribute.Reliable;
+                        reliable = entry!.Attribute.Reliable;
 
                     if (reliable)
                         _transport.SendReliable(target, data);
@@ -542,6 +542,7 @@ namespace YamaEngine.Network
                 }
                 return;
             }
+            var methodEntry = entry!;
 
             // 读取参数数量
             int paramCount = reader.ReadByte();
@@ -550,8 +551,8 @@ namespace YamaEngine.Network
             object[] args = new object[paramCount];
             for (int i = 0; i < paramCount; i++)
             {
-                Type paramType = i < entry.ParameterTypes.Length
-                    ? entry.ParameterTypes[i]
+                Type paramType = i < methodEntry.ParameterTypes.Length
+                    ? methodEntry.ParameterTypes[i]
                     : typeof(object);
                 args[i] = NetworkValueSerializer.DeserializeValue(reader, paramType);
             }
@@ -560,12 +561,12 @@ namespace YamaEngine.Network
             _totalCallsReceived++;
 
             // 反射调用方法
-            object result = null;
-            Exception error = null;
+            object? result = null;
+            Exception? error = null;
 
             try
             {
-                result = entry.Method.Invoke(entry.Target, args);
+                result = methodEntry.Method.Invoke(methodEntry.Target, args);
             }
             catch (TargetInvocationException tie)
             {
@@ -586,9 +587,9 @@ namespace YamaEngine.Network
                 {
                     SendErrorResponse(sender, requestId, error.Message);
                 }
-                else if (entry.HasReturnValue)
+                else if (methodEntry.HasReturnValue)
                 {
-                    SendResponse(sender, requestId, result, entry.ReturnType);
+                    SendResponse(sender, requestId, result, methodEntry.ReturnType);
                 }
                 else
                 {
@@ -605,7 +606,7 @@ namespace YamaEngine.Network
             uint requestId = reader.ReadUInt32();
 
             // 查找回调
-            PendingResponse pending;
+            PendingResponse? pending;
             lock (_callbackLock)
             {
                 if (!_pendingCallbacks.TryGetValue(requestId, out pending))
@@ -620,7 +621,7 @@ namespace YamaEngine.Network
             {
                 // 读取返回值
                 bool hasReturnValue = reader.ReadBool();
-                object result = hasReturnValue
+                object? result = hasReturnValue
                     ? NetworkValueSerializer.DeserializeValue(reader, pending.ExpectedReturnType ?? typeof(object))
                     : null;
 
@@ -631,7 +632,7 @@ namespace YamaEngine.Network
                 // 调用回调
                 try
                 {
-                    pending.Callback?.Invoke(result);
+                    pending.Callback?.Invoke(result!);
                 }
                 catch { /* 忽略回调异常 */ }
             }
@@ -644,7 +645,7 @@ namespace YamaEngine.Network
         }
 
         /// <summary>发送成功响应。</summary>
-        private void SendResponse(IPEndPoint target, uint requestId, object result, Type resultType)
+        private void SendResponse(IPEndPoint target, uint requestId, object? result, Type resultType)
         {
             using (var writer = new NetworkWriterReal(4096))
             {
@@ -657,7 +658,7 @@ namespace YamaEngine.Network
 
                 if (hasReturnValue)
                 {
-                    NetworkValueSerializer.SerializeValue(writer, result, resultType);
+                    NetworkValueSerializer.SerializeValue(writer, result!, resultType);
                 }
 
                 byte[] data = writer.ToArray();
@@ -841,7 +842,7 @@ namespace YamaEngine.Network
         /// <param name="methodId">方法 ID。</param>
         /// <param name="args">参数数组。</param>
         /// <param name="excludeEndpoint">要排除的端点 (如发送者自身), 传 null 不排除。</param>
-        public void BroadcastRpc(uint methodId, object[] args = null, IPEndPoint excludeEndpoint = null)
+        public void BroadcastRpc(uint methodId, object[]? args = null, IPEndPoint? excludeEndpoint = null)
         {
             // 序列化一次, 发送到所有连接
             byte[] data;
@@ -859,7 +860,7 @@ namespace YamaEngine.Network
                     foreach (var arg in args)
                     {
                         Type argType = arg?.GetType() ?? typeof(object);
-                        NetworkValueSerializer.SerializeValue(writer, arg, argType);
+                        NetworkValueSerializer.SerializeValue(writer, arg!, argType);
                     }
                 }
 
@@ -876,7 +877,7 @@ namespace YamaEngine.Network
             // 查找方法的可靠设置
             bool reliable = true;
             if (_registry.TryGetMethod(methodId, out var entry))
-                reliable = entry.Attribute.Reliable;
+                reliable = entry!.Attribute.Reliable;
 
             // 发送到所有连接 (排除指定端点)
             int sentCount = 0;

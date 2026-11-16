@@ -26,6 +26,7 @@ using YamaEngine.Assets;
 using YamaEngine.Assets.Importers;
 using YamaEngine.Modeling;
 using YamaEngine.Animation;
+using YamaEngine.NPC.AiNpc;
 using YamaEngine.Gameplay;
 using YamaEngine.Scenes;
 using YamaEngine.UI;
@@ -108,6 +109,8 @@ namespace YamaEngine
         private InputSystem? _input;
         private AdvancedAudioEngine? _audio;
         private AnimationRuntime? _animationRuntime;
+        /// <summary>AI NPC 运行时（MOSS-Live 全双工对话 + Kimodo 动作生成）。</summary>
+        private AiNpcRuntime? _aiNpc;
 
         // ── UE2级别 子系统集成 ──
         private GameplayWorld? _gameplayWorld;
@@ -120,6 +123,18 @@ namespace YamaEngine
         private string? _sceneFilePath;
         private bool _gameplayWorldStarted;
 
+        // ── 每帧子系统异常节流日志 (防刷屏, 同时不静默吞掉) ──
+        private long _lastFrameErrorLogMs;
+
+        /// <summary>每帧子系统异常节流记录: 每 5 秒最多记录一次, 避免异常刷屏但保留故障可见性。</summary>
+        private void LogFrameError(string component, Exception ex)
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastFrameErrorLogMs < 5000) return;
+            _lastFrameErrorLogMs = now;
+            Console.WriteLine($"[EngineApplication] {component} 更新异常: {ex.GetType().Name}: {ex.Message}");
+        }
+
         // ── 物理-渲染同步 ──
         private readonly List<(RenderItem Item, int BodyIndex)> _physicsRenderMappings = new();
 
@@ -130,6 +145,7 @@ namespace YamaEngine
         private ulong _frameCount;
         private int _frameIndex;
         private const int FramesInFlight = 2;
+        private bool _renderErrorReported;
         private bool _isRunning;
         private bool _resizeRequested;
 
@@ -236,6 +252,17 @@ namespace YamaEngine
 
             // ── 2d. 初始化动画运行时 ──
             _animationRuntime = new AnimationRuntime();
+
+            // ── 2e. 初始化 AI NPC 运行时（Kimodo 动作生成 + MOSS-Live 实时互动） ──
+            AiNpcConfig aiNpcConfig = AiNpcConfig.CreateDefault();
+            string aiNpcConfigPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "ai_npc.json");
+            if (System.IO.File.Exists(aiNpcConfigPath))
+            {
+                try { aiNpcConfig = AiNpcConfig.Load(aiNpcConfigPath); }
+                catch (Exception ex) { Console.WriteLine($"[AiNpc] 配置加载失败，使用默认配置: {ex.Message}"); }
+            }
+            _aiNpc = new AiNpcRuntime(aiNpcConfig, _animationRuntime);
+            Console.WriteLine("  -> AiNpcRuntime 已创建（Kimodo + MOSS-Live）");
 
             // ── 3. 初始化 ECS ──
             Console.WriteLine("[3/5] 初始化 ECS...");
@@ -372,7 +399,7 @@ namespace YamaEngine
                         };
                         _umgRoot.AddToViewport(fpsText);
                     }
-                    catch { }
+                    catch (Exception ex) { Console.WriteLine($"  -> FPS 文本添加失败: {ex.Message}"); }
                 }
                 catch (Exception ex)
                 {
@@ -945,6 +972,9 @@ namespace YamaEngine
                 // 更新所有活跃动画
                 _animationRuntime.Update(deltaTime);
 
+                // AI NPC：对话状态机 + 动作播放 + 口型后处理
+                _aiNpc?.Update(deltaTime);
+
                 // 将计算后的骨骼矩阵写回组件，供渲染器读取
                 foreach (var obj in _assetDatabase.SceneObjects)
                 {
@@ -1036,7 +1066,7 @@ namespace YamaEngine
                 {
                     _gpuParticles.Update(dt, _cameraPos, Matrix4x4.Identity, Matrix4x4.Identity);
                 }
-                catch { }
+                catch (Exception ex) { LogFrameError("GPUParticleSystem", ex); }
             }
 
             // 4. UmgRoot UI 系统
@@ -1046,7 +1076,7 @@ namespace YamaEngine
                 {
                     _umgRoot.Update(dt);
                 }
-                catch { }
+                catch (Exception ex) { LogFrameError("UmgRoot", ex); }
             }
 
             // 5. PostProcess 后处理
@@ -1056,7 +1086,7 @@ namespace YamaEngine
                 {
                     // 后处理更新由渲染阶段处理
                 }
-                catch { }
+                catch (Exception ex) { LogFrameError("PostProcess", ex); }
             }
 
             // 6. NavigationSystem AI 导航更新
@@ -1066,7 +1096,7 @@ namespace YamaEngine
                 {
                     _navigation.Crowd?.Update(dt);
                 }
-                catch { }
+                catch (Exception ex) { LogFrameError("NavigationSystem", ex); }
             }
 
             // 7. NetworkManager 网络更新
@@ -1076,7 +1106,7 @@ namespace YamaEngine
                 {
                     _network.Update(dt);
                 }
-                catch { }
+                catch (Exception ex) { LogFrameError("NetworkManager", ex); }
             }
         }
 
@@ -1449,7 +1479,7 @@ namespace YamaEngine
                 if (_umgRoot != null)
                 {
                     try { _umgRoot.Render(new RHIViewport(0, 0, _swapChain.Width, _swapChain.Height)); }
-                    catch { }
+                    catch (Exception ex) { LogFrameError("UmgRoot.Render", ex); }
                 }
 
                 // 过渡到 Present
@@ -1463,8 +1493,13 @@ namespace YamaEngine
             }
             catch (Exception ex)
             {
-                if (_frameCount < 2)
-                    Console.WriteLine($"[EngineApplication] SceneRendererReal 主渲染失败: {ex.Message}");
+                // 记录首次渲染错误（含完整堆栈）便于 P0 根因诊断；后续帧不刷屏。
+                // 命令列表状态恢复由下一帧开头的 Reset() 内部处理（End→Reset→Open）。
+                if (!_renderErrorReported)
+                {
+                    _renderErrorReported = true;
+                    Console.WriteLine($"[EngineApplication] 主渲染失败 @帧{_frameCount}: {ex}");
+                }
             }
         }
 
@@ -1739,6 +1774,8 @@ namespace YamaEngine
             try { _physics?.Dispose(); } catch { }
             try { _input?.Dispose(); } catch { }
             try { _ecs?.Dispose(); } catch { }
+            try { _aiNpc?.ShutdownAsync(); } catch { }
+            _aiNpc = null;
             try { _animationRuntime?.Clear(); } catch { }
             _animationRuntime = null;
             try { _textureManager?.Dispose(); } catch { }

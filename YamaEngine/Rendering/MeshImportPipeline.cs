@@ -1161,7 +1161,14 @@ namespace YamaEngine.Rendering
             if (vertexCount == 3) return new[] { 0, 1, 2 };
             if (vertexCount == 4) return new[] { 0, 1, 2, 0, 2, 3 };
 
-            var result = new int[(vertexCount - 2) * 3];
+            // 工业级防御: 顶点数为负或三角数溢出 int (伪造/损坏 OBJ 数据) 时抛异常, 而非负分配/静默截断。
+            if (vertexCount < 3)
+                throw new InvalidDataException($"OBJ 三角化失败: 顶点数非法 ({vertexCount})");
+            long triCountL = (long)(vertexCount - 2) * 3;
+            if (triCountL > int.MaxValue)
+                throw new InvalidDataException($"OBJ 三角化失败: 三角形索引数溢出 ({triCountL})");
+
+            var result = new int[(int)triCountL];
             int idx = 0;
             for (int i = 1; i < vertexCount - 1; i++)
             {

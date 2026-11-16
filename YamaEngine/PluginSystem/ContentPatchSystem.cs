@@ -58,16 +58,16 @@ namespace YamaEngine.PluginSystem
     public sealed class PatchContext
     {
         /// <summary>原始方法信息。</summary>
-        public MethodBase OriginalMethod { get; set; }
+        public MethodBase OriginalMethod { get; set; } = null!;
 
         /// <summary>方法参数 (可修改)。</summary>
-        public object[] Arguments { get; set; }
+        public object[] Arguments { get; set; } = Array.Empty<object>();
 
         /// <summary>返回值 (Postfix 可修改)。</summary>
-        public object ReturnValue { get; set; }
+        public object? ReturnValue { get; set; }
 
         /// <summary>实例引用 (实例方法)。</summary>
-        public object Instance { get; set; }
+        public object? Instance { get; set; }
 
         /// <summary>是否取消原方法执行 (Prefix 可设置)。</summary>
         public bool CancelOriginal { get; set; }
@@ -82,10 +82,10 @@ namespace YamaEngine.PluginSystem
         public bool ReturnValueModified { get; set; }
 
         /// <summary>异常 (Finalizer 可处理)。</summary>
-        public Exception Exception { get; set; }
+        public Exception? Exception { get; set; }
 
         /// <summary>补丁提供者插件ID。</summary>
-        public string PatchPluginId { get; set; }
+        public string? PatchPluginId { get; set; }
 
         /// <summary>取消原方法执行。</summary>
         public void Cancel() => CancelOriginal = true;
@@ -110,13 +110,13 @@ namespace YamaEngine.PluginSystem
         /// <summary>获取参数值。</summary>
         public T GetArgument<T>(int index)
         {
-            if (index < 0 || index >= Arguments.Length) return default;
+            if (index < 0 || index >= Arguments.Length) return default!;
             if (Arguments[index] is T val) return val;
-            try { return (T)Convert.ChangeType(Arguments[index], typeof(T)); } catch { return default; }
+            try { return (T)Convert.ChangeType(Arguments[index], typeof(T))!; } catch { return default!; }
         }
 
         /// <summary>获取实例引用。</summary>
-        public T GetInstance<T>() where T : class => Instance as T;
+        public T? GetInstance<T>() where T : class => Instance as T;
 
         public override string ToString() =>
             $"{OriginalMethod?.Name} [{(CancelOriginal ? "Cancelled" : "Active")}]" +
@@ -135,20 +135,20 @@ namespace YamaEngine.PluginSystem
         public string PluginId { get; set; } = string.Empty;
         public PatchType PatchType { get; set; }
         public PatchTargetType TargetType { get; set; }
-        public MethodBase TargetMethod { get; set; }
-        public MethodInfo PatchMethod { get; set; }
-        public object PatchInstance { get; set; }
+        public MethodBase TargetMethod { get; set; } = null!;
+        public MethodInfo PatchMethod { get; set; } = null!;
+        public object? PatchInstance { get; set; }
         public int Priority { get; set; } = 100;
         public bool IsEnabled { get; set; } = true;
         public bool IsApplied { get; set; }
         public DateTime AppliedTime { get; set; }
-        public string Signature { get; set; }
+        public string? Signature { get; set; }
         public List<string> Dependencies { get; set; } = new List<string>();
 
         // 统计
         public long InvokeCount { get; set; }
         public TimeSpan TotalInvokeTime { get; set; }
-        public Exception LastException { get; set; }
+        public Exception? LastException { get; set; }
 
         public override string ToString() =>
             $"[{PatchType}] {TargetMethod?.DeclaringType?.Name}.{TargetMethod?.Name} ← {PluginId} P:{Priority}";
@@ -209,8 +209,8 @@ namespace YamaEngine.PluginSystem
     public struct PatchInvokeResult
     {
         public bool OriginalExecuted { get; set; }
-        public object ReturnValue { get; set; }
-        public Exception Exception { get; set; }
+        public object? ReturnValue { get; set; }
+        public Exception? Exception { get; set; }
         public TimeSpan TotalTime { get; set; }
         public int PatchesExecuted { get; set; }
     }
@@ -247,10 +247,10 @@ namespace YamaEngine.PluginSystem
         public int MaxPatchesPerMethod { get; set; } = 32;
 
         // 事件
-        public event Action<PatchDescriptor> OnPatchApplied;
-        public event Action<PatchDescriptor> OnPatchRemoved;
-        public event Action<PatchDescriptor, PatchContext> OnPatchInvoked;
-        public event Action<PatchDescriptor, Exception> OnPatchException;
+        public event Action<PatchDescriptor>? OnPatchApplied;
+        public event Action<PatchDescriptor>? OnPatchRemoved;
+        public event Action<PatchDescriptor, PatchContext>? OnPatchInvoked;
+        public event Action<PatchDescriptor, Exception>? OnPatchException;
 
         // 统计
         public long TotalPatchInvocations { get; private set; }
@@ -262,43 +262,43 @@ namespace YamaEngine.PluginSystem
         #region 补丁注册
 
         /// <summary>添加前缀补丁。</summary>
-        public string AddPrefix(MethodBase targetMethod, MethodInfo prefixMethod, object patchInstance = null,
-            string pluginId = null, int priority = 100)
+        public string? AddPrefix(MethodBase targetMethod, MethodInfo prefixMethod, object? patchInstance = null,
+            string? pluginId = null, int priority = 100)
         {
             return AddPatch(targetMethod, prefixMethod, patchInstance, PatchType.Prefix, pluginId, priority);
         }
 
         /// <summary>添加后缀补丁。</summary>
-        public string AddPostfix(MethodBase targetMethod, MethodInfo postfixMethod, object patchInstance = null,
-            string pluginId = null, int priority = 100)
+        public string? AddPostfix(MethodBase targetMethod, MethodInfo postfixMethod, object? patchInstance = null,
+            string? pluginId = null, int priority = 100)
         {
             return AddPatch(targetMethod, postfixMethod, patchInstance, PatchType.Postfix, pluginId, priority);
         }
 
         /// <summary>添加 Transpiler 补丁 (IL 级修改)。</summary>
-        public string AddTranspiler(MethodBase targetMethod, MethodInfo transpilerMethod, object patchInstance = null,
-            string pluginId = null, int priority = 100)
+        public string? AddTranspiler(MethodBase targetMethod, MethodInfo transpilerMethod, object? patchInstance = null,
+            string? pluginId = null, int priority = 100)
         {
             _logger.Warning("Transpiler 补丁需要 IL 操作支持，当前为简化实现。");
             return AddPatch(targetMethod, transpilerMethod, patchInstance, PatchType.Transpiler, pluginId, priority);
         }
 
         /// <summary>替换方法体。</summary>
-        public string AddReplacement(MethodBase targetMethod, MethodInfo replacementMethod, object patchInstance = null,
-            string pluginId = null, int priority = 100)
+        public string? AddReplacement(MethodBase targetMethod, MethodInfo replacementMethod, object? patchInstance = null,
+            string? pluginId = null, int priority = 100)
         {
             return AddPatch(targetMethod, replacementMethod, patchInstance, PatchType.Replace, pluginId, priority);
         }
 
         /// <summary>添加 Finalizer (异常处理)。</summary>
-        public string AddFinalizer(MethodBase targetMethod, MethodInfo finalizerMethod, object patchInstance = null,
-            string pluginId = null, int priority = 100)
+        public string? AddFinalizer(MethodBase targetMethod, MethodInfo finalizerMethod, object? patchInstance = null,
+            string? pluginId = null, int priority = 100)
         {
             return AddPatch(targetMethod, finalizerMethod, patchInstance, PatchType.Finalizer, pluginId, priority);
         }
 
-        private string AddPatch(MethodBase targetMethod, MethodInfo patchMethod, object patchInstance,
-            PatchType patchType, string pluginId, int priority)
+        private string? AddPatch(MethodBase targetMethod, MethodInfo patchMethod, object? patchInstance,
+            PatchType patchType, string? pluginId, int priority)
         {
             if (targetMethod == null) throw new ArgumentNullException(nameof(targetMethod));
             if (patchMethod == null) throw new ArgumentNullException(nameof(patchMethod));
@@ -306,7 +306,7 @@ namespace YamaEngine.PluginSystem
             string methodKey = GetMethodKey(targetMethod);
 
             // 安全检查
-            if (!SecurityPolicy.CanPatch(pluginId, targetMethod))
+            if (!SecurityPolicy.CanPatch(pluginId!, targetMethod))
             {
                 _logger.Warning($"安全策略阻止补丁: {methodKey} [{pluginId}]");
                 return null;
@@ -449,14 +449,14 @@ namespace YamaEngine.PluginSystem
         #region 补丁执行
 
         /// <summary>执行补丁链 (前缀 → 原方法 → 后缀)。</summary>
-        public PatchInvokeResult InvokeWithPatches(MethodBase targetMethod, object instance, object[] arguments,
-            Func<object[], object> originalMethodInvoker)
+        public PatchInvokeResult InvokeWithPatches(MethodBase targetMethod, object? instance, object[]? arguments,
+            Func<object[], object>? originalMethodInvoker)
         {
             var sw = EnableProfiling ? System.Diagnostics.Stopwatch.StartNew() : null;
             var result = new PatchInvokeResult();
             string methodKey = GetMethodKey(targetMethod);
 
-            List<PatchDescriptor> patches;
+            List<PatchDescriptor>? patches;
             lock (_patchLock)
             {
                 if (!_patches.TryGetValue(methodKey, out patches) || patches.Count == 0)
@@ -466,7 +466,7 @@ namespace YamaEngine.PluginSystem
                     {
                         try
                         {
-                            result.ReturnValue = originalMethodInvoker(arguments);
+                            result.ReturnValue = originalMethodInvoker(arguments!);
                             result.OriginalExecuted = true;
                         }
                         catch (Exception ex)
@@ -633,7 +633,7 @@ namespace YamaEngine.PluginSystem
         private void InvokePatchMethod(PatchDescriptor patch, PatchContext context)
         {
             var parameters = patch.PatchMethod.GetParameters();
-            var args = new List<object>();
+            var args = new List<object?>();
 
             foreach (var param in parameters)
             {
@@ -665,10 +665,10 @@ namespace YamaEngine.PluginSystem
             patch.PatchMethod.Invoke(patch.PatchInstance, args.ToArray());
         }
 
-        private object InvokeReplaceMethod(PatchDescriptor patch, PatchContext context)
+        private object? InvokeReplaceMethod(PatchDescriptor patch, PatchContext context)
         {
             var parameters = patch.PatchMethod.GetParameters();
-            var args = new object[parameters.Length];
+            var args = new object?[parameters.Length];
 
             for (int i = 0; i < parameters.Length; i++)
             {
@@ -745,9 +745,9 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>获取补丁调用统计。</summary>
-        public Dictionary<string, (long InvokeCount, TimeSpan TotalTime, Exception LastException)> GetPatchStats()
+        public Dictionary<string, (long InvokeCount, TimeSpan TotalTime, Exception? LastException)> GetPatchStats()
         {
-            var stats = new Dictionary<string, (long, TimeSpan, Exception)>();
+            var stats = new Dictionary<string, (long, TimeSpan, Exception?)>();
             foreach (var kv in _patches)
             {
                 foreach (var patch in kv.Value)

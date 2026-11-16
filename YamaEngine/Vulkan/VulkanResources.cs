@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -508,7 +509,11 @@ namespace YamaEngine.RHI.Vulkan
                     return alloc;
             }
 
-            ulong blockSize = Math.Max(DefaultBlockSize, reqs.Size * 4);
+            // 工业级防御: reqs.Size*4 用 long 提升计算, 防止伪造巨值 ulong 乘法回绕 (分配过小/越界)。
+            long blockSizeL = (long)reqs.Size * 4;
+            ulong blockSize = blockSizeL < 0 || (ulong)blockSizeL < DefaultBlockSize
+                ? DefaultBlockSize
+                : (ulong)blockSizeL;
             var newBlock = new MemoryBlock(_vk, _device, memoryTypeIndex, blockSize, _memProps);
             _blockPools[memoryTypeIndex].Add(newBlock);
 
@@ -705,6 +710,14 @@ namespace YamaEngine.RHI.Vulkan
 
         private static ulong AlignUp(ulong value, ulong alignment)
         {
+            // 工业级防御: alignment 为 0 或 value+alignment-1 溢出 (损坏/伪造对齐参数) 时抛异常,
+            // 防止回绕后产生错误偏移或越界访问。
+            if (alignment == 0)
+                throw new InvalidDataException("Vulkan AlignUp: alignment 为 0");
+            if (alignment > 1 && (alignment & (alignment - 1)) != 0)
+                throw new InvalidDataException($"Vulkan AlignUp: alignment 不是 2 的幂 ({alignment})");
+            if (value > ulong.MaxValue - (alignment - 1))
+                throw new InvalidDataException($"Vulkan AlignUp: 对齐溢出 (value={value}, alignment={alignment})");
             return (value + alignment - 1) & ~(alignment - 1);
         }
 
@@ -832,6 +845,7 @@ namespace YamaEngine.RHI.Vulkan
         internal VkAllocation Allocation;
         internal ImageLayout CurrentLayout;
         internal bool IsSwapchainImage;
+        private bool _allocationOwned;      // 标记本纹理持有独立内存分配, 防止对 swapchain 图像或已释放纹理二次 Free
         private bool _disposed;
         private string _name = "";
         private RHIResourceState _currentState = RHIResourceState.Common;
@@ -884,6 +898,7 @@ namespace YamaEngine.RHI.Vulkan
                 "Failed to create Vulkan image");
 
             Allocation = device.Allocator.AllocateForImage(VkImage, MemoryPropertyFlags.DeviceLocalBit);
+            _allocationOwned = true;
 
             CreateDefaultView(desc, vkFormat);
         }
@@ -907,7 +922,7 @@ namespace YamaEngine.RHI.Vulkan
             {
                 RHIResourceDimension.Texture1D when desc.DepthOrArraySize > 1 => ImageViewType.Type1DArray,
                 RHIResourceDimension.Texture1D => ImageViewType.Type1D,
-                RHIResourceDimension.Texture2D when (desc.Flags & RHITextureFlags.Cube) != 0 => ImageViewType.Cube,
+                RHIResourceDimension.Texture2D when (desc.Flags & RHITextureFlags.Cube) != 0 => ImageViewType.TypeCube,
                 RHIResourceDimension.Texture2D when desc.DepthOrArraySize > 1 => ImageViewType.Type2DArray,
                 RHIResourceDimension.Texture2D => ImageViewType.Type2D,
                 RHIResourceDimension.Texture3D => ImageViewType.Type3D,
@@ -916,8 +931,8 @@ namespace YamaEngine.RHI.Vulkan
 
             uint layerCount = viewType switch
             {
-                ImageViewType.Cube => 6,
-                ImageViewType.CubeArray => (uint)desc.DepthOrArraySize,
+                ImageViewType.TypeCube => 6,
+                ImageViewType.TypeCubeArray => (uint)desc.DepthOrArraySize,
                 ImageViewType.Type1DArray or ImageViewType.Type2DArray => (uint)desc.DepthOrArraySize,
                 _ => 1
             };
@@ -974,7 +989,7 @@ namespace YamaEngine.RHI.Vulkan
         public override RHITextureDesc? TextureDesc { get; }
         public override RHIResourceState CurrentState { get => _currentState; set => _currentState = value; }
         public override string Name { get => _name; set => _name = value; }
-        public override ulong AllocatedBytes => Allocation.Size;
+        public override ulong AllocatedBytes => _allocationOwned ? Allocation.Size : 0;
 
         public override void Dispose()
         {
@@ -988,7 +1003,13 @@ namespace YamaEngine.RHI.Vulkan
             {
                 if (VkImage.Handle != 0)
                     Device.Vk.DestroyImage(Device.VkDevice, VkImage, null);
-                Device.Allocator.Free(Allocation);
+                // 工业级防御: 仅释放本纹理自己分配的内存, 防止 swapchain 图像或
+                // 共享 Allocation 被二次 Free (双释放/句柄泄漏)。
+                if (_allocationOwned)
+                {
+                    Device.Allocator.Free(Allocation);
+                    _allocationOwned = false;
+                }
             }
 
             VkImage = default;

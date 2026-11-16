@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yama Engine — 用 C# 造一个真引擎</title>
+<meta name="description" content="Yama Engine 是一个用 C#/.NET 10 从零构建的桌面游戏与建模引擎。Vulkan 1.4 单后端，手写渲染与物理，WinUI 3 + ImGui 一体化编辑器。MIT 许可，开放构建。">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" as="image" href="assets/heroes/index.webp">
+<link rel="alternate" hreflang="zh-CN" href="index.html">
+<link rel="alternate" hreflang="en" href="index-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<meta property="og:title" content="Yama Engine — 用 C# 造一个真引擎">
+<meta property="og:description" content="Yama Engine 是一个用 C#/.NET 10 从零构建的桌面游戏与建模引擎。Vulkan 1.4 单后端，手写渲染与物理，WinUI 3 + ImGui 一体化编辑器。MIT 许可，开放构建。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Yama Engine","alternateName":"yama游戏引擎","applicationCategory":"DeveloperApplication","operatingSystem":"Windows 10/11 x64","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT","url":"https://github.com/kino-koki/Yama-Engine","description":"用 C#/.NET 10 从零构建的桌面游戏与建模引擎：Vulkan 1.4 单后端、手写物理与渲染管线、WinUI 3 一体化编辑器。","featureList":"Deferred rendering, hand-written physics (GJK/EPA/SAT), LLM-driven NPCs, Motion Matching, ECS, WinUI 3 editor"}
+</script>
+
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html" data-nav="why">为什么</a>
+      <a href="capabilities.html" data-nav="capabilities">能力</a>
+      <a href="scenarios.html" data-nav="scenarios">场景</a>
+      <a href="architecture.html" data-nav="architecture">架构</a>
+      <a href="compare.html">对比</a>
+      <a href="get-started.html" data-nav="get-started">快速上手</a>
+      <a href="status.html" data-nav="status">真实状态</a>
+      <a href="faq.html" data-nav="faq">FAQ</a>
+      <a href="poem.html" data-nav="poem">诗</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+<!-- ══════════ HERO ══════════ -->
+<header class="hero" id="main">
+  <div class="hero-bg" aria-hidden="true"><img src="assets/heroes/index.webp" alt="" width="2048" height="1152" fetchpriority="high" decoding="async"></div>
+<div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="#171310"/></svg></div>
+
+<div class="pixel-sun" aria-hidden="true">
+  <svg viewBox="0 0 44 44" fill="none" shape-rendering="crispEdges">
+    <rect x="19" y="2" width="6" height="6" fill="#FFD900"/><rect x="19" y="8" width="6" height="6" fill="#FFAE00"/>
+    <rect x="13" y="8" width="6" height="6" fill="#FF8205"/><rect x="25" y="8" width="6" height="6" fill="#FF8205"/>
+    <rect x="8" y="14" width="6" height="6" fill="#FA520F"/><rect x="30" y="14" width="6" height="6" fill="#FA520F"/>
+    <rect x="14" y="14" width="16" height="16" fill="#FA500F"/><rect x="2" y="19" width="6" height="6" fill="#E00400"/><rect x="36" y="19" width="6" height="6" fill="#E00400"/>
+    <rect x="8" y="24" width="6" height="6" fill="#FF8205"/><rect x="30" y="24" width="6" height="6" fill="#FF8205"/>
+    <rect x="13" y="30" width="6" height="6" fill="#FFAE00"/><rect x="25" y="30" width="6" height="6" fill="#FFAE00"/>
+    <rect x="19" y="36" width="6" height="6" fill="#FFD900"/>
+  </svg>
+</div>
+
+  <div class="hero-wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="kicker">C# / .NET 10 · Vulkan 1.4 · Open Source</div>
+        <h1>用 C# 造一个<br><em>真正的</em>游戏引擎<span class="h1-dot">.</span></h1>
+        <p class="lede">
+          Yama 是一个桌面端游戏与建模引擎。<strong>Vulkan 1.4 单渲染后端</strong>、手写的物理与渲染管线、WinUI 3 一体化编辑器 — 全部用 C# 从零构建，不依赖 PhysX、不依赖 Unreal、不依赖 Unity。
+        </p>
+        <div class="hero-chips" aria-label="核心能力">
+          <span>延迟渲染管线</span><span>手写物理引擎</span><span>LLM 驱动 NPC</span><span>Motion Matching</span><span>一体化编辑器</span>
+        </div>
+        <div class="hero-actions">
+          <a href="capabilities.html" class="hero-cta">
+            探索引擎能力
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+          <a href="status.html" class="hero-cta">
+            查看真实状态
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <dl class="stats">
+      <div class="stat"><dd>0</dd><dt>编译错误</dt></div>
+      <div class="stat"><dd>817</dd><dt>C# 源文件</dt></div>
+      <div class="stat"><dd>319<span class="unit">K</span></dd><dt>代码总行数</dt></div>
+      <div class="stat"><dd>40<span class="unit">+</span></dd><dt>子系统模块</dt></div>
+    </dl>
+  </div>
+</header>
+
+<!-- ══════════ SPECTRUM BAR ══════════ -->
+<div class="spectrum-bar" aria-hidden="true"></div>
+
+<!-- ══════════ MARQUEE / LOGO WALL (Mistral) ══════════ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span class="mq-item">YAMA ENGINE</span><i class="mq-dot"></i>
+    <span class="mq-item">VULKAN 1.4</span><i class="mq-dot"></i>
+    <span class="mq-item">C# / .NET 10</span><i class="mq-dot"></i>
+    <span class="mq-item">WINUI 3</span><i class="mq-dot"></i>
+    <span class="mq-item">OPEN SOURCE</span><i class="mq-dot"></i>
+    <span class="mq-item">MIT LICENSE</span><i class="mq-dot"></i>
+    <span class="mq-item">RHI · PBR · GI</span><i class="mq-dot"></i>
+    <span class="mq-item">PHYSICS</span><i class="mq-dot"></i>
+    <span class="mq-item">IMGUI</span><i class="mq-dot"></i>
+    <span class="mq-item">ECS</span><i class="mq-dot"></i>
+    <span class="mq-item">SHADERS</span><i class="mq-dot"></i>
+    <span class="mq-item">ASSET PIPELINE</span><i class="mq-dot"></i>
+  </div>
+</div>
+
+<!-- ══════════ MODULES ══════════ -->
+<div class="wrap"><div class="pixel-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+<section class="philo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">00</span>
+        <span class="t">Modules<br>模块</span>
+      </div>
+      <div>
+        <h2>整个网站被拆成了<br><span class="accent">八个独立模块</span>。</h2>
+        <p>不再是一页到底的长滚动。每一个主题都是一个独立页面：点标题、点导航、点页脚，都会真正跳转到另一个 URL。每个模块都有自己的深度内容，而不是一句口号。</p>
+      </div>
+    </div>
+
+    <div class="mod-grid">
+      <a class="mod-tile reveal" href="why.html">
+        <span class="mod-idx">/01 — Why</span>
+        <h3>为什么做 Yama</h3>
+        <p>商业引擎封闭源码、抽成昂贵、深度绑定生态；开源引擎要么能力有限，要么只是玩具。Yama 试图走出第三条路：能力完整、代码透明、真正开放。这一页讲清动机、设计哲学与三条不可妥协的原则。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d1" href="capabilities.html">
+        <span class="mod-idx">/02 — Capabilities</span>
+        <h3>九大核心系统</h3>
+        <p>渲染管线、物理引擎、人工智能、动画、音频、ECS、一体化编辑器、DCC 桥接、网络与脚本。九个系统逐一展开：每个都有实际代码实现，文件数与关键算法都标注在页面上。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d2" href="scenarios.html">
+        <span class="mod-idx">/03 — Scenarios</span>
+        <h3>使用场景</h3>
+        <p>3D 游戏原型、地形与场景编辑、DCC 工具实时桥接 — 三大工作流各展开一整页。从建模到部署、从视觉脚本到 LiveLink，Yama 试图覆盖桌面 3A 开发的每一个环节。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal" href="architecture.html">
+        <span class="mod-idx">/04 — Architecture</span>
+        <h3>六层架构</h3>
+        <p>D3D12 已废弃并从工程中排除，整个引擎只有一个图形后端 — Vulkan 1.4。这一页讲清六层结构、RHI 抽象、模块依赖关系，以及为什么"一个后端"是性能与可维护性的关键决策。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d1" href="status.html">
+        <span class="mod-idx">/05 — Honest Status</span>
+        <h3>真实状态与路线图</h3>
+        <p>817 个源文件、319K 行代码，全部托管项目在 2026-11-01 达到 0 编译错误。但编译通过不等于 GPU 已验证。这一页把完成与未完成的东西同样清楚地摆出来，并附完整路线图。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d2" href="faq.html">
+        <span class="mod-idx">/06 — FAQ</span>
+        <h3>诚实的问答</h3>
+        <p>是游戏引擎还是建模工具？为什么选 C# 而不是 C++？现在能跑起来吗？能用于商业项目吗？关于 Yama 最常被问到的十个问题，我们不回避其中任何尖锐的一个。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal" href="compare.html">
+        <span class="mod-idx">/08 — Compare</span>
+        <h3>和商业引擎比一比</h3>
+        <p>与 Unity 6 / UE 5.8 / Godot 4 的诚实横向对比：源码开放、许可分成、语言、后端、物理、成熟度。劣势也写在明面上。</p>
+        <span class="mod-go">进入模块 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ POEM TEASER ══════════ -->
+<section class="open">
+  <div class="wrap">
+    <div class="open-grid reveal">
+      <div class="open-left">
+        <h3>山雨欲来<br>风满楼。</h3>
+        <p>Yama 的名字取自"嵯峨"之山势，取意的则是唐诗里最著名的一句风雨前奏。我们把许浑的《咸阳城东楼》八句完整请进站内 — 竖排、大字、六段日落色阶，做成一页可以慢慢读的艺术排版。</p>
+        <p>引擎要面对 GPU 崩溃、验证层、跨帧缓存这类具体的麻烦，诗也一样 — 咸阳城东楼上那一晚的风，吹了一千多年。</p>
+      </div>
+      <div class="open-metrics">
+        <h4>《咸阳城东楼》· 许浑（唐）</h4>
+        <div class="bar-note" style="margin-bottom:10px">八句 · 五律 · 落日 · 风雨 · 故国</div>
+        <p style="font-family:var(--font-cn);font-size:16px;line-height:2;color:var(--ink-2)">
+          一上高城万里愁，蒹葭杨柳似汀洲。<br>
+          溪云初起日沉阁，山雨欲来风满楼。<br>
+          鸟下绿芜秦苑夕，蝉鸣黄叶汉宫秋。<br>
+          行人莫问当年事，故国东来渭水流。
+        </p>
+        <a href="poem.html" class="btn btn-primary" style="margin-top:20px">
+          阅读艺术字化全诗
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ DEVLOG（Mistral 新闻卡风格）══════════ -->
+<section class="devlog">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">06</span>
+        <span class="t">Devlog<br>开发日志</span>
+      </div>
+      <div>
+        <h2>引擎是怎么<br><span class="accent">一块块长出来的</span>。</h2>
+        <p>不只展示结果，也记录过程。每一次提交都是可回溯的真实进度 — 编译错误从 1414 清到 0，渲染管线从第一个三角形走到延迟渲染。</p>
+      </div>
+    </div>
+    <div class="devlog-grid">
+      <a class="devlog-card reveal" href="https://github.com/kino-koki/Yama-Engine/commits/main" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">2026-11-02</span><span>Rendering</span></span>
+        <h3>补齐 IBL / 大气 / 体积雾 / SSGI / TAA 等后处理栈</h3>
+        <p>真实 GLSL 实现 + RenderGapAudit 缺陷评估 + 10 项测试。延迟渲染管线在算法层完成 UE4.7 级别能力。</p>
+        <span class="devlog-go">查看提交 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d1" href="https://github.com/kino-koki/Yama-Engine/commits/main" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">2026-11-01</span><span>AI / NPC</span></span>
+        <h3>NpcBrain 接入行为树与 StateTree</h3>
+        <p>LLM 生成的结构化意图作为 BT / StateTree 决策源，附带任务系统、群体社交与 8 项接线测试。</p>
+        <span class="devlog-go">查看提交 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d2" href="https://github.com/kino-koki/Yama-Engine/commits/main" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">2026-11-01</span><span>Milestone</span></span>
+        <h3>全部托管项目编译错误清零</h3>
+        <p>从 8 月的 1414 个错误开始，引擎库、编辑器、测试项目全部 0 错误 0 警告，-warnaserror 进入门禁。</p>
+        <span class="devlog-go">查看提交 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ TECH DOCS（Mistral Research 风格）══════════ -->
+<section class="devlog" style="background:var(--paper-2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">DOC</span>
+        <span class="t">Tech Docs<br>技术文档</span>
+      </div>
+      <div>
+        <h2>文档全部<span class="accent">摊开在仓库里</span>。</h2>
+        <p>包括那些"不太好看"的：真实完成度评估、编译错误修复史、运行时崩溃诊断。透明不是口号，是文件。</p>
+      </div>
+    </div>
+    <div class="devlog-grid">
+      <a class="devlog-card reveal" href="https://github.com/kino-koki/Yama-Engine/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">ARCHITECTURE.md</span></span>
+        <h3>架构文档</h3>
+        <p>六层结构总览、RHI 抽象设计、单一 Vulkan 后端的取舍、各模块依赖关系与实测构建状态。</p>
+        <span class="devlog-go">在 GitHub 阅读 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d1" href="https://github.com/kino-koki/Yama-Engine/blob/main/docs/CODE_TRUTH_REPORT.md" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">CODE_TRUTH_REPORT.md</span></span>
+        <h3>代码真实状态报告</h3>
+        <p>逐子系统标注"真实完成 / 算法原型 / 未验证"，附行数统计的实测核对记录。文档与代码同仓库，随提交更新。</p>
+        <span class="devlog-go">在 GitHub 阅读 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d2" href="https://github.com/kino-koki/Yama-Engine/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">CONTRIBUTING.md</span></span>
+        <h3>参与贡献</h3>
+        <p>从修一个编译警告到实现一个渲染 pass，贡献路径与代码规范都在这里。MIT 许可，欢迎所有人。</p>
+        <span class="devlog-go">在 GitHub 阅读 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="dl">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">DL</span>
+        <span class="t">设计语言<br>设计语言</span>
+      </div>
+      <div>
+        <h2>融合不是拼接，<br>沉淀出<span class="accent">自己的语言</span>。</h2>
+        <p>来自 Mistral 的编辑排版与纸面质感，来自 SenseNova 的模型卡片与引言带，最终沉淀为 Yama 自己的三种母题：<strong>日落光谱、群山脊线、工程方角</strong>。这套语言只属于这个项目。</p>
+      </div>
+    </div>
+    <div class="dl-swatches reveal"><div class="swatch"><div class="chip" style="background:#FFFAEB;color:#171310"><span>paper</span><span>#FFFAEB</span></div><span class="nm">paper</span></div><div class="swatch"><div class="chip" style="background:#171310;color:#FFFAEB"><span>ink</span><span>#171310</span></div><span class="nm">ink</span></div><div class="swatch"><div class="chip" style="background:#FA500F;color:#ffffff"><span>primary</span><span>#FA500F</span></div><span class="nm">primary</span></div><div class="swatch"><div class="chip" style="background:#FF8205;color:#ffffff"><span>ochre</span><span>#FF8205</span></div><span class="nm">ochre</span></div><div class="swatch"><div class="chip" style="background:#FFD900;color:#171310"><span>sun-2</span><span>#FFD900</span></div><span class="nm">sun-2</span></div><div class="swatch"><div class="chip" style="background:#FFAE00;color:#ffffff"><span>sun-3</span><span>#FFAE00</span></div><span class="nm">sun-3</span></div><div class="swatch"><div class="chip" style="background:#FA520F;color:#ffffff"><span>sun-5</span><span>#FA520F</span></div><span class="nm">sun-5</span></div><div class="swatch"><div class="chip" style="background:#E00400;color:#ffffff"><span>sun-6</span><span>#E00400</span></div><span class="nm">sun-6</span></div></div>
+    <div class="dl-types reveal"><div class="dl-type"><span class="nm">Display · Archivo 800</span><div class="spec display">山雨欲来 Aa</div><div class="use">大标题 / 数字 / 强调 — 紧排、负字距、方正有力</div></div><div class="dl-type"><span class="nm">Body · Instrument Sans</span><div class="spec body">正文与叙述 Aa</div><div class="use">段落 / 说明 — 中性、易读、不抢戏</div></div><div class="dl-type"><span class="nm">Mono · JetBrains Mono</span><div class="spec mono">MEASURE / 01</div><div class="use">标注 / 眉标 / 数据 — 工程图纸的口吻</div></div><div class="dl-type"><span class="nm">Serif · Noto Serif SC</span><div class="spec cn">诗与古文</div><div class="use">引文 / 诗页 — 连接千年前的那个傍晚</div></div></div>
+    <div class="dl-motifs reveal"><div class="dl-motif"><div class="demo"><div class="m-demo-sun"><svg viewBox="0 0 44 44" fill="none" shape-rendering="crispEdges"><rect x="19" y="2" width="6" height="6" fill="#FFD900"/><rect x="19" y="8" width="6" height="6" fill="#FFAE00"/><rect x="13" y="8" width="6" height="6" fill="#FF8205"/><rect x="25" y="8" width="6" height="6" fill="#FF8205"/><rect x="8" y="14" width="6" height="6" fill="#FA520F"/><rect x="30" y="14" width="6" height="6" fill="#FA520F"/><rect x="14" y="14" width="16" height="16" fill="#FA500F"/><rect x="2" y="19" width="6" height="6" fill="#E00400"/><rect x="36" y="19" width="6" height="6" fill="#E00400"/><rect x="8" y="24" width="6" height="6" fill="#FF8205"/><rect x="30" y="24" width="6" height="6" fill="#FF8205"/><rect x="13" y="30" width="6" height="6" fill="#FFAE00"/><rect x="25" y="30" width="6" height="6" fill="#FFAE00"/><rect x="19" y="36" width="6" height="6" fill="#FFD900"/></svg></div></div><h4>Motif 01 · 像素太阳</h4><p>方块拼出的太阳，缓慢自转。数字世界的光，和天空中的光同源。</p></div><div class="dl-motif"><div class="demo"><div class="m-demo-band"><i style="background:#FFF0C2"></i><i style="background:#FFD900"></i><i style="background:#FFAE00"></i><i style="background:#FF8205"></i><i style="background:#FA520F"></i><i style="background:#E00400"></i></div></div><h4>Motif 02 · 光谱带</h4><p>六段等宽的日落光谱，是整套色彩系统的秩序来源，也是页脚的收束。</p></div><div class="dl-motif"><div class="demo"><svg class="m-demo-ridge" viewBox="0 0 300 64" preserveAspectRatio="none" shape-rendering="crispEdges"><path d="M0 64 L0 46 L50 30 L100 44 L150 18 L200 38 L250 24 L300 40 L300 64 Z" fill="#171310"/></svg></div><h4>Motif 03 · 群山脊线</h4><p>取自"嵯峨"的山势。章节之间的过渡不是一条直线，而是一道山脊。</p></div><div class="dl-motif"><div class="demo"><div class="m-demo-sq"><i></i><i></i><i></i><i></i></div></div><h4>Motif 04 · 工程方角</h4><p>没有圆角。卡片、按钮、标签全是直角 — 像图纸上的标注，清楚、肯定、不含糊。</p></div></div>
+  </div>
+</section>
+
+<!-- ══════════ 《盘铭》引言带（借鉴 SenseNova）══════════ -->
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+
+<!-- ══════════ 引擎生态总览（借鉴 SenseNova 模型卡）══════════ -->
+<section class="eco">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">07</span>
+        <span class="t">Ecosystem<br>引擎生态</span>
+      </div>
+      <div>
+        <h2>不只是渲染器，<br>是<span class="accent">一整套工具链</span>。</h2>
+        <p>像 SenseNova 按"模型 / 框架 / 技能"组织能力一样，Yama 的子系统按"运行时 / 工具链 / 内容管线"分层。每张卡片背后都是一个真实存在的目录。</p>
+      </div>
+    </div>
+    <div class="eco-grid">
+      <div class="eco-card reveal">
+        <span class="eco-eyebrow">Runtime · 运行时</span>
+        <h3>延迟渲染管线</h3>
+        <p>Deferred 路径 + 完整后处理栈，真实 GLSL pass 实现，算法层对标 UE4.7。</p>
+        <span class="eco-files">Rendering / 124 文件</span>
+      </div>
+      <div class="eco-card reveal reveal-d1">
+        <span class="eco-eyebrow">Runtime · 运行时</span>
+        <h3>真实物理引擎</h3>
+        <p>GJK / EPA / SAT 碰撞检测与 9 种关节约束，解析解级单元测试逐项验证。</p>
+        <span class="eco-files">Physics / 84 文件</span>
+      </div>
+      <div class="eco-card reveal reveal-d2">
+        <span class="eco-eyebrow">Runtime · 运行时</span>
+        <h3>LLM 驱动 NPC</h3>
+        <p>NpcBrain 把 LLM 意图接进行为树与 StateTree，附带任务系统与群体社交。</p>
+        <span class="eco-files">NPC + AI / 48 文件</span>
+      </div>
+      <div class="eco-card reveal">
+        <span class="eco-eyebrow">Toolchain · 工具链</span>
+        <h3>一体化编辑器</h3>
+        <p>WinUI 3 原生窗口内嵌 Vulkan 视口，场景 / 地形 / 建模 / 代码 / 测试五模式。</p>
+        <span class="eco-files">YamaEditor / 41 文件</span>
+      </div>
+      <div class="eco-card reveal reveal-d1">
+        <span class="eco-eyebrow">Content · 内容管线</span>
+        <h3>DCC 实时桥接</h3>
+        <p>Blender LiveLink 实时同步，Maya / 3ds Max Python 插件直推资产管线。</p>
+        <span class="eco-files">DCC Bridges / 3 端</span>
+      </div>
+      <div class="eco-card reveal reveal-d2">
+        <span class="eco-eyebrow">Content · 内容管线</span>
+        <h3>Cel2D 赛璐璐系统</h3>
+        <p>2D 粒子、骨骼动画、图集、瓦片地图与 2D 物理的完整子引擎，独立沙箱可玩。</p>
+        <span class="eco-files">Cel2D / 14 文件</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ CTA ══════════ -->
+<section class="cta">
+  <div class="wrap">
+    <div class="cta-inner reveal">
+      <h2>读代码，<br>比读<span class="accent">文档</span>更诚实。</h2>
+      <p>Yama 是 MIT 许可的开源项目。Clone 仓库，打开解决方案，F5 编译。每一行代码都在那里等着你。</p>
+      <div class="cta-actions">
+      <a href="capabilities.html" class="btn btn-invert">
+        了解引擎能力
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+      <a href="poem.html" class="btn btn-outline">读那首唐诗</a>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ══════════ FOOTER (Mistral 1:1) ══════════ -->
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+      <div class="foot-social">
+        <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+      </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="scenarios.html">使用场景</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="get-started.html">快速上手</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="status.html">成熟度评估</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

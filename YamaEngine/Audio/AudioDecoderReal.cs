@@ -78,6 +78,7 @@ namespace YamaEngine.Audio
         /// </summary>
         public WavInfo Load(byte[] data)
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
             _fileData = data;
             _info = ParseHeader(data);
             return _info;
@@ -98,6 +99,9 @@ namespace YamaEngine.Audio
         /// </summary>
         private WavInfo ParseHeader(byte[] data)
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (data.Length < 12) throw new InvalidDataException("无效的WAV文件: 文件过短(<12字节)");
+
             var info = new WavInfo();
             using var ms = new MemoryStream(data);
             using var reader = new BinaryReader(ms);
@@ -114,43 +118,72 @@ namespace YamaEngine.Audio
             {
                 string chunkId = ReadFourCC(reader);
                 int chunkSize = reader.ReadInt32();
+
+                // 工业级防御: chunkSize 可为负(伪造)或超出文件, 禁止 Position 越界。
+                if (chunkSize < 0)
+                    throw new InvalidDataException($"无效的WAV文件: 块 '{chunkId}' 大小为负 ({chunkSize})");
                 long chunkEnd = ms.Position + chunkSize;
+                if (chunkEnd > ms.Length)
+                    throw new InvalidDataException($"无效的WAV文件: 块 '{chunkId}' 声明大小超出文件范围");
 
                 switch (chunkId)
                 {
                     case "fmt ":
+                        if (ms.Position + 16 > ms.Length)
+                            throw new InvalidDataException("无效的WAV文件: fmt块过短");
                         info.FormatTag = reader.ReadUInt16();
                         info.Channels = reader.ReadUInt16();
                         info.SampleRate = reader.ReadInt32();
                         reader.ReadInt32(); // byteRate
                         info.BlockAlign = reader.ReadUInt16();
                         info.BitsPerSample = reader.ReadUInt16();
+                        // 工业级防御: 声道/位深非法
+                        if (info.Channels <= 0 || info.Channels > 256)
+                            throw new InvalidDataException($"无效的WAV文件: 声道数非法 ({info.Channels})");
+                        if (info.BitsPerSample is not (8 or 16 or 24 or 32 or 64))
+                            throw new InvalidDataException($"无效的WAV文件: 位深非法 ({info.BitsPerSample})");
+                        if (info.BlockAlign <= 0)
+                            throw new InvalidDataException($"无效的WAV文件: 块对齐非法 ({info.BlockAlign})");
                         // 跳过额外数据
                         if (chunkSize > 16)
                             ms.Position = chunkEnd;
                         break;
 
                     case "data":
+                        if (ms.Position > int.MaxValue)
+                            throw new InvalidDataException("无效的WAV文件: data块偏移超出int范围");
                         info.DataOffset = (int)ms.Position;
                         info.DataSize = chunkSize;
-                        // 计算样本数
+                        // 计算样本数 (工业级防御: 防止除零/溢出)
                         if (info.FormatTag == WaveFormatTag.ImaAdpcm)
                         {
                             // IMA ADPCM: 每个block包含header + 样本
-                            int samplesPerBlock = (info.BlockAlign / info.Channels - 4) * 8 + 1;
+                            int headerPerChannel = info.BlockAlign / info.Channels;
+                            if (headerPerChannel < 4)
+                                throw new InvalidDataException("无效的WAV文件: IMA ADPCM块对齐非法");
+                            int samplesPerBlock = (headerPerChannel - 4) * 8 + 1;
                             int numBlocks = info.DataSize / info.BlockAlign;
-                            info.NumSamples = numBlocks * samplesPerBlock;
+                            // 工业级防御: numBlocks*samplesPerBlock 用 long 计算防 int 溢出 (损坏头可伪造超大值)。
+                            long totalSamplesL = (long)numBlocks * samplesPerBlock;
+                            if (totalSamplesL > int.MaxValue)
+                                throw new InvalidDataException($"无效的WAV文件: IMA ADPCM 样本数溢出 ({totalSamplesL})");
+                            info.NumSamples = (int)totalSamplesL;
                         }
                         else
                         {
                             int bytesPerSample = info.BitsPerSample / 8;
-                            info.NumSamples = info.DataSize / (info.Channels * bytesPerSample);
+                            int bytesPerFrame = info.Channels * bytesPerSample;
+                            if (bytesPerFrame <= 0)
+                                throw new InvalidDataException("无效的WAV文件: 帧字节数非法");
+                            info.NumSamples = info.DataSize / bytesPerFrame;
                         }
                         ms.Position = chunkEnd;
                         break;
 
                     case "smpl":
                         // 采样器块 - 包含循环点
+                        if (ms.Position + 36 > ms.Length)
+                            throw new InvalidDataException("无效的WAV文件: smpl块过短");
                         reader.ReadInt32(); // manufacturer
                         reader.ReadInt32(); // product
                         reader.ReadInt32(); // sample period
@@ -161,7 +194,10 @@ namespace YamaEngine.Audio
                         int numSampleLoops = reader.ReadInt32();
                         reader.ReadInt32(); // sampler data size
 
-                        for (int i = 0; i < numSampleLoops; i++)
+                        // 工业级防御: 循环数不能超过剩余可读空间(每个循环24字节)
+                        int maxLoops = (int)Math.Min((chunkEnd - ms.Position) / 24, 4096);
+                        int loopsToRead = Math.Min(numSampleLoops, maxLoops);
+                        for (int i = 0; i < loopsToRead; i++)
                         {
                             reader.ReadInt32(); // cue point ID
                             reader.ReadInt32(); // type (0=forward, 1=alternating, 2=backward)
@@ -181,8 +217,10 @@ namespace YamaEngine.Audio
 
                     case "fact":
                         // fact块 - 样本数(非PCM格式)
+                        if (ms.Position + 4 > ms.Length)
+                            throw new InvalidDataException("无效的WAV文件: fact块过短");
                         int factSamples = reader.ReadInt32();
-                        if (info.NumSamples == 0) info.NumSamples = factSamples;
+                        if (info.NumSamples == 0 && factSamples >= 0) info.NumSamples = factSamples;
                         ms.Position = chunkEnd;
                         break;
 
@@ -213,6 +251,12 @@ namespace YamaEngine.Audio
             if (_fileData == null || _info == null)
                 throw new InvalidOperationException("未加载WAV文件");
 
+            // 工业级防御: data块必须落在文件范围内
+            if (_info.DataOffset < 0 || _info.DataSize < 0 ||
+                _info.DataOffset > _fileData.Length ||
+                _info.DataSize > _fileData.Length - _info.DataOffset)
+                throw new InvalidDataException("无效的WAV文件: data块超出文件范围");
+
             if (_info.FormatTag == WaveFormatTag.ImaAdpcm)
                 return DecodeImaAdpcm();
             else if (_info.FormatTag == WaveFormatTag.IeeeFloat)
@@ -222,11 +266,25 @@ namespace YamaEngine.Audio
         }
 
         /// <summary>
+        /// 工业级防御: 计算解码输出样本总数(声道交错), 校验溢出与上限。
+        /// </summary>
+        private int SafeOutputSampleCount(int samplesPerChannel)
+        {
+            if (samplesPerChannel < 0) throw new InvalidDataException("无效的WAV文件: 样本数为负");
+            long total = (long)samplesPerChannel * _info.Channels;
+            // 单次解码输出上限 1 亿浮点 (400MB), 防伪造头 OOM。
+            const long MaxOutputSamples = 100_000_000;
+            if (total > MaxOutputSamples)
+                throw new InvalidDataException($"无效的WAV文件: 样本总数过大 ({total})");
+            return (int)total;
+        }
+
+        /// <summary>
         /// 解码PCM 8/16/24/32 bit → float
         /// </summary>
         private float[] DecodePcm()
         {
-            int numSamples = _info.NumSamples * _info.Channels;
+            int numSamples = SafeOutputSampleCount(_info.NumSamples);
             float[] output = new float[numSamples];
 
             using var ms = new MemoryStream(_fileData);
@@ -234,6 +292,15 @@ namespace YamaEngine.Audio
             using var reader = new BinaryReader(ms);
 
             int bps = _info.BitsPerSample;
+
+            // 工业级防御: 校验声明样本数所需的字节数与 data 块大小及文件实际可用数据一致,
+            // 防止伪造头使 ReadByte/ReadInt16 读过头(静默零填充或中途异常)。
+            int bytesPerSample = bps / 8;
+            long expectedBytes = (long)numSamples * bytesPerSample;
+            if (expectedBytes > _info.DataSize)
+                throw new InvalidDataException($"WAV PCM 数据长度不符: 需要 {expectedBytes} 字节, data块声明 {_info.DataSize}");
+            if ((long)_info.DataOffset + expectedBytes > _fileData.Length)
+                throw new InvalidDataException($"WAV PCM 数据截断: 需要 {expectedBytes} 字节, 文件实际可用 {_fileData.Length - _info.DataOffset}");
 
             switch (bps)
             {
@@ -277,7 +344,7 @@ namespace YamaEngine.Audio
         /// </summary>
         private float[] DecodeIeeeFloat()
         {
-            int numSamples = _info.NumSamples * _info.Channels;
+            int numSamples = SafeOutputSampleCount(_info.NumSamples);
             float[] output = new float[numSamples];
 
             using var ms = new MemoryStream(_fileData);
@@ -327,13 +394,32 @@ namespace YamaEngine.Audio
             int blockAlign = _info.BlockAlign;
             int dataOffset = _info.DataOffset;
             int dataSize = _info.DataSize;
+
+            // 工业级防御: 除零/非法参数
+            if (channels <= 0 || blockAlign <= 0)
+                throw new InvalidDataException("无效的WAV文件: IMA ADPCM声道/块对齐非法");
+            if (blockAlign % channels != 0)
+                throw new InvalidDataException("无效的WAV文件: IMA ADPCM块对齐与声道不匹配");
+
             int numBlocks = dataSize / blockAlign;
 
             // 每block每声道样本数: (blockAlign/channels - 4) * 8 + 1
-            int samplesPerBlockPerChannel = (blockAlign / channels - 4) * 8 + 1;
-            int totalSamplesPerChannel = numBlocks * samplesPerBlockPerChannel;
+            int headerPerChannel = blockAlign / channels;
+            if (headerPerChannel < 4)
+                throw new InvalidDataException("无效的WAV文件: IMA ADPCM块对齐过小");
+            int samplesPerBlockPerChannel = (headerPerChannel - 4) * 8 + 1;
 
-            float[] output = new float[totalSamplesPerChannel * channels];
+            // 工业级防御: numBlocks*samplesPerBlockPerChannel 用 long 计算防 int 溢出。
+            long totalPerChannelL = (long)numBlocks * samplesPerBlockPerChannel;
+            if (totalPerChannelL > int.MaxValue)
+                throw new InvalidDataException($"无效的WAV文件: IMA ADPCM 样本数溢出 ({totalPerChannelL})");
+            int totalSamplesPerChannel = SafeOutputSampleCount((int)totalPerChannelL) / channels;
+
+            // 工业级防御: 输出上限校验(防止 numBlocks*channels*... 溢出)
+            long totalOut = (long)totalSamplesPerChannel * channels;
+            if (totalOut > 100_000_000)
+                throw new InvalidDataException($"无效的WAV文件: IMA ADPCM输出过大 ({totalOut})");
+            float[] output = new float[(int)totalOut];
 
             using var ms = new MemoryStream(_fileData);
             ms.Position = dataOffset;
@@ -359,11 +445,15 @@ namespace YamaEngine.Audio
 
                 // 输出初始预测器值
                 for (int ch = 0; ch < channels; ch++)
+                {
+                    // 工业级防御: outIdx+ch 越界即损坏数据 (防 OOB)。
+                    if (outIdx + ch >= output.Length) break;
                     output[outIdx + ch] = predictor[ch] / 32768.0f;
+                }
                 outIdx += channels;
 
                 // 解码4-bit样本
-                int dataBytesPerChannel = blockAlign / channels - 4;
+                int dataBytesPerChannel = headerPerChannel - 4;
                 for (int i = 0; i < dataBytesPerChannel; i++)
                 {
                     for (int ch = 0; ch < channels; ch++)
@@ -372,6 +462,7 @@ namespace YamaEngine.Audio
                         // 低4位
                         int nibble0 = nibbleByte & 0x0F;
                         predictor[ch] = DecodeImaSample(nibble0, ref predictor[ch], ref stepIndex[ch]);
+                        if (outIdx >= output.Length) break; // 防越界(流数据超出)
                         output[outIdx++] = predictor[ch] / 32768.0f;
 
                         // 高4位
@@ -413,11 +504,18 @@ namespace YamaEngine.Audio
         /// </summary>
         public float[] DecodeRange(int startSample, int numSamples)
         {
+            if (startSample < 0) throw new ArgumentOutOfRangeException(nameof(startSample));
+            if (numSamples < 0) throw new ArgumentOutOfRangeException(nameof(numSamples));
             float[] all = DecodeAll();
             int totalChannels = _info.Channels;
-            int startIdx = startSample * totalChannels;
-            int count = Math.Min(numSamples * totalChannels, all.Length - startIdx);
+            // 工业级防御: startSample*channels 溢出 → 用 long 校验
+            long startIdxL = (long)startSample * totalChannels;
+            if (startIdxL > all.Length) return Array.Empty<float>();
+            int startIdx = (int)startIdxL;
+            long countL = Math.Min((long)numSamples * totalChannels, all.Length - startIdx);
+            if (countL <= 0) return Array.Empty<float>();
 
+            int count = (int)countL;
             float[] result = new float[count];
             Array.Copy(all, startIdx, result, 0, count);
             return result;
@@ -555,14 +653,30 @@ namespace YamaEngine.Audio
 
             // 段表
             page.SegmentTable = reader.ReadBytes(page.NumSegments);
+            // 工业级防御: 复核实际读取长度。段表截断时 ReadBytes 静默填充短数组,
+            // 后续 SegmentTable[i] 遍历 NumSegments 会越界读。
+            if (page.SegmentTable.Length != page.NumSegments)
+                throw new InvalidDataException(
+                    $"OGG 页段表截断: 声明 {page.NumSegments} 段, 实际 {page.SegmentTable.Length}");
 
             // 计算数据总大小
             int dataSize = 0;
             for (int i = 0; i < page.NumSegments; i++)
                 dataSize += page.SegmentTable[i];
 
+            // 工业级防御: dataSize 来自段表(未受信), 须 ≤ 流剩余。恶意/截断 OGG 页声明巨值
+            // 时 ReadBytes 静默返回短数据 → 段表声明长度与实际不符, 后续解析错位 (静默截断)。
+            long avail = reader.BaseStream.Length - reader.BaseStream.Position;
+            if (dataSize > avail)
+                throw new InvalidDataException(
+                    $"OGG 页数据截断: 声明 {dataSize} 字节, 剩余 {avail} 字节");
+
             // 读取数据
             page.Data = reader.ReadBytes(dataSize);
+            // 工业级防御: 复核实际读取长度, 防 ReadBytes 静默返回短数据。
+            if (page.Data.Length != dataSize)
+                throw new InvalidDataException(
+                    $"OGG 页数据截断: 声明 {dataSize} 字节, 实际 {page.Data.Length}");
 
             totalSize = (int)ms.Position;
             return page;
@@ -586,8 +700,14 @@ namespace YamaEngine.Audio
             _info.BitrateNominal = reader.ReadInt32();
             int bitrateMin = reader.ReadInt32();
             byte blocksizes = reader.ReadByte();
-            _info.Blocksize0 = 1 << (blocksizes & 0x0F);
-            _info.Blocksize1 = 1 << ((blocksizes >> 4) & 0x0F);
+            // 工业级防御: Vorbis 合法 block 大小指数为 6..13 (64..8192 样本),
+            // 超出范围说明损坏数据, 用非法指数做 1<<exp 会溢出/分配异常。
+            int exp0 = blocksizes & 0x0F;
+            int exp1 = (blocksizes >> 4) & 0x0F;
+            if (exp0 < 6 || exp0 > 13 || exp1 < 6 || exp1 > 13)
+                throw new InvalidDataException($"无效的Vorbis标识头: block大小指数非法 ({exp0}/{exp1})");
+            _info.Blocksize0 = 1 << exp0;
+            _info.Blocksize1 = 1 << exp1;
         }
 
         /// <summary>
@@ -896,6 +1016,10 @@ namespace YamaEngine.Audio
             if (info.Version == MpegVersion.Mpeg1)
                 info.SampleRate = SampleRateTableMpeg1[srIndex];
 
+            // 工业级防御: 保留采样率索引值为 0, 会导致后续除零 (帧大小/时长计算)。
+            if (info.SampleRate <= 0)
+                throw new InvalidDataException($"无效的MP3帧: 采样率为 {info.SampleRate} (保留索引 {srIndex})");
+
             // padding
             int padding = (b2 >> 1) & 0x01;
 
@@ -903,7 +1027,7 @@ namespace YamaEngine.Audio
             int modeBits = (b3 >> 6) & 0x03;
             info.Channels = modeBits == 3 ? 1 : 2;
 
-            // 帧大小计算
+            // 帧大小计算 (info.SampleRate 已校验 > 0)
             if (info.Layer == MpegLayer.Layer3)
             {
                 int samplesPerFrame = info.Version == MpegVersion.Mpeg1 ? 1152 : 576;
@@ -980,9 +1104,15 @@ namespace YamaEngine.Audio
         /// </summary>
         public static int HuffmanDecode(HuffmanNode tree, byte[] data, ref int bitOffset)
         {
+            if (tree == null || data == null || bitOffset < 0)
+                throw new InvalidDataException("无效的Huffman解码参数");
+            int totalBits = data.Length * 8;
             HuffmanNode node = tree;
             while (node.Value < 0)
             {
+                // 防御: 位偏移越过数据末尾即损坏流 (避免 data[bitOffset>>3] 越界)。
+                if (bitOffset >= totalBits)
+                    throw new InvalidDataException($"Huffman位偏移越界: {bitOffset} >= {totalBits}");
                 int bit = (data[bitOffset >> 3] >> (7 - (bitOffset & 7))) & 1;
                 node = bit == 0 ? node.Left : node.Right;
                 bitOffset++;
@@ -1151,10 +1281,19 @@ namespace YamaEngine.Audio
         /// </summary>
         public static int RiceDecode(byte[] data, ref int bitOffset, int k)
         {
+            if (data == null || bitOffset < 0 || k < 0 || k > 31)
+                throw new InvalidDataException("无效的Rice解码参数");
+            int totalBits = data.Length * 8;
+            // 防御: 位偏移越过数据末尾即损坏流 (避免 data[bitOffset>>3] 越界)。
+            if (bitOffset >= totalBits)
+                throw new InvalidDataException($"Rice位偏移越界: {bitOffset} >= {totalBits}");
+
             // 读取quotient(一元编码: 统计前导1的个数)
             int quotient = 0;
             while (true)
             {
+                if (bitOffset >= totalBits)
+                    throw new InvalidDataException($"Rice位偏移越界: {bitOffset} >= {totalBits}");
                 int bit = (data[bitOffset >> 3] >> (7 - (bitOffset & 7))) & 1;
                 bitOffset++;
                 if (bit == 0) break;
@@ -1165,6 +1304,8 @@ namespace YamaEngine.Audio
             int remainder = 0;
             for (int i = k - 1; i >= 0; i--)
             {
+                if (bitOffset >= totalBits)
+                    throw new InvalidDataException($"Rice位偏移越界: {bitOffset} >= {totalBits}");
                 int bit = (data[bitOffset >> 3] >> (7 - (bitOffset & 7))) & 1;
                 bitOffset++;
                 remainder |= bit << i;
@@ -1289,6 +1430,12 @@ namespace YamaEngine.Audio
         public AudioStreamResampler(double inputSampleRate, double outputSampleRate,
                                      ResampleQuality quality = ResampleQuality.Cubic)
         {
+            // 工业级防御: 采样率非法会导致 _ratio=Inf/NaN, 后续输出帧数溢出/无效。
+            if (inputSampleRate <= 0 || outputSampleRate <= 0 ||
+                double.IsNaN(inputSampleRate) || double.IsNaN(outputSampleRate) ||
+                double.IsInfinity(inputSampleRate) || double.IsInfinity(outputSampleRate))
+                throw new InvalidDataException($"无效的采样率: in={inputSampleRate}, out={outputSampleRate}");
+
             _inputSampleRate = inputSampleRate;
             _outputSampleRate = outputSampleRate;
             _ratio = outputSampleRate / inputSampleRate;
@@ -1352,7 +1499,12 @@ namespace YamaEngine.Audio
             }
 
             int inputFrames = filtered.Length / channels;
-            int outputFrames = (int)Math.Ceiling(inputFrames * _ratio);
+            // 工业级防御: 输出帧数用 double 计算后校验范围, 防 int 溢出/Infinity。
+            double outputFramesD = Math.Ceiling(inputFrames * _ratio);
+            if (double.IsNaN(outputFramesD) || double.IsInfinity(outputFramesD) ||
+                outputFramesD < 0 || outputFramesD > int.MaxValue / Math.Max(1, channels))
+                throw new InvalidDataException($"重采样输出帧数溢出: {outputFramesD} (inputFrames={inputFrames}, ratio={_ratio})");
+            int outputFrames = (int)outputFramesD;
             float[] output = new float[outputFrames * channels];
 
             for (int ch = 0; ch < channels; ch++)

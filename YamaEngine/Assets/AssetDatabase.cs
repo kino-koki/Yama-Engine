@@ -36,14 +36,14 @@ namespace YamaEngine.Assets
     public class AssetMetadata
     {
         public Guid Guid;
-        public string AssetPath;
-        public string SourceFile;
-        public string Name;
-        public AssetType Type;
+        public string AssetPath = string.Empty;
+        public string SourceFile = string.Empty;
+        public string Name = string.Empty;
+        public AssetType Type = AssetType.Unknown;
         public long FileSize;
         public DateTime ImportedAt;
         public DateTime LastModified;
-        public string Hash;
+        public string Hash = string.Empty;
         public Dictionary<string, object> Properties = new();
 
         public string GetCachePath()
@@ -68,11 +68,11 @@ namespace YamaEngine.Assets
         public Quaternion LocalRotation = Quaternion.Identity;
         public Vector3 LocalScale = Vector3.One;
         public Matrix4x4 WorldMatrix;
-        public SceneObject Parent;
+        public SceneObject? Parent;
         public List<SceneObject> Children = new();
         public List<IAssetComponent> Components = new();
-        public string MeshAssetPath;
-        public string MaterialAssetPath;
+        public string MeshAssetPath = string.Empty;
+        public string MaterialAssetPath = string.Empty;
         /// <summary>材质路径别名 (兼容导出 / 序列化使用)。</summary>
         public string MaterialPath { get => MaterialAssetPath; set => MaterialAssetPath = value; }
         public Vector3 BaseColor = Vector3.One;
@@ -91,10 +91,10 @@ namespace YamaEngine.Assets
             Matrix4x4.CreateFromQuaternion(Rotation) *
             Matrix4x4.CreateTranslation(Position);
 
-        public T GetComponent<T>() where T : IAssetComponent
+        public T? GetComponent<T>() where T : class, IAssetComponent
         {
             foreach (var c in Components) if (c is T t) return t;
-            return default;
+            return null;
         }
 
         public T AddComponent<T>() where T : IAssetComponent, new()
@@ -281,12 +281,12 @@ namespace YamaEngine.Assets
         private readonly string _rootPath;
         private readonly string _libraryPath;
 
-        public event Action<AssetMetadata> OnAssetImported;
-        public event Action<AssetMetadata> OnAssetUpdated;
-        public event Action<string> OnAssetDeleted;
-        public event Action<SceneObject> OnObjectCreated;
-        public event Action<SceneObject> OnObjectSelected;
-        public event Action OnSceneChanged;
+        public event Action<AssetMetadata>? OnAssetImported;
+        public event Action<AssetMetadata>? OnAssetUpdated;
+        public event Action<string>? OnAssetDeleted;
+        public event Action<SceneObject>? OnObjectCreated;
+        public event Action<SceneObject>? OnObjectSelected;
+        public event Action? OnSceneChanged;
 
         public IReadOnlyList<SceneObject> SceneObjects => _sceneObjects;
         public int AssetCount => _assetsByGuid.Count;
@@ -335,7 +335,7 @@ namespace YamaEngine.Assets
             return sb.ToString();
         }
 
-        public AssetMetadata ImportAsset(string sourceFile, AssetType type = AssetType.Unknown)
+        public AssetMetadata? ImportAsset(string sourceFile, AssetType type = AssetType.Unknown)
         {
             if (!File.Exists(sourceFile))
             {
@@ -420,7 +420,7 @@ namespace YamaEngine.Assets
             return true;
         }
 
-        public AssetMetadata GetAsset(Guid guid)
+        public AssetMetadata? GetAsset(Guid guid)
         {
             return _assetsByGuid.TryGetValue(guid, out var m) ? m : null;
         }
@@ -434,7 +434,7 @@ namespace YamaEngine.Assets
             return null;
         }
 
-        public AssetMetadata GetAssetByGuid(string guid)
+        public AssetMetadata? GetAssetByGuid(string guid)
         {
             if (!Guid.TryParse(guid, out var parsed)) return null;
             return GetAsset(parsed);
@@ -463,7 +463,7 @@ namespace YamaEngine.Assets
             return meta;
         }
 
-        public AssetMetadata GetAsset(string path)
+        public AssetMetadata? GetAsset(string path)
         {
             return _assetsByPath.TryGetValue(path, out var m) ? m :
                    _pathToGuid.TryGetValue(path, out var guid) ? _assetsByGuid[guid] : null;
@@ -479,12 +479,12 @@ namespace YamaEngine.Assets
             return list;
         }
 
-        public DCC.DCCMeshData GetMeshData(string cacheKey)
+        public DCC.DCCMeshData? GetMeshData(string cacheKey)
         {
             return _meshCache.TryGetValue(cacheKey, out var m) ? m : null;
         }
 
-        public SceneObject CreateObject(string name = null, string meshType = "Box", Vector3? position = null)
+        public SceneObject CreateObject(string? name = null, string meshType = "Box", Vector3? position = null)
         {
             var obj = new SceneObject
             {
@@ -577,14 +577,14 @@ namespace YamaEngine.Assets
             return false;
         }
 
-        public SceneObject FindObjectByName(string name)
+        public SceneObject? FindObjectByName(string name)
         {
             foreach (var obj in _sceneObjects)
                 if (obj.Name == name) return obj;
             return null;
         }
 
-        public void SelectObject(SceneObject obj, bool additive = false)
+        public void SelectObject(SceneObject? obj, bool additive = false)
         {
             if (!additive)
             {
@@ -614,7 +614,7 @@ namespace YamaEngine.Assets
             return list;
         }
 
-        public SceneObject DuplicateObject(SceneObject source)
+        public SceneObject? DuplicateObject(SceneObject? source)
         {
             if (source == null) return null;
             var obj = new SceneObject

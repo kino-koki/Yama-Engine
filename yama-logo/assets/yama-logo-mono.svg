@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="yGrad" x1="0.1" y1="0.1" x2="0.9" y2="0.9">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.5" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#C026D3"/>
+    </linearGradient>
+    <linearGradient id="apex" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F0FDFA"/>
+      <stop offset="1" stop-color="#67E8F9"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="36"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="232" fill="#08080D"/>
+
+  <!-- Ambient glow behind mark -->
+  <path d="M290 300 L470 470 L512 430 L554 470 L734 300 L560 640 L464 640 Z"
+        fill="url(#yGrad)" filter="url(#glow)" opacity="0.55"/>
+
+  <!-- Y letterform: two diagonals + stem, top-open like a mountain fork -->
+  <path d="M290 300 L470 470 L512 430 L554 470 L734 300 L560 640 L464 640 Z"
+        fill="url(#yGrad)"/>
+
+  <!-- Mountain notch (negative space) cut into the fork -->
+  <path d="M402 358 L512 468 L622 358 L554 470 L512 430 L470 470 Z"
+        fill="#08080D"/>
+
+  <!-- Apex highlight (snow-cap style dot) -->
+  <circle cx="512" cy="430" r="12" fill="url(#apex)"/>
+
+  <!-- Wordmark -->
+  <text x="512" y="816" text-anchor="middle"
+        font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="132" font-weight="800" letter-spacing="20"
+        fill="#F5F3FF">YAMA</text>
+  <text x="512" y="882" text-anchor="middle"
+        font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="38" font-weight="500" letter-spacing="30"
+        fill="#C4B5FD">ENGINE</text>
+</svg>

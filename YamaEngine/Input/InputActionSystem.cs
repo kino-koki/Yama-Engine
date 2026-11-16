@@ -103,25 +103,25 @@ namespace YamaEngine.Input.Enhanced
         public string Id { get; } = Guid.NewGuid().ToString("N").Substring(0, 8);
 
         /// <summary>绑定路径: "Keyboard/{Key}", "Gamepad/{Control}", "Mouse/{Control}", "Touch/{N}/{Axis}"</summary>
-        public string Path { get; set; }
+        public string Path { get; set; } = string.Empty;
 
         /// <summary>绑定类型</summary>
         public InputBindingType BindingType { get; set; } = InputBindingType.Direct;
 
         /// <summary>所属组合绑定的名称 (仅当 BindingType == Composite 时有效)</summary>
-        public string CompositeName { get; set; }
+        public string? CompositeName { get; set; }
 
         /// <summary>在组合绑定中的角色名 (如 "positive", "negative", "up", "down")</summary>
-        public string CompositePart { get; set; }
+        public string? CompositePart { get; set; }
 
         /// <summary>叠加组名：同组的绑定值会被合并</summary>
-        public string Groups { get; set; }
+        public string? Groups { get; set; }
 
         /// <summary>修改器列表：在值传递给动作前进行变换</summary>
         public List<InputModifier> Modifiers { get; set; } = new List<InputModifier>();
 
         /// <summary>交互行为</summary>
-        public InputInteraction Interactions { get; set; }
+        public InputInteraction? Interactions { get; set; }
 
         /// <summary>处理器列表</summary>
         public List<InputProcessor> Processors { get; set; } = new List<InputProcessor>();
@@ -488,26 +488,26 @@ namespace YamaEngine.Input.Enhanced
 
         // ========== 动作事件委托 ==========
         /// <summary>Started: 动作从 Waiting -> Started (按下瞬间)</summary>
-        public event Action<EnhancedInputAction> OnStarted;
+        public event Action<EnhancedInputAction>? OnStarted;
         /// <summary>Performed/Triggered: 满足触发条件 (如 Press 瞬间, Hold 到达阈值)</summary>
-        public event Action<EnhancedInputAction> OnPerformed;
+        public event Action<EnhancedInputAction>? OnPerformed;
         /// <summary>Completed: 动作值从有效变为无效 (释放瞬间, 平滑结束)</summary>
-        public event Action<EnhancedInputAction> OnCompleted;
+        public event Action<EnhancedInputAction>? OnCompleted;
         /// <summary>Canceled: 动作被意外取消 (如上下文切换, 设备断开)</summary>
-        public event Action<EnhancedInputAction> OnCanceled;
+        public event Action<EnhancedInputAction>? OnCanceled;
         /// <summary>Ongoing: 值持续变化中 (持续按住/摇杆移动)</summary>
-        public event Action<EnhancedInputAction> OnOngoing;
+        public event Action<EnhancedInputAction>? OnOngoing;
         /// <summary>值变化时触发</summary>
-        public event Action<EnhancedInputAction> OnValueChanged;
+        public event Action<EnhancedInputAction>? OnValueChanged;
 
         /// <summary>状态开始时的回调 (C# event + callback)</summary>
-        public Action<EnhancedInputAction> StartedCallback;
+        public Action<EnhancedInputAction>? StartedCallback;
         /// <summary>执行时的回调</summary>
-        public Action<EnhancedInputAction> PerformedCallback;
+        public Action<EnhancedInputAction>? PerformedCallback;
         /// <summary>完成时的回调</summary>
-        public Action<EnhancedInputAction> CompletedCallback;
+        public Action<EnhancedInputAction>? CompletedCallback;
         /// <summary>取消时的回调</summary>
-        public Action<EnhancedInputAction> CanceledCallback;
+        public Action<EnhancedInputAction>? CanceledCallback;
 
         // ========== 运行时内部状态 ==========
         internal float _controlValue;
@@ -533,7 +533,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>添加绑定（路径形式，便捷方法）</summary>
-        public EnhancedInputAction AddBinding(string path, string groups = null)
+        public EnhancedInputAction AddBinding(string path, string? groups = null)
         {
             var binding = new InputBinding(path) { Groups = groups };
             Bindings.Add(binding);
@@ -557,7 +557,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>便捷方法：绑定 WASD -> 移动 Vector2</summary>
-        public EnhancedInputAction BindWASD(string groups = null)
+        public EnhancedInputAction BindWASD(string? groups = null)
         {
             return AddComposite("WASD", new DpadComposite("WASD"),
                 ("up", "Keyboard/W"), ("down", "Keyboard/S"),
@@ -565,7 +565,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>便捷方法：绑定方向键 -> Vector2</summary>
-        public EnhancedInputAction BindArrowKeys(string groups = null)
+        public EnhancedInputAction BindArrowKeys(string? groups = null)
         {
             return AddComposite("Arrows", new DpadComposite("Arrows"),
                 ("up", "Keyboard/UpArrow"), ("down", "Keyboard/DownArrow"),
@@ -573,13 +573,13 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>便捷方法：绑定游戏摇杆 -> Vector2</summary>
-        public EnhancedInputAction BindGamepadLeftStick(string groups = null)
+        public EnhancedInputAction BindGamepadLeftStick(string? groups = null)
         {
             return AddBinding("Gamepad/LeftStick", groups);
         }
 
         /// <summary>便捷方法：绑定修饰键组合</summary>
-        public EnhancedInputAction BindWithModifier(string actionPath, string modifierPath, string groups = null)
+        public EnhancedInputAction BindWithModifier(string actionPath, string modifierPath, string? groups = null)
         {
             return AddComposite("Modifier", new OneModifierComposite("Modifier"),
                 ("modifier", modifierPath), ("action", actionPath));
@@ -864,10 +864,10 @@ namespace YamaEngine.Input.Enhanced
     public class InputActionMap
     {
         /// <summary>映射表名称</summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>显示名称</summary>
-        public string DisplayName { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>映射表描述</summary>
         public string Description { get; set; } = "";
@@ -882,20 +882,20 @@ namespace YamaEngine.Input.Enhanced
         public Dictionary<string, EnhancedInputAction> Actions { get; } = new Dictionary<string, EnhancedInputAction>();
 
         /// <summary>适用的设备方案 (null = 所有方案)</summary>
-        public string ControlScheme { get; set; }
+        public string? ControlScheme { get; set; }
 
         /// <summary>映射表启用/禁用事件</summary>
-        public event Action<InputActionMap, bool> OnEnabledChanged;
+        public event Action<InputActionMap, bool>? OnEnabledChanged;
         /// <summary>动作触发事件</summary>
-        public event Action<EnhancedInputAction> OnActionTriggered;
+        public event Action<EnhancedInputAction>? OnActionTriggered;
         /// <summary>动作启动事件</summary>
-        public event Action<EnhancedInputAction> OnActionStarted;
+        public event Action<EnhancedInputAction>? OnActionStarted;
         /// <summary>动作完成事件</summary>
-        public event Action<EnhancedInputAction> OnActionCompleted;
+        public event Action<EnhancedInputAction>? OnActionCompleted;
         /// <summary>动作取消事件</summary>
-        public event Action<EnhancedInputAction> OnActionCanceled;
+        public event Action<EnhancedInputAction>? OnActionCanceled;
 
-        public InputActionMap(string name, string displayName = null, string description = "")
+        public InputActionMap(string name, string? displayName = null, string description = "")
         {
             Name = name;
             DisplayName = displayName ?? name;
@@ -920,13 +920,13 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>获取动作</summary>
-        public EnhancedInputAction GetAction(string name)
+        public EnhancedInputAction? GetAction(string name)
         {
             return Actions.TryGetValue(name, out var a) ? a : null;
         }
 
         /// <summary>尝试获取动作</summary>
-        public bool TryGetAction(string name, out EnhancedInputAction action)
+        public bool TryGetAction(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out EnhancedInputAction? action)
         {
             return Actions.TryGetValue(name, out action);
         }
@@ -984,7 +984,7 @@ namespace YamaEngine.Input.Enhanced
     public class InputActionAsset
     {
         /// <summary>资产名称</summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>资产版本</summary>
         public int Version { get; set; } = 1;
@@ -1004,7 +1004,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>添加映射表</summary>
-        public InputActionMap AddActionMap(string name, string displayName = null, string description = "")
+        public InputActionMap AddActionMap(string name, string? displayName = null, string description = "")
         {
             if (ActionMaps.ContainsKey(name))
                 throw new ArgumentException($"Action map '{name}' already exists in asset '{Name}'");
@@ -1015,13 +1015,13 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>获取映射表</summary>
-        public InputActionMap GetActionMap(string name)
+        public InputActionMap? GetActionMap(string name)
         {
             return ActionMaps.TryGetValue(name, out var m) ? m : null;
         }
 
         /// <summary>尝试获取映射表</summary>
-        public bool TryGetActionMap(string name, out InputActionMap map)
+        public bool TryGetActionMap(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out InputActionMap? map)
         {
             return ActionMaps.TryGetValue(name, out map);
         }
@@ -1074,7 +1074,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>按名称查找动作 (跨所有映射表)</summary>
-        public EnhancedInputAction FindAction(string actionName)
+        public EnhancedInputAction? FindAction(string actionName)
         {
             foreach (var map in ActionMaps.Values)
             {
@@ -1224,7 +1224,7 @@ namespace YamaEngine.Input.Enhanced
             {
                 foreach (var mapDto in dto.Maps)
                 {
-                    var map = asset.AddActionMap(mapDto.Name, mapDto.DisplayName, mapDto.Description);
+                    var map = asset.AddActionMap(mapDto.Name, mapDto.DisplayName, mapDto.Description ?? "");
                     map.Priority = mapDto.Priority;
                     map.ControlScheme = mapDto.ControlScheme;
 
@@ -1361,7 +1361,7 @@ namespace YamaEngine.Input.Enhanced
         // ========== 触发器工厂 ==========
 
         /// <summary>根据类型名称创建触发器实例</summary>
-        public static InputTrigger CreateTriggerFromType(string typeName, Dictionary<string, float> parameters = null)
+        public static InputTrigger CreateTriggerFromType(string typeName, Dictionary<string, float>? parameters = null)
         {
             parameters ??= new Dictionary<string, float>();
 
@@ -1391,50 +1391,50 @@ namespace YamaEngine.Input.Enhanced
 
         private class ActionAssetDTO
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
             public int Version { get; set; } = CurrentVersion;
-            public List<ActionMapDTO> Maps { get; set; }
-            public List<BindingOverrideDTΟ> BindingOverrides { get; set; }
+            public List<ActionMapDTO> Maps { get; set; } = new();
+            public List<BindingOverrideDTΟ>? BindingOverrides { get; set; }
         }
 
         private class ActionMapDTO
         {
-            public string Name { get; set; }
-            public string DisplayName { get; set; }
-            public string Description { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string? DisplayName { get; set; }
+            public string? Description { get; set; }
             public int Priority { get; set; }
-            public string ControlScheme { get; set; }
-            public List<ActionDTO> Actions { get; set; }
+            public string? ControlScheme { get; set; }
+            public List<ActionDTO> Actions { get; set; } = new();
         }
 
         private class ActionDTO
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
             public InputActionType Type { get; set; } = InputActionType.Button;
-            public string Description { get; set; }
+            public string? Description { get; set; }
             public bool Enabled { get; set; } = true;
-            public List<BindingDTO> Bindings { get; set; }
-            public string TriggerType { get; set; }
-            public Dictionary<string, float> TriggerParams { get; set; }
+            public List<BindingDTO> Bindings { get; set; } = new();
+            public string? TriggerType { get; set; }
+            public Dictionary<string, float>? TriggerParams { get; set; }
         }
 
         private class BindingDTO
         {
-            public string Path { get; set; }
-            public string Groups { get; set; }
+            public string Path { get; set; } = string.Empty;
+            public string? Groups { get; set; }
             public float Weight { get; set; } = 1f;
             public bool Enabled { get; set; } = true;
-            public string CompositeName { get; set; }
-            public string CompositePart { get; set; }
+            public string? CompositeName { get; set; }
+            public string? CompositePart { get; set; }
         }
 
         private class BindingOverrideDTΟ
         {
-            public string ActionMap { get; set; }
-            public string Action { get; set; }
-            public string OriginalBinding { get; set; }
-            public string OverrideBinding { get; set; }
-            public string ControlScheme { get; set; }
+            public string ActionMap { get; set; } = string.Empty;
+            public string Action { get; set; } = string.Empty;
+            public string OriginalBinding { get; set; } = string.Empty;
+            public string OverrideBinding { get; set; } = string.Empty;
+            public string? ControlScheme { get; set; }
         }
     }
 
@@ -1448,19 +1448,19 @@ namespace YamaEngine.Input.Enhanced
     public class BindingOverride
     {
         /// <summary>动作所在映射表</summary>
-        public string ActionMap { get; set; }
+        public string ActionMap { get; set; } = string.Empty;
         /// <summary>动作名称</summary>
-        public string Action { get; set; }
+        public string Action { get; set; } = string.Empty;
         /// <summary>原绑定路径</summary>
-        public string OriginalBinding { get; set; }
+        public string OriginalBinding { get; set; } = string.Empty;
         /// <summary>新绑定路径</summary>
-        public string OverrideBinding { get; set; }
+        public string OverrideBinding { get; set; } = string.Empty;
         /// <summary>适用的控制方案 (null = 全局)</summary>
-        public string ControlScheme { get; set; }
+        public string? ControlScheme { get; set; }
 
         public BindingOverride() { }
 
-        public BindingOverride(string actionMap, string action, string originalBinding, string overrideBinding, string controlScheme = null)
+        public BindingOverride(string actionMap, string action, string originalBinding, string overrideBinding, string? controlScheme = null)
         {
             ActionMap = actionMap;
             Action = action;
@@ -1485,7 +1485,7 @@ namespace YamaEngine.Input.Enhanced
     /// </summary>
     public class InputActionManager
     {
-        private static InputActionManager _instance;
+        private static InputActionManager? _instance;
         /// <summary>全局单例</summary>
         public static InputActionManager Instance
         {
@@ -1503,17 +1503,17 @@ namespace YamaEngine.Input.Enhanced
         public List<InputProcessor> GlobalProcessors { get; } = new List<InputProcessor>();
 
         /// <summary>设备系统引用</summary>
-        public InputDeviceManager DeviceManager { get; set; }
+        public InputDeviceManager? DeviceManager { get; set; }
 
         // ========== 动作事件委托 ==========
         /// <summary>动作开始 (按下瞬间)</summary>
-        public event Action<EnhancedInputAction> OnActionStarted;
+        public event Action<EnhancedInputAction>? OnActionStarted;
         /// <summary>动作执行/触发 (满足触发器条件)</summary>
-        public event Action<EnhancedInputAction> OnActionPerformed;
+        public event Action<EnhancedInputAction>? OnActionPerformed;
         /// <summary>动作完成 (正常释放)</summary>
-        public event Action<EnhancedInputAction> OnActionCompleted;
+        public event Action<EnhancedInputAction>? OnActionCompleted;
         /// <summary>动作取消 (意外取消)</summary>
-        public event Action<EnhancedInputAction> OnActionCanceled;
+        public event Action<EnhancedInputAction>? OnActionCanceled;
 
         public InputActionManager() { }
 
@@ -1657,7 +1657,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>查找动作 (跨所有资产)</summary>
-        public EnhancedInputAction FindAction(string actionName)
+        public EnhancedInputAction? FindAction(string actionName)
         {
             foreach (var asset in _assets)
             {
@@ -1668,7 +1668,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>查找指定映射表中的动作</summary>
-        public EnhancedInputAction FindAction(string mapName, string actionName)
+        public EnhancedInputAction? FindAction(string mapName, string actionName)
         {
             foreach (var asset in _assets)
             {

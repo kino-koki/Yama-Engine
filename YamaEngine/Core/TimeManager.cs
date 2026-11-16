@@ -150,6 +150,9 @@ namespace YamaEngine.Core
             _currentFrameTime = _stopwatch.Elapsed.TotalSeconds;
             _realTime = _currentFrameTime;
 
+            // 帧计数始终递增（含第一帧），供 WaitForFrames 等依赖帧号的系统使用
+            _frameCount++;
+
             if (_lastFrameTime <= 0)
             {
                 // 第一帧
@@ -158,7 +161,6 @@ namespace YamaEngine.Core
                 UnscaledDeltaTime = 0;
                 return;
             }
-
             // 计算原始 DeltaTime
             UnscaledDeltaTime = (float)(_currentFrameTime - _lastFrameTime);
 
@@ -176,8 +178,7 @@ namespace YamaEngine.Core
                 _unscaledTime += UnscaledDeltaTime;
             }
 
-            // 更新帧统计
-            _frameCount++;
+            // 更新帧统计（帧计数已在方法开头递增一次，勿重复）
             _fpsAccumulator++;
             _fpsTimer += UnscaledDeltaTime;
             if (_fpsTimer >= 1.0)
@@ -226,7 +227,14 @@ namespace YamaEngine.Core
         /// <summary>创建一次性定时器。</summary>
         public TimerHandle SetTimeout(Action callback, float delaySeconds)
         {
-            var handle = new TimerHandle { Id = TimerHandle.NextId++ };
+            ArgumentNullException.ThrowIfNull(callback);
+            if (delaySeconds < 0) throw new ArgumentOutOfRangeException(nameof(delaySeconds));
+            if (delaySeconds == 0)
+            {
+                // 立即触发：在下一帧处理，避免重入
+                delaySeconds = float.Epsilon;
+            }
+            var handle = new TimerHandle { Id = TimerHandle.AllocateId() };
             _timers.Add(new TimerEntry
             {
                 Handle = handle,
@@ -240,7 +248,9 @@ namespace YamaEngine.Core
         /// <summary>创建重复定时器。</summary>
         public TimerHandle SetInterval(Action callback, float intervalSeconds)
         {
-            var handle = new TimerHandle { Id = TimerHandle.NextId++ };
+            ArgumentNullException.ThrowIfNull(callback);
+            if (intervalSeconds <= 0) throw new ArgumentOutOfRangeException(nameof(intervalSeconds));
+            var handle = new TimerHandle { Id = TimerHandle.AllocateId() };
             _timers.Add(new TimerEntry
             {
                 Handle = handle,
@@ -263,6 +273,7 @@ namespace YamaEngine.Core
 
         private void UpdateTimers()
         {
+            if (_timers.Count == 0) return;
             _pendingTimers.Clear();
             foreach (var timer in _timers)
             {
@@ -273,7 +284,7 @@ namespace YamaEngine.Core
                     t.Callback?.Invoke();
                     if (t.IsRepeating)
                     {
-                        t.RemainingTime += t.Interval;
+                        t.RemainingTime = t.Interval; // 固定间隔，避免累积漂移
                         _pendingTimers.Add(t);
                     }
                     // 非重复定时器不重新添加
@@ -291,6 +302,7 @@ namespace YamaEngine.Core
         /// <summary>编辑器中使用，时间按需步进。</summary>
         public void EditorStep(float deltaTime)
         {
+            if (deltaTime < 0) throw new ArgumentOutOfRangeException(nameof(deltaTime));
             DeltaTime = deltaTime;
             UnscaledDeltaTime = deltaTime;
             _frameCount++;
@@ -315,11 +327,25 @@ namespace YamaEngine.Core
     {
         internal static int NextId = 1;
         internal int Id;
-
         public bool IsValid => Id > 0;
         public bool Equals(TimerHandle other) => Id == other.Id;
         public override bool Equals(object? obj) => obj is TimerHandle h && Equals(h);
         public override int GetHashCode() => Id;
+
+        /// <summary>
+        /// 线程安全地分配下一个句柄 ID，溢出时从 1 重新开始（跳过 0 = 无效）。
+        /// </summary>
+        internal static int AllocateId()
+        {
+            int id = Interlocked.Increment(ref NextId);
+            if (id <= 0)
+            {
+                // 溢出：重置为 1 并重试
+                Interlocked.Exchange(ref NextId, 1);
+                return 1;
+            }
+            return id;
+        }
         public static bool operator ==(TimerHandle a, TimerHandle b) => a.Id == b.Id;
         public static bool operator !=(TimerHandle a, TimerHandle b) => a.Id != b.Id;
     }

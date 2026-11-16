@@ -547,7 +547,7 @@ namespace YamaEngine.Audio
         /// <summary>本帧是否检测到 onset。</summary>
         public bool IsOnset { get; private set; }
 
-        private float[] _prevSpectrum;
+        private float[]? _prevSpectrum;
         private readonly Queue<float> _fluxHistory = new();
         private float _prevFlux;
 
@@ -560,14 +560,15 @@ namespace YamaEngine.Audio
 
             if (_prevSpectrum == null || _prevSpectrum.Length != spectrum.Length)
                 _prevSpectrum = new float[spectrum.Length];
+            float[] prev = _prevSpectrum;
 
             // 仅累加正差分（能量增长部分）
             double flux = 0;
             for (int i = 0; i < spectrum.Length; i++)
             {
-                float diff = spectrum[i] - _prevSpectrum[i];
+                float diff = spectrum[i] - prev[i];
                 if (diff > 0f) flux += diff;
-                _prevSpectrum[i] = spectrum[i];
+                prev[i] = spectrum[i];
             }
             float f = (float)(flux / spectrum.Length);
             LastFlux = f;
@@ -1159,7 +1160,7 @@ namespace YamaEngine.Audio
             if (samples == null || samples.Length < FftSize) return Array.Empty<int>();
             int frameCount = (samples.Length - FftSize) / HopSize + 1;
             var hashes = new List<int>(frameCount);
-            float[] prevChroma = null;
+            float[]? prevChroma = null;
             var analyzer = new SpectrumAnalyzer();
             float[] windowed = new float[FftSize];
 
@@ -1216,13 +1217,13 @@ namespace YamaEngine.Audio
         public double Timestamp;
 
         /// <summary>幅度谱（长度 fftSize/2）。</summary>
-        public float[] Spectrum;
+        public float[] Spectrum = Array.Empty<float>();
 
         /// <summary>每个 bin 的中心频率（Hz，与 Spectrum 等长）。</summary>
-        public float[] BinFrequencies;
+        public float[] BinFrequencies = Array.Empty<float>();
 
         /// <summary>各频带能量。</summary>
-        public Dictionary<FrequencyBand, float> BandEnergies;
+        public Dictionary<FrequencyBand, float> BandEnergies = new();
 
         /// <summary>本帧是否检测到节拍。</summary>
         public bool BeatDetected;
@@ -1258,7 +1259,7 @@ namespace YamaEngine.Audio
         public float TruePeak;
 
         /// <summary>音频特征集。</summary>
-        public AudioFeatures Features;
+        public AudioFeatures Features = new();
     }
 
     /// <summary>
@@ -1295,16 +1296,16 @@ namespace YamaEngine.Audio
         public LoudnessAnalyzer LoudnessAnalyzer { get; } = new();
 
         /// <summary>最近一次快照。</summary>
-        public AudioAnalysisSnapshot LastSnapshot { get; private set; }
+        public AudioAnalysisSnapshot? LastSnapshot { get; private set; }
 
         // —— 挂接目标 ——
-        private AudioInstance _instance;
+        private AudioInstance? _instance;
         private AudioBus? _bus;
-        private AudioSystem _system;
+        private AudioSystem? _system;
         private bool _attached;
 
         // —— 环形缓冲（存储最近 N ms 单声道 PCM）——
-        private float[] _ring;
+        private float[]? _ring;
         private int _ringHead;
         private int _ringCount;
         private int _ringCapacity;
@@ -1497,7 +1498,7 @@ namespace YamaEngine.Audio
         }
 
         /// <summary>从 AudioSystem 查找指定总线的状态。</summary>
-        private AudioBusState FindBusState(AudioBus bus)
+        private AudioBusState? FindBusState(AudioBus bus)
         {
             if (_system == null) return null;
             foreach (var st in _system.GetBusStates())
@@ -1555,7 +1556,7 @@ namespace YamaEngine.Audio
         public AudioAnalysisPipeline Pipeline;
 
         /// <summary>最近一次分析快照（由系统每帧回填）。</summary>
-        public AudioAnalysisSnapshot LatestSnapshot;
+        public AudioAnalysisSnapshot? LatestSnapshot;
 
         /// <summary>是否启用本实体的分析（关闭则系统跳过）。</summary>
         public bool Enabled;
@@ -1580,7 +1581,7 @@ namespace YamaEngine.Audio
         /// 可选：若希望系统在发现未挂接管线但指定了 BoundBus/InstanceId 时自动创建管线，
         /// 可设此引用。默认 null（不自动创建，管线由外部装配）。
         /// </summary>
-        public AudioSystem AudioSystem;
+        public AudioSystem? AudioSystem;
 
         public void Update(float dt, EntityComponentSystem ecs)
         {
@@ -1611,19 +1612,20 @@ namespace YamaEngine.Audio
         private void TryAutoAttach(ref AudioAnalyzerComponent comp)
         {
             if (AudioSystem == null) return;
+            var audioSystem = AudioSystem;
             comp.Pipeline = new AudioAnalysisPipeline { EnableBeat = true };
             if (comp.BoundBus.HasValue)
             {
-                comp.Pipeline.AttachToBus(comp.BoundBus.Value, AudioSystem);
+                comp.Pipeline.AttachToBus(comp.BoundBus.Value, audioSystem);
             }
             else
             {
                 // 按 BoundInstanceId 在总线实例中查找
-                AudioInstance target = null;
-                foreach (var st in AudioSystem.GetBusStates())
+                AudioInstance? target = null;
+                foreach (var st in audioSystem.GetBusStates())
                     foreach (var inst in st.Instances)
                         if (inst.Id == comp.BoundInstanceId) { target = inst; break; }
-                if (target != null) comp.Pipeline.AttachToInstance(target, AudioSystem);
+                if (target != null) comp.Pipeline.AttachToInstance(target, audioSystem);
             }
         }
     }
@@ -1638,19 +1640,19 @@ namespace YamaEngine.Audio
         public bool ShowBandMarkers = true;
 
         /// <summary>获取快照的幅度谱（用于绘制频谱图）。</summary>
-        public float[] GetSpectrum(AudioAnalysisSnapshot snapshot)
+        public float[]? GetSpectrum(AudioAnalysisSnapshot snapshot)
         {
             return snapshot?.Spectrum;
         }
 
         /// <summary>获取快照的 bin 中心频率数组。</summary>
-        public float[] GetFrequencies(AudioAnalysisSnapshot snapshot)
+        public float[]? GetFrequencies(AudioAnalysisSnapshot snapshot)
         {
             return snapshot?.BinFrequencies;
         }
 
         /// <summary>获取快照的频带能量。</summary>
-        public Dictionary<FrequencyBand, float> GetBands(AudioAnalysisSnapshot snapshot)
+        public Dictionary<FrequencyBand, float>? GetBands(AudioAnalysisSnapshot snapshot)
         {
             return snapshot?.BandEnergies;
         }
@@ -1660,7 +1662,7 @@ namespace YamaEngine.Audio
         /// </summary>
         public float[] GetNormalizedSpectrum(AudioAnalysisSnapshot snapshot, int maxBins)
         {
-            float[] spec = snapshot?.Spectrum;
+            float[]? spec = snapshot?.Spectrum;
             if (spec == null || spec.Length == 0) return Array.Empty<float>();
             float max = 0;
             for (int i = 0; i < spec.Length; i++) if (spec[i] > max) max = spec[i];

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Yama — Yama Engine</title>
+<meta name="description" content="No engine on the market fully belongs to you. Yama takes a third path: capable, transparent, truly open. The motivation, the principles, and why C# instead of C++.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="Why Yama — Yama Engine">
+<meta property="og:description" content="No engine on the market fully belongs to you. Yama takes a third path: capable, transparent, truly open. The motivation, the principles, and why C# instead of C++.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-banner" role="region" aria-label="Announcement">
+  <span><span class="hl">NEW</span> — Real physics engine v2 merged: analytic-grade tests + joint constraint system</span>
+  <a href="status-en.html#roadmap">See the roadmap</a>
+  <button class="dismiss" aria-label="Close announcement">✕</button>
+</div>
+
+<nav class="m-past">
+  <div class="wrap">
+    <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why-en.html" aria-current="page">Why</a>
+      <a href="capabilities-en.html">Capabilities</a>
+      <a href="compare-en.html">Compare</a>
+      <a href="architecture-en.html">Architecture</a>
+      <a href="status-en.html">Honest Status</a>
+      <a href="get-started-en.html">Quick Start</a>
+      <a href="faq-en.html">FAQ</a>
+      <a href="index.html" class="lang">中文</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">01 / Why Yama</div>
+    <h1>No engine on the market<br><em>fully belongs to you</em>.</h1>
+    <p class="lede">
+      Yama is not trying to be another Unity, nor "a more open Unreal". It addresses a different problem: when you want to understand how an engine actually works, change it, and make it truly yours, almost no desktop engine lets you. This page covers the motivation — why now, why C#, and why three principles come first.
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="prose reveal" style="padding:64px 32px 20px">
+      <p class="lead">Commercial engines lock the source behind doors. You pay, share revenue, tie your project structure to their asset pipeline — and then get told "that's internal implementation, we can't support that". The problems on the open-source side are just as obvious: many projects have stalled for years, many are teaching demos, and many don't even have a physics rigid body that runs.</p>
+
+      <p>Yama takes the third path in between — a desktop engine that is <strong>capable</strong>, <strong>transparent</strong>, and <strong>truly open</strong>. It doesn't promise "easy for everyone". It promises something else: anyone who gets this repository can start reading from any line of code and follow it all the way down to how a Vulkan command buffer gets recorded.</p>
+
+      <div class="callout">
+        <span class="callout-tag">Design Principle</span>
+        <p>"We are not building a better Unity. We are building a genuinely transparent engine — every layer laid out in the sunlight, readable from any line you start at."</p>
+      </div>
+
+      <h3>Three non-negotiable principles</h3>
+      <p>These are written down because they drive every technical decision that follows. Compromise any one of them, and Yama slides back to the place we're trying to leave.</p>
+      <ul>
+        <li><div><strong>Code is the documentation.</strong> No black boxes. From Vulkan command recording to GJK collision detection, every line lives in the repository — readable, modifiable, removable. The question "how does this module work?" should never exist.</div></li>
+        <li><div><strong>Don't reinvent wheels — but don't dodge them either.</strong> Math libraries, collision detection, pathfinding, DSP audio — the core systems are all hand-written, not wrappers around someone else's library. You can only control an engine's behavior when you understand every detail.</div></li>
+        <li><div><strong>Integrated, not fragmented.</strong> Rendering, physics, AI, animation, audio and the editor live in one solution, in one language, cooperating through one RHI abstraction layer. No context-switching across a dozen tools.</div></li>
+      </ul>
+
+      <h3>Why C#, not C++</h3>
+      <p>The most-asked question, and worth answering first. The answer has two layers: performance, and engineering management.</p>
+      <p>On performance: the <code>.NET 10</code> JIT already produces machine code close to C++, and with <code>Span&lt;T&gt;</code>, <code>unsafe</code> and SIMD intrinsics, hot paths can be optimized by hand to be fast enough. Yama's physics engine — GJK / EPA / SAT, all hand-written C# — benchmarks within acceptable range.</p>
+      <p>On engineering: the real reason is iteration speed. <strong>C# development iterates 3–5× faster than C++.</strong> Yama is currently driven by one primary maintainer, and speed is everything: validating three ideas in a week beats validating one idea in a month. Once the engine stabilizes, the genuinely bottlenecking hot paths can be bridged with C++ — the YamaEngineBridge project exists precisely for that day.</p>
+
+      <h3>Why Vulkan is the only backend</h3>
+      <p>The D3D12 backend was written — and then removed from the project. This was not laziness; it was strategy. Maintaining two graphics backends would split one person's time in half, while Vulkan 1.4 covers every modern feature we care about: dynamic rendering, mesh shaders, ray tracing, bindless resources.</p>
+      <p>The cost: Yama currently runs on Windows only (the WinUI 3 editor depends on it). Linux / macOS via translation layers like MoltenVK is theoretically possible, but it is not the current priority.</p>
+
+      <h3>What Yama is not</h3>
+      <ul>
+        <li><div>Yama is not "a lighter Unity". There is no Store, no Ads, no commercial motive to lock your project format to a private SDK.</div></li>
+        <li><div>Yama is not an academic demo. 817 C# source files and 40+ subsystem modules are meant to be run, not exhibited.</div></li>
+        <li><div>Yama is not yet an engine you can confidently ship a commercial product with. The honest state is on <a href="status-en.html" style="color:var(--orange);text-decoration:underline">this page</a> — unfinished work is listed just as clearly as finished work.</div></li>
+      </ul>
+
+      <h3>Why now</h3>
+      <p>The timing is concrete: Silk.NET turned Vulkan bindings into a single NuGet line in C#; .NET 10's AOT and JIT made managed-code performance no longer a joke; WinUI 3 + ImGui made "Vulkan surface inside a native window" tolerable for the first time. Only when all three hold at once does writing an engine from scratch become realistic.</p>
+      <p>Next, head to the Core Systems module to see how these nine systems are actually implemented.</p>
+      <div class="hero-actions">
+        <a href="capabilities-en.html" class="btn btn-primary">See the nine core systems
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Quote band ══════════ -->
+<section class="quote-band">
+  <div class="q">苟<span class="em">日新</span>，日日新，<span class="em">又日新</span>。</div>
+  <span class="src">Tang of Shang, from the Bronze Basin Inscription — the origin of SenseTime's name</span>
+  <p class="note">"If you can renew yourself one day, do so day after day, and let there be daily renewal." The engine iterates daily; so does the code.</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>A desktop game &amp; modeling engine prototype built from scratch in C#/.NET 10, targeting UE5-class rendering with a lightweight integrated workflow. MIT licensed.</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub repository">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">Open source · Star the repo to support development</span>
+        </div>
+      </div>
+      <div class="foot-copy">© 2026 Lu’an Qingnai Technology Co., Ltd. · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Engine</h4>
+        <a href="why-en.html">Why Yama</a>
+        <a href="capabilities-en.html">Core systems</a>
+        <a href="compare-en.html">Compare</a>
+        <a href="architecture-en.html">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>Status</h4>
+        <a href="status-en.html">Honest status</a>
+        <a href="status-en.html#build">Build results</a>
+        <a href="status-en.html#roadmap">Roadmap</a>
+        <a href="get-started-en.html">Quick start</a>
+      </div>
+      <div class="foot-col">
+        <h4>Modules</h4>
+        <a href="capabilities-en.html#rendering">Render pipeline</a>
+        <a href="capabilities-en.html#physics">Physics engine</a>
+        <a href="capabilities-en.html#ai">Artificial intelligence</a>
+        <a href="capabilities-en.html#ecs">ECS architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>More</h4>
+        <a href="poem.html">A Tang poem</a>
+        <a href="faq-en.html#contribute">Contribute</a>
+        <a href="index.html">中文首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · Open-source desktop engine</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="Back to top">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

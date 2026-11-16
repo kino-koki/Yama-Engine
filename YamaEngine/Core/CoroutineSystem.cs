@@ -14,6 +14,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using YamaEngine.GameFramework;
 
 namespace YamaEngine.Core
 {
@@ -102,6 +103,35 @@ namespace YamaEngine.Core
         internal void Reset() => _hasPassed = false;
     }
 
+    /// <summary>等待节点信号触发。对应 Godot 的 yield return signal。</summary>
+    public sealed class WaitForSignal : YieldInstruction
+    {
+        private readonly NodeSignal _signal;
+        private bool _fired;
+        internal int ConnectionId { get; private set; }
+        internal object? ReceivedArg { get; private set; }
+
+        internal WaitForSignal(NodeSignal signal)
+        {
+            _signal = signal ?? throw new ArgumentNullException(nameof(signal));
+            // 构造即连接：MoveNext 创建 WaitForSignal 后立即赋给 _waitingOn，
+            // 若惰性到 IsDone() 才连接，中间 Emit 可能错过（竞态）。立即连接消除窗口。
+            ConnectionId = _signal.Connect(arg => { _fired = true; ReceivedArg = arg; });
+        }
+
+        internal override bool IsDone() => _fired;
+
+        /// <summary>断开信号连接（协程停止/完成时清理，避免泄漏）。</summary>
+        internal void Disconnect()
+        {
+            if (ConnectionId >= 0)
+            {
+                _signal.Disconnect(ConnectionId);
+                ConnectionId = -1;
+            }
+        }
+    }
+
     // ====== 协程句柄 ======
     public sealed class CoroutineHandle
     {
@@ -109,6 +139,16 @@ namespace YamaEngine.Core
         internal IEnumerator Enumerator;
         internal bool IsPaused;
         internal string Name;
+
+        // ====== 挂起门：记录协程当前为何被挂起 ======
+        // 非 null 时表示协程正在等待某个条件，Update 在条件满足前不得推进
+        // Enumerator（否则会越过 yield return 继续执行）。每帧先检查门条件，
+        // 满足后清空门再 MoveNext 推进。
+        //   - _waitingOn: yield return 的 YieldInstruction（WaitForSeconds/WaitUntil 等）
+        //   - _waitingChild: yield return 的嵌套子协程句柄
+        //   - 两者都为 null：yield return null —— 无门，天然每帧推进一次
+        internal YieldInstruction? _waitingOn;
+        internal CoroutineHandle? _waitingChild;
 
         /// <summary>协程是否仍在运行。</summary>
         public bool IsRunning { get; internal set; }
@@ -125,6 +165,11 @@ namespace YamaEngine.Core
         /// <summary>主动停止此协程。</summary>
         public void Stop()
         {
+            // 若挂起在信号上，先断开连接，避免信号持有已死协程的处理器（泄漏）。
+            if (_waitingOn is WaitForSignal ws)
+                ws.Disconnect();
+            _waitingOn = null;
+
             IsRunning = false;
             IsCompleted = true;
         }
@@ -187,11 +232,23 @@ namespace YamaEngine.Core
         public static CoroutineHandle StartCoroutine(IEnumerable enumerable, string? name = null)
             => StartCoroutine(enumerable.GetEnumerator(), name);
 
+        /// <summary>
+        /// 清理协程的挂起门。若门内是 WaitForSignal，需断开其信号连接，否则信号
+        /// 持有对协程的引用造成泄漏（信号 emit 调用已死的处理器）。
+        /// </summary>
+        private static void ClearWaitingOn(CoroutineHandle handle)
+        {
+            if (handle._waitingOn is WaitForSignal ws)
+                ws.Disconnect();
+            handle._waitingOn = null;
+        }
+
         // ====== 停止协程 ======
         /// <summary>停止指定协程。</summary>
         public static void StopCoroutine(CoroutineHandle handle)
         {
             if (handle == null) return;
+            ClearWaitingOn(handle);  // 释放挂起中的信号连接
             handle.Stop();
             lock (_lock)
                 _pendingRemove.Add(handle);
@@ -202,7 +259,11 @@ namespace YamaEngine.Core
         {
             lock (_lock)
             {
-                foreach (var c in _coroutines) c.Stop();
+                foreach (var c in _coroutines)
+                {
+                    ClearWaitingOn(c);  // 释放挂起中的信号连接
+                    c.Stop();
+                }
                 _coroutines.Clear();
                 _pendingAdd.Clear();
                 _pendingRemove.Clear();
@@ -237,6 +298,22 @@ namespace YamaEngine.Core
 
                 if (handle.IsPaused)
                     continue;
+
+                // ====== 挂起门检查：协程若在等待条件，条件未满足前不得推进 ======
+                // 门非空时跳过 MoveNext（否则会越过 yield return 继续执行）。
+                // 条件就绪后清空门，本帧继续往下走 MoveNext 推进。
+                if (handle._waitingOn != null)
+                {
+                    if (!handle._waitingOn.IsDone())
+                        continue;               // 等待指令未就绪：真正挂起
+                    ClearWaitingOn(handle);     // 就绪：清门（信号需断开），本帧推进
+                }
+                else if (handle._waitingChild != null)
+                {
+                    if (!handle._waitingChild.IsCompleted)
+                        continue;               // 子协程未完成：真正挂起
+                    handle._waitingChild = null; // 子协程完成：清门，本帧推进
+                }
 
                 try
                 {
@@ -273,6 +350,8 @@ namespace YamaEngine.Core
         }
 
         // ====== 内部执行 ======
+        // MoveNext 推进协程一步。返回 false 表示协程已结束（枚举器耗尽）。
+        // 返回 true 表示协程仍在运行——要么已推进到下一个 yield，要么已设好挂起门。
         private static bool MoveNext(CoroutineHandle handle)
         {
             if (!handle.Enumerator.MoveNext())
@@ -282,45 +361,37 @@ namespace YamaEngine.Core
 
             if (current is YieldInstruction instruction)
             {
-                // 如果指令已就绪，继续前进；否则阻塞
-                if (instruction.IsDone())
-                    return true;
+                // 首次调用初始化内部基准（帧号/时间戳），后续由挂起门每帧检查 IsDone()
+                instruction.IsDone();
+                handle._waitingOn = instruction;
+                return true;
+            }
 
-                // 指令未就绪，递归处理等待队列
-                // 在这里实际上是通过挂起来处理的：每次 Update 都会检查
-                // 将当前指令替换为等待器
-                if (current is WaitForSeconds wfs) { wfs.Reset(); return true; }
-                if (current is WaitForFixedUpdate wfu) { wfu.Reset(); return true; }
-
+            if (current is NodeSignal signal)
+            {
+                // yield return 信号 → 自动包装为 WaitForSignal，挂起直到触发
+                var waitForSignal = new WaitForSignal(signal);
+                handle._waitingOn = waitForSignal;
                 return true;
             }
 
             if (current is IEnumerator subEnumerator)
             {
-                // 嵌套协程
+                // 嵌套协程：启动子协程并挂起父协程直到其完成。
                 var subHandle = StartCoroutine(subEnumerator);
-                // 将当前协程挂起直到子协程完成
-                return WaitForSubCoroutine(handle, subHandle);
+                handle._waitingChild = subHandle;
+                return true;
             }
 
             if (current is CoroutineHandle otherHandle)
             {
-                // 等待另一个协程句柄
-                return WaitForSubCoroutine(handle, otherHandle);
+                // 等待另一个已存在的协程句柄。
+                handle._waitingChild = otherHandle;
+                return true;
             }
 
-            // Current 是 null 或其他 → 继续下一帧
+            // Current 是 null 或其他 → 无门，下一帧继续推进（yield return null 语义）。
             return true;
-        }
-
-        private static bool WaitForSubCoroutine(CoroutineHandle parent, CoroutineHandle child)
-        {
-            if (child.IsCompleted)
-                return true; // 子协程完成，父协程继续
-
-            // 子协程未完成，在下一次 Update 重新检查
-            // 我们把子协程加入系统（已经做了）
-            return false;
         }
 
         // ====== 从事件总线等待 ======

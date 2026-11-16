@@ -141,7 +141,7 @@ namespace YamaEngine.Assets.Importers
         public float[]? Rotation;
         public float[]? Scale;
         public float[]? Weights;
-        public string Matrix;
+        public string Matrix = string.Empty;
         public int? Light; // KHR_lights_punctual
     }
 
@@ -550,10 +550,14 @@ namespace YamaEngine.Assets.Importers
                 uint chunkType = BitConverter.ToUInt32(fileData, offset + 4);
                 offset += 8;
 
-                if (offset + chunkLength > fileData.Length)
+                // 工业级防御: 用 long 比较避免 uint 回绕 (offset+chunkLength 可回绕绕过检查),
+                // 也防止 chunkLength 超 int.MaxValue 时 new byte[] 抛 OverflowException。
+                if ((long)offset + chunkLength > fileData.Length)
                     throw new InvalidDataException($"GLB 数据块超出文件范围: offset={offset}, length={chunkLength}");
+                if (chunkLength > int.MaxValue)
+                    throw new InvalidDataException($"GLB 数据块过大: length={chunkLength}");
 
-                byte[] chunkData = new byte[chunkLength];
+                byte[] chunkData = new byte[(int)chunkLength];
                 Array.Copy(fileData, offset, chunkData, 0, (int)chunkLength);
                 offset += (int)chunkLength;
 
@@ -1130,7 +1134,9 @@ namespace YamaEngine.Assets.Importers
                 else
                 {
                     // 外部文件
-                    string bufPath = Path.Combine(baseDir, buf.Uri);
+                    // 工业级防御: buf.Uri 来自未受信 glTF JSON, 可为绝对路径或 ../,
+                    // 用安全路径解析防止读取逃逸出资产目录。
+                    string bufPath = ResolveSafePath(baseDir, buf.Uri);
                     if (File.Exists(bufPath))
                     {
                         buf.Data = File.ReadAllBytes(bufPath);
@@ -1146,9 +1152,92 @@ namespace YamaEngine.Assets.Importers
             }
         }
 
+        /// <summary>
+        /// 工业级防御: 安全解析外部引用路径 (buffer/image/sampler URI)。
+        /// uri 来自未受信 glTF JSON, 可为绝对路径或含 "../", Path.Combine 会
+        /// 让读取逃逸出资产目录 (路径穿越)。前缀分隔符边界校验防前缀混淆。
+        /// </summary>
+        private static string ResolveSafePath(string baseDir, string uri)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(uri))
+                throw new InvalidDataException("资产引用路径为空");
+
+            string normalized = uri.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"资产引用路径为绝对路径, 拒绝: {uri}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"资产引用路径逃逸出目录, 拒绝: {uri}");
+
+            return full;
+        }
+
         // =================================================================================
         //  Accessor 数据读取
         // =================================================================================
+
+        /// <summary>
+        /// 校验 accessor 的 BufferView/Buffer 索引和组件数，防止损坏 JSON 导致的
+        /// OOM（count*components 溢出）和越界访问（offset+stride 超出 buffer.Data）。
+        /// 返回 null 表示校验失败（调用方应返回空数组）。
+        /// </summary>
+        private (GltfBufferView bv, GltfBuffer buffer, int components, int componentSize, int baseOffset)?
+            ValidateAccessor(GltfAccessor acc, int requiredComponents)
+        {
+            if (acc.Count < 0) return null;
+
+            if (!acc.BufferView.HasValue)
+                return null;
+
+            int bvIndex = acc.BufferView.Value;
+            if (bvIndex < 0 || bvIndex >= _doc.BufferViews.Count)
+                return null;
+
+            var bv = _doc.BufferViews[bvIndex];
+            if (bv.Buffer < 0 || bv.Buffer >= _doc.Buffers.Count)
+                return null;
+
+            var buffer = _doc.Buffers[bv.Buffer];
+            if (buffer.Data == null)
+                return null;
+
+            int components = GltfConstants.GetComponentsCount(acc.Type);
+            if (components <= 0) components = requiredComponents;
+
+            // 防止 count * components 溢出（int 溢出会变成负数 → OOM）
+            long totalElements = (long)acc.Count * components;
+            if (totalElements > int.MaxValue)
+                return null;
+
+            int componentSize = GltfConstants.GetComponentTypeSize(acc.ComponentType);
+            if (componentSize <= 0) return null;
+
+            // 工业级防御: 输出元素总数上限 (防止 count 接近 int.MaxValue 触发 OOM)。
+            // 与无 BufferView 分支的 16M 上限保持一致。
+            if (totalElements > 16 * 1024 * 1024)
+                return null;
+
+            int stride = bv.ByteStride > 0 ? bv.ByteStride.Value : components * componentSize;
+            if (stride <= 0) return null;
+
+            int baseOffset = bv.ByteOffset + acc.ByteOffset;
+            if (baseOffset < 0 || baseOffset >= buffer.Data.Length)
+                return null;
+
+            // 最后一个元素必须完整落在 buffer.Data 内
+            long lastByte = (long)baseOffset + (long)(acc.Count - 1) * stride + (long)components * componentSize;
+            if (lastByte > buffer.Data.Length)
+                return null;
+
+            return (bv, buffer, components, componentSize, baseOffset);
+        }
 
         /// <summary>从 accessor 读取 float 数组。</summary>
         private float[] ReadAccessorFloat(int accessorIndex)
@@ -1158,19 +1247,23 @@ namespace YamaEngine.Assets.Importers
 
             var acc = _doc.Accessors[accessorIndex];
             if (!acc.BufferView.HasValue)
+            {
+                // 无 BufferView：count 可能为 0（全零/常量 accessor），但负值或
+                // 超大 count 仍会导致 OOM，因此做保守校验。
+                if (acc.Count < 0 || acc.Count > 16 * 1024 * 1024)
+                    return Array.Empty<float>();
                 return new float[acc.Count * GltfConstants.GetComponentsCount(acc.Type)];
+            }
 
-            var bv = _doc.BufferViews[acc.BufferView.Value];
-            var buffer = _doc.Buffers[bv.Buffer];
-            if (buffer.Data == null)
+            var validated = ValidateAccessor(acc, 1);
+            if (!validated.HasValue)
                 return Array.Empty<float>();
 
-            int components = GltfConstants.GetComponentsCount(acc.Type);
-            int componentSize = GltfConstants.GetComponentTypeSize(acc.ComponentType);
+            var (bv, buffer, components, componentSize, baseOffset) = validated.Value;
             int stride = bv.ByteStride > 0 ? bv.ByteStride.Value : components * componentSize;
 
             var result = new float[acc.Count * components];
-            int baseOffset = bv.ByteOffset + acc.ByteOffset;
+            int bufferLen = buffer.Data.Length;
 
             for (int i = 0; i < acc.Count; i++)
             {
@@ -1179,6 +1272,8 @@ namespace YamaEngine.Assets.Importers
                 for (int c = 0; c < components; c++)
                 {
                     int offset = elementOffset + c * componentSize;
+                    if (offset < 0 || offset + componentSize > bufferLen)
+                        continue;
 
                     if (acc.ComponentType == GltfConstants.GL_FLOAT)
                     {
@@ -1223,22 +1318,27 @@ namespace YamaEngine.Assets.Importers
 
             var acc = _doc.Accessors[accessorIndex];
             if (!acc.BufferView.HasValue)
+            {
+                if (acc.Count < 0 || acc.Count > 16 * 1024 * 1024)
+                    return Array.Empty<int>();
                 return new int[acc.Count];
+            }
 
-            var bv = _doc.BufferViews[acc.BufferView.Value];
-            var buffer = _doc.Buffers[bv.Buffer];
-            if (buffer.Data == null)
+            var validated = ValidateAccessor(acc, 1);
+            if (!validated.HasValue)
                 return Array.Empty<int>();
 
-            int componentSize = GltfConstants.GetComponentTypeSize(acc.ComponentType);
+            var (bv, buffer, components, componentSize, baseOffset) = validated.Value;
             int stride = bv.ByteStride > 0 ? bv.ByteStride.Value : componentSize;
 
             var result = new int[acc.Count];
-            int baseOffset = bv.ByteOffset + acc.ByteOffset;
+            int bufferLen = buffer.Data.Length;
 
             for (int i = 0; i < acc.Count; i++)
             {
                 int offset = baseOffset + i * stride;
+                if (offset < 0 || offset + componentSize > bufferLen)
+                    continue;
 
                 switch (acc.ComponentType)
                 {
@@ -1273,12 +1373,20 @@ namespace YamaEngine.Assets.Importers
                 return Array.Empty<byte>();
 
             var bv = _doc.BufferViews[bufferViewIndex];
+            if (bv.Buffer < 0 || bv.Buffer >= _doc.Buffers.Count)
+                return Array.Empty<byte>();
+
             var buffer = _doc.Buffers[bv.Buffer];
             if (buffer.Data == null)
                 return Array.Empty<byte>();
 
             int offset = bv.ByteOffset;
+            if (offset < 0 || offset >= buffer.Data.Length)
+                return Array.Empty<byte>();
+
             int length = Math.Min(bv.ByteLength, buffer.Data.Length - offset);
+            if (length < 0)
+                return Array.Empty<byte>();
 
             var result = new byte[length];
             Array.Copy(buffer.Data, offset, result, 0, length);
@@ -1421,7 +1529,7 @@ namespace YamaEngine.Assets.Importers
                     }
                 }
 
-                Scene.Materials.Add(mat);
+                Scene!.Materials.Add(mat);
             }
         }
 
@@ -1445,7 +1553,8 @@ namespace YamaEngine.Assets.Importers
                 // Data URI 或文件路径
                 if (img.Uri.StartsWith("data:"))
                     return img.Uri;
-                return Path.Combine(baseDir, img.Uri);
+                // 工业级防御: 安全解析图像路径 (防路径穿越)。
+                return ResolveSafePath(baseDir, img.Uri);
             }
 
             if (img.BufferView.HasValue)
@@ -1467,7 +1576,7 @@ namespace YamaEngine.Assets.Importers
             {
                 var gltfMesh = _doc.Meshes[i];
                 var mesh = ConvertGltfMesh(gltfMesh, i);
-                Scene.Meshes.Add(mesh);
+                Scene!.Meshes.Add(mesh);
             }
         }
 
@@ -1714,7 +1823,7 @@ namespace YamaEngine.Assets.Importers
                 for (int i = 0; i < _doc.Nodes.Count; i++)
                 {
                     if (!parentSet.Contains(i))
-                        Scene.RootNodes.Add(ConvertNode(i));
+                        Scene!.RootNodes.Add(ConvertNode(i));
                 }
                 return;
             }
@@ -1722,7 +1831,7 @@ namespace YamaEngine.Assets.Importers
             var scene = _doc.Scenes[sceneIdx];
             foreach (var nodeIdx in scene.Nodes)
             {
-                Scene.RootNodes.Add(ConvertNode(nodeIdx));
+                Scene!.RootNodes.Add(ConvertNode(nodeIdx));
             }
         }
 
@@ -1878,7 +1987,7 @@ namespace YamaEngine.Assets.Importers
                         bone.BindPoseLocal = Matrix4x4.CreateScale(s) * Matrix4x4.CreateFromQuaternion(r) * Matrix4x4.CreateTranslation(t);
                     }
 
-                    Scene.Bones.Add(bone);
+                    Scene!.Bones.Add(bone);
                 }
 
                 // 设置骨骼父级关系
@@ -1895,7 +2004,7 @@ namespace YamaEngine.Assets.Importers
                         {
                             int boneIdx = GetBoneBaseIndex(i) + j;
                             int childBoneIdx = GetBoneBaseIndex(i) + childJointIdx;
-                            Scene.Bones[childBoneIdx].ParentIndex = boneIdx;
+                            Scene!.Bones[childBoneIdx].ParentIndex = boneIdx;
                             Scene.Bones[childBoneIdx].ParentName = Scene.Bones[boneIdx].Name;
                         }
                     }
@@ -1935,6 +2044,8 @@ namespace YamaEngine.Assets.Importers
 
                     var sampler = gltfAnim.Samplers[channel.Sampler];
                     int targetNode = channel.Target.Node;
+                    if (targetNode < 0 || targetNode >= _doc.Nodes.Count)
+                        continue;
 
                     if (!tracksByNode.TryGetValue(targetNode, out var track))
                     {
@@ -2022,7 +2133,7 @@ namespace YamaEngine.Assets.Importers
                         clip.FrameRate = (maxKeys - 1) / clip.Duration;
                 }
 
-                Scene.AnimationClips.Add(clip);
+                Scene!.AnimationClips.Add(clip);
             }
         }
 
@@ -2035,7 +2146,7 @@ namespace YamaEngine.Assets.Importers
             // 为缺少法线的网格生成法线
             if (_options.GenerateNormals)
             {
-                foreach (var mesh in Scene.Meshes)
+                foreach (var mesh in Scene!.Meshes)
                 {
                     if (mesh.Normals.Count == 0 && mesh.Vertices.Count > 0 && mesh.Indices.Count > 0)
                     {
@@ -2047,7 +2158,7 @@ namespace YamaEngine.Assets.Importers
             // 为缺少切线的网格生成切线
             if (_options.GenerateTangents)
             {
-                foreach (var mesh in Scene.Meshes)
+                foreach (var mesh in Scene!.Meshes)
                 {
                     if (mesh.Tangents.Count == 0 && mesh.UV0.Count > 0 && mesh.Normals.Count > 0)
                     {
@@ -2057,7 +2168,7 @@ namespace YamaEngine.Assets.Importers
             }
 
             // 没有材质的网格添加默认材质
-            if (Scene.Materials.Count == 0 && Scene.Meshes.Count > 0)
+            if (Scene!.Materials.Count == 0 && Scene.Meshes.Count > 0)
             {
                 var defaultMat = new InterchangeMaterial
                 {

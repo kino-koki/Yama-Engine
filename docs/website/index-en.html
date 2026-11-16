@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yama Engine — A real game engine, built in C#</title>
+<meta name="description" content="Yama Engine is a desktop game & modeling engine built from scratch in C#/.NET 10. Single Vulkan 1.4 backend, hand-written physics and rendering, WinUI 3 integrated editor. MIT licensed.">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" as="image" href="assets/heroes/index.webp">
+<link rel="alternate" hreflang="zh-CN" href="index.html">
+<link rel="alternate" hreflang="en" href="index-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="Yama Engine — A real game engine, built in C#">
+<meta property="og:description" content="Single Vulkan 1.4 backend, hand-written physics and rendering, WinUI 3 integrated editor — built from scratch in C#. MIT licensed.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Yama Engine","applicationCategory":"DeveloperApplication","operatingSystem":"Windows 10/11 x64","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT","url":"https://github.com/kino-koki/Yama-Engine","description":"A desktop game & modeling engine built from scratch in C#/.NET 10: single Vulkan 1.4 backend, hand-written physics and rendering, WinUI 3 integrated editor.","featureList":"Deferred rendering, hand-written physics (GJK/EPA/SAT), LLM-driven NPCs, Motion Matching, ECS, WinUI 3 editor"}
+</script>
+
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-banner" role="region" aria-label="Announcement">
+  <span><span class="hl">NEW</span> — Real physics engine v2 merged: analytic-solution-grade tests + joint constraint system</span>
+  <a href="status-en.html#roadmap">See the roadmap</a>
+  <button class="dismiss" aria-label="Close announcement">✕</button>
+</div>
+<nav>
+  <div class="wrap">
+    <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why-en.html">Why</a>
+      <a href="capabilities-en.html">Capabilities</a>
+      <a href="scenarios-en.html">Scenarios</a>
+      <a href="compare-en.html">Compare</a>
+      <a href="architecture-en.html">Architecture</a>
+      <a href="get-started-en.html">Quick Start</a>
+      <a href="status-en.html">Honest Status</a>
+      <a href="faq-en.html">FAQ</a>
+      <a href="index.html" class="lang">中文</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="main">
+  <div class="hero-bg" aria-hidden="true"><img src="assets/heroes/index.webp" alt="" width="2048" height="1152" fetchpriority="high" decoding="async"></div>
+<div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="#171310"/></svg></div>
+
+<div class="pixel-sun" aria-hidden="true">
+  <svg viewBox="0 0 44 44" fill="none" shape-rendering="crispEdges">
+    <rect x="19" y="2" width="6" height="6" fill="#FFD900"/><rect x="19" y="8" width="6" height="6" fill="#FFAE00"/>
+    <rect x="13" y="8" width="6" height="6" fill="#FF8205"/><rect x="25" y="8" width="6" height="6" fill="#FF8205"/>
+    <rect x="8" y="14" width="6" height="6" fill="#FA520F"/><rect x="30" y="14" width="6" height="6" fill="#FA520F"/>
+    <rect x="14" y="14" width="16" height="16" fill="#FA500F"/><rect x="2" y="19" width="6" height="6" fill="#E00400"/><rect x="36" y="19" width="6" height="6" fill="#E00400"/>
+    <rect x="8" y="24" width="6" height="6" fill="#FF8205"/><rect x="30" y="24" width="6" height="6" fill="#FF8205"/>
+    <rect x="13" y="30" width="6" height="6" fill="#FFAE00"/><rect x="25" y="30" width="6" height="6" fill="#FFAE00"/>
+    <rect x="19" y="36" width="6" height="6" fill="#FFD900"/>
+  </svg>
+</div>
+  <div class="hero-wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="kicker">C# / .NET 10 · Vulkan 1.4 · Open Source</div>
+        <h1>Build a <em>real</em> game engine<br>in C#<span class="h1-dot">.</span></h1>
+        <p class="lede">
+          Yama is a desktop game &amp; modeling engine. A <strong>single Vulkan 1.4 backend</strong>, hand-written physics and rendering pipelines, and a WinUI 3 integrated editor — built from scratch in C#. No PhysX. No Unreal. No Unity.
+        </p>
+        <div class="hero-chips" aria-label="Core capabilities">
+          <span>Deferred rendering</span><span>Hand-written physics</span><span>LLM-driven NPCs</span><span>Motion Matching</span><span>Integrated editor</span>
+        </div>
+        <div class="hero-actions">
+          <a href="capabilities-en.html" class="hero-cta">
+            Explore capabilities
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+          <a href="status-en.html" class="hero-cta">
+            See the honest status
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <dl class="stats">
+      <div class="stat"><dd>0</dd><dt>Compile errors</dt></div>
+      <div class="stat"><dd>817</dd><dt>C# source files</dt></div>
+      <div class="stat"><dd>319<span class="unit">K</span></dd><dt>Lines of code</dt></div>
+      <div class="stat"><dd>40<span class="unit">+</span></dd><dt>Subsystem modules</dt></div>
+    </dl>
+  </div>
+</header>
+
+<div class="spectrum-bar" aria-hidden="true"></div>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span class="mq-item">YAMA ENGINE</span><i class="mq-dot"></i>
+    <span class="mq-item">VULKAN 1.4</span><i class="mq-dot"></i>
+    <span class="mq-item">C# / .NET 10</span><i class="mq-dot"></i>
+    <span class="mq-item">WINUI 3</span><i class="mq-dot"></i>
+    <span class="mq-item">OPEN SOURCE</span><i class="mq-dot"></i>
+    <span class="mq-item">MIT LICENSE</span><i class="mq-dot"></i>
+    <span class="mq-item">RHI · PBR · GI</span><i class="mq-dot"></i>
+    <span class="mq-item">PHYSICS</span><i class="mq-dot"></i>
+    <span class="mq-item">IMGUI</span><i class="mq-dot"></i>
+    <span class="mq-item">ECS</span><i class="mq-dot"></i>
+    <span class="mq-item">SHADERS</span><i class="mq-dot"></i>
+    <span class="mq-item">ASSET PIPELINE</span><i class="mq-dot"></i>
+  </div>
+</div>
+
+<div class="wrap"><div class="pixel-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+<section class="philo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">00</span>
+        <span class="t">Modules</span>
+      </div>
+      <div>
+        <h2>This site is split into<br><span class="accent">eight standalone modules</span>.</h2>
+        <p>No endless one-page scroll. Every topic is its own page: clicking a title, a nav item or a footer link takes you to a real URL. Each module has depth of its own, not just a slogan.</p>
+      </div>
+    </div>
+
+    <div class="mod-grid">
+      <a class="mod-tile reveal" href="why-en.html">
+        <span class="mod-idx">/01 — Why</span>
+        <h3>Why build Yama</h3>
+        <p>Commercial engines are closed-source and expensive; open engines are limited or toy-grade. Yama tries a third path: capable, transparent, truly open. This page covers the motivation and three non-negotiable principles.</p>
+        <span class="mod-go">Enter module <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d1" href="capabilities-en.html">
+        <span class="mod-idx">/02 — Capabilities</span>
+        <h3>Nine core systems</h3>
+        <p>Rendering, physics, AI, animation, audio, ECS, integrated editor, DCC bridges, networking &amp; scripting — each with real code, file counts and key algorithms documented on the page.</p>
+        <span class="mod-go">Enter module <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d2" href="scenarios-en.html">
+        <span class="mod-idx">/03 — Scenarios</span>
+        <h3>Use cases</h3>
+        <p>3D game prototyping, terrain &amp; scene editing, live DCC bridging — three workflows, one page each. From modeling to deployment, Yama aims to cover every step of desktop AAA development.</p>
+        <span class="mod-go">Enter module <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal" href="architecture-en.html">
+        <span class="mod-idx">/04 — Architecture</span>
+        <h3>Six-layer architecture</h3>
+        <p>D3D12 was removed from the project entirely — the engine has exactly one graphics backend: Vulkan 1.4. This page explains the layers, the RHI abstraction, and why "one backend" is the key decision.</p>
+        <span class="mod-go">Enter module <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d1" href="status-en.html">
+        <span class="mod-idx">/05 — Honest Status</span>
+        <h3>Honest status &amp; roadmap</h3>
+        <p>817 source files, 319K lines, zero compile errors across all managed projects since 2026-11-01. But compiling is not GPU-validated. This page shows finished and unfinished work side by side.</p>
+        <span class="mod-go">Enter module <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="mod-tile reveal reveal-d2" href="faq-en.html">
+        <span class="mod-idx">/06 — FAQ</span>
+        <h3>Honest answers</h3>
+        <p>Engine or modeling tool? Why C# instead of C++? Does it run today? Can I ship with it? The ten most-asked questions about Yama — including the sharp ones.</p>
+        <span class="mod-go">Enter module <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ DEVLOG ══════════ -->
+<section class="devlog">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">06</span>
+        <span class="t">Devlog</span>
+      </div>
+      <div>
+        <h2>How the engine grows,<br><span class="accent">piece by piece</span>.</h2>
+        <p>No "coming soon" hand-waving — every entry below is a real, traceable commit in the repository history.</p>
+      </div>
+    </div>
+    <div class="devlog-grid">
+      <a class="devlog-card reveal" href="https://github.com/kino-koki/Yama-Engine/commits/main" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">2026-11-02</span><span>Rendering</span></span>
+        <h3>Filled in the last GPU pipeline gaps</h3>
+        <p>Real GLSL implementations of IBL, atmospheric scattering, volumetric fog, SSGI, contact shadows, TAA, lens flare, vignette and chromatic aberration — plus 10 new pipeline tests.</p>
+        <span class="devlog-go">View commits <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d1" href="https://github.com/kino-koki/Yama-Engine/commits/main" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">2026-11-01</span><span>AI / NPC</span></span>
+        <h3>NpcBrain wired into behavior trees &amp; StateTree</h3>
+        <p>LLM-generated structured intents now drive BT / StateTree decisions, with a quest system, group social simulation and 8 wiring tests.</p>
+        <span class="devlog-go">View commits <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d2" href="https://github.com/kino-koki/Yama-Engine/commits/main" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">2026-11-01</span><span>Milestone</span></span>
+        <h3>Zero compile errors across all managed projects</h3>
+        <p>From 1,414 errors in August to zero — engine library, editor and test projects all build clean, with -warnaserror enforced in CI.</p>
+        <span class="devlog-go">View commits <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ECOSYSTEM ══════════ -->
+<section class="eco">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">07</span>
+        <span class="t">Ecosystem</span>
+      </div>
+      <div>
+        <h2>Not just a renderer —<br>a <span class="accent">full toolchain</span>.</h2>
+        <p>Like SenseNova organizes its models, frameworks and skills, Yama's subsystems split into runtime, toolchain and content pipeline. Behind every card is a real directory.</p>
+      </div>
+    </div>
+    <div class="eco-grid">
+      <div class="eco-card reveal">
+        <span class="eco-eyebrow">Runtime</span>
+        <h3>Deferred render pipeline</h3>
+        <p>Deferred path + full post-processing stack, implemented as real GLSL passes — UE4.7-class at the algorithm layer.</p>
+        <span class="eco-files">Rendering / 124 files</span>
+      </div>
+      <div class="eco-card reveal reveal-d1">
+        <span class="eco-eyebrow">Runtime</span>
+        <h3>Real physics engine</h3>
+        <p>GJK / EPA / SAT collision detection with 9 joint constraint types, verified by analytic-solution unit tests.</p>
+        <span class="eco-files">Physics / 84 files</span>
+      </div>
+      <div class="eco-card reveal reveal-d2">
+        <span class="eco-eyebrow">Runtime</span>
+        <h3>LLM-driven NPCs</h3>
+        <p>NpcBrain feeds LLM intents into behavior trees and StateTree, with quests and group social simulation.</p>
+        <span class="eco-files">NPC + AI / 48 files</span>
+      </div>
+      <div class="eco-card reveal">
+        <span class="eco-eyebrow">Toolchain</span>
+        <h3>Integrated editor</h3>
+        <p>WinUI 3 native window hosting a Vulkan viewport — scene, terrain, modeling, code and test modes.</p>
+        <span class="eco-files">YamaEditor / 41 files</span>
+      </div>
+      <div class="eco-card reveal reveal-d1">
+        <span class="eco-eyebrow">Content pipeline</span>
+        <h3>Live DCC bridges</h3>
+        <p>Blender LiveLink syncs meshes in real time; Maya / 3ds Max Python plugins push assets straight into the pipeline.</p>
+        <span class="eco-files">DCC Bridges / 3 apps</span>
+      </div>
+      <div class="eco-card reveal reveal-d2">
+        <span class="eco-eyebrow">Content pipeline</span>
+        <h3>Cel2D cel-shaded 2D</h3>
+        <p>A complete 2D sub-engine: particles, skeletal animation, atlases, tilemaps and 2D physics, with its own sandbox.</p>
+        <span class="eco-files">Cel2D / 14 files</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ TECH DOCS ══════════ -->
+<section class="devlog" style="background:var(--paper-2)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">DOC</span>
+        <span class="t">Tech Docs</span>
+      </div>
+      <div>
+        <h2>The documentation <span class="accent">lives in the open</span>.</h2>
+        <p>Including the parts that don't flatter us: real completion assessments, the compile-error repair history, and runtime crash diagnostics. Transparency isn't a slogan — it's files.</p>
+      </div>
+    </div>
+    <div class="devlog-grid">
+      <a class="devlog-card reveal" href="https://github.com/kino-koki/Yama-Engine/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">ARCHITECTURE.md</span></span>
+        <h3>Architecture document</h3>
+        <p>The six-layer overview, RHI abstraction design, the single-Vulkan-backend trade-off, module dependencies and measured build status.</p>
+        <span class="devlog-go">Read on GitHub <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d1" href="https://github.com/kino-koki/Yama-Engine/blob/main/docs/CODE_TRUTH_REPORT.md" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">CODE_TRUTH_REPORT.md</span></span>
+        <h3>Code truth report</h3>
+        <p>Every subsystem marked as "real / prototype / unvalidated" — including how inflated line counts got corrected by measurement. A rarity among project docs.</p>
+        <span class="devlog-go">Read on GitHub <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+      <a class="devlog-card reveal reveal-d2" href="https://github.com/kino-koki/Yama-Engine/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">
+        <span class="devlog-meta"><span class="devlog-tag">CONTRIBUTING.md</span></span>
+        <h3>Contributing</h3>
+        <p>From fixing a warning to implementing a render pass — the contribution paths and code conventions live here. MIT licensed, everyone welcome.</p>
+        <span class="devlog-go">Read on GitHub <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<section class="dl">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">DL</span>
+        <span class="t">Design Language</span>
+      </div>
+      <div>
+        <h2>Fusion is not collage —<br>it settles into <span class="accent">a language of our own</span>.</h2>
+        <p>Editorial typography from Mistral, model cards and quote bands from SenseNova — settled into three motifs of Yama’s own: <strong>sunset spectrum, mountain ridgelines, and engineering squares</strong>. This language belongs to this project alone.</p>
+      </div>
+    </div>
+    <div class="dl-swatches reveal"><div class="swatch"><div class="chip" style="background:#FFFAEB;color:#171310"><span>paper</span><span>#FFFAEB</span></div><span class="nm">paper</span></div><div class="swatch"><div class="chip" style="background:#171310;color:#FFFAEB"><span>ink</span><span>#171310</span></div><span class="nm">ink</span></div><div class="swatch"><div class="chip" style="background:#FA500F;color:#ffffff"><span>primary</span><span>#FA500F</span></div><span class="nm">primary</span></div><div class="swatch"><div class="chip" style="background:#FF8205;color:#ffffff"><span>ochre</span><span>#FF8205</span></div><span class="nm">ochre</span></div><div class="swatch"><div class="chip" style="background:#FFD900;color:#171310"><span>sun-2</span><span>#FFD900</span></div><span class="nm">sun-2</span></div><div class="swatch"><div class="chip" style="background:#FFAE00;color:#ffffff"><span>sun-3</span><span>#FFAE00</span></div><span class="nm">sun-3</span></div><div class="swatch"><div class="chip" style="background:#FA520F;color:#ffffff"><span>sun-5</span><span>#FA520F</span></div><span class="nm">sun-5</span></div><div class="swatch"><div class="chip" style="background:#E00400;color:#ffffff"><span>sun-6</span><span>#E00400</span></div><span class="nm">sun-6</span></div></div>
+    <div class="dl-types reveal"><div class="dl-type"><span class="nm">Display · Archivo 800</span><div class="spec display">Ridgeline Aa</div><div class="use">Headlines / numbers / emphasis — tight, negative tracking, square and strong.</div></div><div class="dl-type"><span class="nm">Body · Instrument Sans</span><div class="spec body">Narrative Aa</div><div class="use">Paragraphs / explanations — neutral, readable, quiet.</div></div><div class="dl-type"><span class="nm">Mono · JetBrains Mono</span><div class="spec mono">MEASURE / 01</div><div class="use">Labels / eyebrows / data — the voice of an engineering drawing.</div></div><div class="dl-type"><span class="nm">Serif · Noto Serif SC</span><div class="spec cn">Poetry</div><div class="use">Quotes / poem page — connecting to that evening a thousand years ago.</div></div></div>
+    <div class="dl-motifs reveal"><div class="dl-motif"><div class="demo"><div class="m-demo-sun"><svg viewBox="0 0 44 44" fill="none" shape-rendering="crispEdges"><rect x="19" y="2" width="6" height="6" fill="#FFD900"/><rect x="19" y="8" width="6" height="6" fill="#FFAE00"/><rect x="13" y="8" width="6" height="6" fill="#FF8205"/><rect x="25" y="8" width="6" height="6" fill="#FF8205"/><rect x="8" y="14" width="6" height="6" fill="#FA520F"/><rect x="30" y="14" width="6" height="6" fill="#FA520F"/><rect x="14" y="14" width="16" height="16" fill="#FA500F"/><rect x="2" y="19" width="6" height="6" fill="#E00400"/><rect x="36" y="19" width="6" height="6" fill="#E00400"/><rect x="8" y="24" width="6" height="6" fill="#FF8205"/><rect x="30" y="24" width="6" height="6" fill="#FF8205"/><rect x="13" y="30" width="6" height="6" fill="#FFAE00"/><rect x="25" y="30" width="6" height="6" fill="#FFAE00"/><rect x="19" y="36" width="6" height="6" fill="#FFD900"/></svg></div></div><h4>Motif 01 · Pixel Sun</h4><p>A sun assembled from squares, rotating slowly. The light of the digital world shares a source with the sky.</p></div><div class="dl-motif"><div class="demo"><div class="m-demo-band"><i style="background:#FFF0C2"></i><i style="background:#FFD900"></i><i style="background:#FFAE00"></i><i style="background:#FF8205"></i><i style="background:#FA520F"></i><i style="background:#E00400"></i></div></div><h4>Motif 02 · Spectrum Band</h4><p>Six equal bands of sunset — the order behind the entire color system, and the closing note of the footer.</p></div><div class="dl-motif"><div class="demo"><svg class="m-demo-ridge" viewBox="0 0 300 64" preserveAspectRatio="none" shape-rendering="crispEdges"><path d="M0 64 L0 46 L50 30 L100 44 L150 18 L200 38 L250 24 L300 40 L300 64 Z" fill="#171310"/></svg></div><h4>Motif 03 · Ridgeline</h4><p>Taken from the mountain in Yama’s name. The transition between sections is not a straight line — it is a ridge.</p></div><div class="dl-motif"><div class="demo"><div class="m-demo-sq"><i></i><i></i><i></i><i></i></div></div><h4>Motif 04 · Engineering Square</h4><p>No rounded corners. Cards, buttons and tags are all right angles — like annotations on a drawing: clear, definite, unambiguous.</p></div></div>
+  </div>
+</section>
+
+<!-- ══════════ Quote band ══════════ -->
+<section class="quote-band">
+  <div class="q">"A storm is coming — <span class="em">the wind fills the tower</span>."</div>
+  <span class="src">Xu Hun, "East Tower of Xianyang City" · Tang dynasty</span>
+  <p class="note">Compile errors are at zero — the mountain rain is near — but the real GPU end-to-end validation hasn't run yet. Closing that gap is exactly what Phase 1 is about.</p>
+</section>
+
+<!-- ══════════ CTA ══════════ -->
+<section class="cta">
+  <div class="wrap">
+    <div class="cta-inner reveal">
+      <h2>Reading code is more honest<br>than reading <span class="accent">documentation</span>.</h2>
+      <p>Yama is MIT-licensed open source. Clone the repo, open the solution, hit F5. Every line of code is there waiting for you.</p>
+      <div class="cta-actions">
+      <a href="capabilities-en.html" class="btn btn-invert">
+        Explore capabilities
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+      <a href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" class="btn btn-outline">Clone the repository</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>A desktop game &amp; modeling engine prototype built from scratch in C#/.NET 10, targeting UE5-class rendering with a lightweight integrated workflow. MIT licensed.</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub repository">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">Open source · Star the repo to support development</span>
+        </div>
+      </div>
+      <div class="foot-copy">© 2026 Lu’an Qingnai Technology Co., Ltd. · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Engine</h4>
+        <a href="why-en.html">Why Yama</a>
+        <a href="capabilities-en.html">Core systems</a>
+        <a href="scenarios-en.html">Use cases</a>
+        <a href="architecture-en.html">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>Status</h4>
+        <a href="status-en.html">Honest status</a>
+        <a href="status-en.html#build">Build results</a>
+        <a href="status-en.html#roadmap">Roadmap</a>
+        <a href="get-started-en.html">Quick start</a>
+      </div>
+      <div class="foot-col">
+        <h4>Modules</h4>
+        <a href="capabilities-en.html#rendering">Render pipeline</a>
+        <a href="capabilities-en.html#physics">Physics engine</a>
+        <a href="capabilities-en.html#ai">Artificial intelligence</a>
+        <a href="capabilities-en.html#ecs">ECS architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>More</h4>
+        <a href="poem.html">A Tang poem</a>
+        <a href="status-en.html">Maturity assessment</a>
+        <a href="faq-en.html#contribute">Contribute</a>
+        <a href="index.html">中文首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · Open-source desktop engine</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="Back to top">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

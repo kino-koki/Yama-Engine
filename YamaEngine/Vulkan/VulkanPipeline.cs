@@ -155,6 +155,7 @@ namespace YamaEngine.RHI.Vulkan
         // ── Graphics Pipeline ──
         private unsafe void CreateGraphicsPipeline(RHIGraphicsPipelineDesc desc, VulkanRootSignature rootSig)
         {
+            VkPipeline = default; // never leave a stale/garbage handle on failure
             var stages = new List<PipelineShaderStageCreateInfo>();
             var shaderModules = new List<ShaderModule>();
             var pinnedStrings = new List<GCHandle>();
@@ -247,7 +248,7 @@ namespace YamaEngine.RHI.Vulkan
                     PipelineMultisampleStateCreateInfo multisampling = new()
                     {
                         SType = StructureType.PipelineMultisampleStateCreateInfo,
-                        RasterizationSamples = (SampleCountFlags)(1u << (desc.SampleCount - 1)),
+                        RasterizationSamples = (SampleCountFlags)(1u << (Math.Max(1, desc.SampleCount) - 1)),
                         MinSampleShading = 1.0f
                     };
 
@@ -257,6 +258,8 @@ namespace YamaEngine.RHI.Vulkan
                     var colorAttachments = BuildColorBlendAttachments(desc.BlendState);
                     float[] blendConstants = { 0, 0, 0, 0 };
 
+                    if (stages.Count == 0)
+                        throw new InvalidOperationException("Graphics pipeline requires at least one shader stage.");
                     PipelineShaderStageCreateInfo[] stageArr = stages.ToArray();
                     PipelineColorBlendAttachmentState[] caArr = colorAttachments.ToArray();
 
@@ -349,6 +352,7 @@ namespace YamaEngine.RHI.Vulkan
         // ── Compute Pipeline ──
         private unsafe void CreateComputePipeline(RHIComputePipelineDesc desc, VulkanRootSignature rootSig)
         {
+            VkPipeline = default; // never leave a stale/garbage handle on failure
             if (!desc.CS.HasValue)
                 throw new ArgumentException("Compute shader is required for compute pipeline");
 
@@ -387,6 +391,7 @@ namespace YamaEngine.RHI.Vulkan
         // ── Mesh Shader Pipeline ──
         private unsafe void CreateMeshShaderPipeline(RHIMeshPipelineDesc desc, VulkanRootSignature rootSig)
         {
+            VkPipeline = default; // never leave a stale/garbage handle on failure
             var stages = new List<PipelineShaderStageCreateInfo>();
             var shaderModules = new List<ShaderModule>();
             var pinnedStrings = new List<GCHandle>();
@@ -422,6 +427,8 @@ namespace YamaEngine.RHI.Vulkan
 
                 var colorAttachments = BuildColorBlendAttachments(desc.BlendState);
 
+                if (stages.Count == 0)
+                    throw new InvalidOperationException("Mesh shader pipeline requires at least one shader stage.");
                 PipelineShaderStageCreateInfo[] stageArr = stages.ToArray();
                 PipelineColorBlendAttachmentState[] caArr = colorAttachments.ToArray();
                 float[] blendConstants = { 0, 0, 0, 0 };

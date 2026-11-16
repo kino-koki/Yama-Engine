@@ -262,7 +262,11 @@ namespace YamaEngine.Materials
                         return true;
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // Shader 缓存读取失败: 记录并视为缓存未命中, 不静默。
+                    System.Diagnostics.Debug.WriteLine($"[ShaderCache] 读取 {path} 失败: {ex.Message}");
+                }
             }
             entry = null;
             return false;
@@ -278,14 +282,22 @@ namespace YamaEngine.Materials
                 var opts = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
                 File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(entry, opts));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Shader 缓存写入失败: 记录, 下次编译将重新生成。
+                System.Diagnostics.Debug.WriteLine($"[ShaderCache] 写入 {path} 失败: {ex.Message}");
+            }
         }
 
         public void Clear()
         {
             _memoryCache.Clear();
             try { foreach (var f in Directory.GetFiles(_cacheDir, "*.cache.json")) File.Delete(f); }
-            catch { }
+            catch (Exception ex)
+            {
+                // 缓存清理失败: 记录, 不影响功能。
+                System.Diagnostics.Debug.WriteLine($"[ShaderCache] 清理缓存失败: {ex.Message}");
+            }
         }
 
         private static string MakeKey(string hash, ulong variantHash) => $"{hash}_{variantHash:X16}";

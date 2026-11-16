@@ -132,6 +132,7 @@ namespace YamaEngine.Physics
     /// <summary>
     /// 载具物理系统主类。
     /// </summary>
+    [Obsolete("VehiclePhysicsSystem 依赖已弃用的 PhysicsWorldV2，迁移至 PhysicsWorldReal 后重新启用")]
     public sealed class VehiclePhysicsSystem
     {
         // 车辆参数

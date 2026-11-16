@@ -625,9 +625,15 @@ namespace YamaEngine.Physics
             for (int axis = 0; axis < NUM_AXES; axis++)
             {
                 var intervals = _axes[axis].Intervals;
-                intervals.Sort((a, b) => {
-                    if (a.IsMin != b.IsMin) return a.IsMin ? -1 : 1;
-                    return a.Min.CompareTo(b.Min);
+                // 标准SAP排序：所有端点按坐标值混合排序（min/max 同值时 min 端在前）
+                // 原bug：先按 IsMin 分组（所有 min 端在所有 max 端前）导致远离物体的 min 端
+                // 会在其他物体 max 端之前进入 activeSet，错误配对
+                intervals.Sort((a, b) =>
+                {
+                    int cmp = a.Min.CompareTo(b.Min);
+                    if (cmp != 0) return cmp;
+                    // 同值时 min 端先进（保证恰好在端点相切时算重叠）
+                    return a.IsMin ? -1 : 1;
                 });
 
                 // 剪枝阶段：活跃列表

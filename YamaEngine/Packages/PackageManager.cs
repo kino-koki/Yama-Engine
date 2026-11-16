@@ -38,15 +38,15 @@ namespace YamaEngine.Packages
     /// <summary>
     /// SemVer 解析与范围匹配。支持 ^, ~, >=, <=, >, <, = 运算符。
     /// </summary>
-    public class PackageVersion : IComparable<PackageVersion>
+    public class PackageVersion : IComparable<PackageVersion?>
     {
         public int Major { get; set; }
         public int Minor { get; set; }
         public int Patch { get; set; }
-        public string Prerelease { get; set; }
-        public string Build { get; set; }
+        public string? Prerelease { get; set; }
+        public string? Build { get; set; }
 
-        public PackageVersion(int major, int minor, int patch, string prerelease = null, string build = null)
+        public PackageVersion(int major, int minor, int patch, string? prerelease = null, string? build = null)
         {
             Major = major; Minor = minor; Patch = patch;
             Prerelease = prerelease; Build = build;
@@ -112,7 +112,7 @@ namespace YamaEngine.Packages
             return this == Parse(trimmed);
         }
 
-        public int CompareTo(PackageVersion other)
+        public int CompareTo(PackageVersion? other)
         {
             if (other == null) return 1;
             int cmp = Major.CompareTo(other.Major);
@@ -126,10 +126,10 @@ namespace YamaEngine.Packages
             return string.Compare(Prerelease, other.Prerelease, StringComparison.Ordinal);
         }
 
-        public override bool Equals(object obj) => obj is PackageVersion v && Major == v.Major && Minor == v.Minor && Patch == v.Patch && Prerelease == v.Prerelease;
+        public override bool Equals(object? obj) => obj is PackageVersion v && Major == v.Major && Minor == v.Minor && Patch == v.Patch && Prerelease == v.Prerelease;
         public override int GetHashCode() => HashCode.Combine(Major, Minor, Patch, Prerelease);
-        public static bool operator ==(PackageVersion a, PackageVersion b) => a?.Equals(b) ?? b is null;
-        public static bool operator !=(PackageVersion a, PackageVersion b) => !(a == b);
+        public static bool operator ==(PackageVersion? a, PackageVersion? b) => a?.Equals(b) ?? b is null;
+        public static bool operator !=(PackageVersion? a, PackageVersion? b) => !(a == b);
         public static bool operator <(PackageVersion a, PackageVersion b) => a.CompareTo(b) < 0;
         public static bool operator >(PackageVersion a, PackageVersion b) => a.CompareTo(b) > 0;
         public static bool operator <=(PackageVersion a, PackageVersion b) => a.CompareTo(b) <= 0;
@@ -149,37 +149,37 @@ namespace YamaEngine.Packages
     public class PackageContent
     {
         public PackageContentType Type { get; set; }
-        public string Path { get; set; }
-        public string Checksum { get; set; }
+        public string? Path { get; set; }
+        public string? Checksum { get; set; }
         public ulong Size { get; set; }
     }
 
     public class DependencyInfo
     {
-        public string Name { get; set; }
-        public string VersionRange { get; set; }
+        public string? Name { get; set; }
+        public string? VersionRange { get; set; }
         public bool Optional { get; set; }
-        public string Source { get; set; }
+        public string? Source { get; set; }
     }
 
     // ======================== 清单 ========================
 
     public class PackageManifest
     {
-        public string Name { get; set; }
-        public string Version { get; set; }
-        public string Description { get; set; }
-        public string Author { get; set; }
-        public string License { get; set; }
+        public string? Name { get; set; }
+        public string? Version { get; set; }
+        public string? Description { get; set; }
+        public string? Author { get; set; }
+        public string? License { get; set; }
         public List<string> Tags { get; set; } = new List<string>();
         public List<DependencyInfo> Dependencies { get; set; } = new List<DependencyInfo>();
         public List<PackageContent> Contents { get; set; } = new List<PackageContent>();
         public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
 
         [JsonIgnore]
-        public PackageVersion ParsedVersion => PackageVersion.Parse(Version);
+        public PackageVersion ParsedVersion => PackageVersion.Parse(Version ?? string.Empty);
 
-        public static PackageManifest FromJson(string json) => JsonSerializer.Deserialize<PackageManifest>(json);
+        public static PackageManifest? FromJson(string json) => JsonSerializer.Deserialize<PackageManifest>(json);
         public string ToJson() => JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
     }
 
@@ -187,10 +187,10 @@ namespace YamaEngine.Packages
 
     public abstract class PackageSource
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public PackageSourceType SourceType { get; protected set; }
-        public abstract Task<Stream> DownloadAsync(string packageName, string version);
-        public abstract Task<PackageManifest> GetManifestAsync(string packageName, string version);
+        public abstract Task<Stream?> DownloadAsync(string packageName, string version);
+        public abstract Task<PackageManifest?> GetManifestAsync(string packageName, string version);
         public abstract Task<List<string>> ListVersionsAsync(string packageName);
         public abstract Task<List<string>> SearchAsync(string query);
     }
@@ -205,20 +205,20 @@ namespace YamaEngine.Packages
             SourceType = PackageSourceType.Local;
         }
 
-        public override Task<Stream> DownloadAsync(string packageName, string version)
+        public override Task<Stream?> DownloadAsync(string packageName, string version)
         {
             var path = GetPackagePath(packageName, version);
             if (!File.Exists(path))
                 throw new FileNotFoundException($"Package not found: {path}");
-            return Task.FromResult<Stream>(File.OpenRead(path));
+            return Task.FromResult<Stream?>(File.OpenRead(path));
         }
 
-        public override Task<PackageManifest> GetManifestAsync(string packageName, string version)
+        public override Task<PackageManifest?> GetManifestAsync(string packageName, string version)
         {
             var dir = Path.Combine(RootDirectory, packageName, version);
             var manifestPath = Path.Combine(dir, "manifest.json");
             if (!File.Exists(manifestPath))
-                return Task.FromResult<PackageManifest>(null);
+                return Task.FromResult<PackageManifest?>(null);
             var json = File.ReadAllText(manifestPath);
             return Task.FromResult(PackageManifest.FromJson(json));
         }
@@ -228,7 +228,7 @@ namespace YamaEngine.Packages
             var dir = Path.Combine(RootDirectory, packageName);
             if (!Directory.Exists(dir))
                 return Task.FromResult(new List<string>());
-            var versions = Directory.GetDirectories(dir).Select(Path.GetFileName).ToList();
+            var versions = Directory.GetDirectories(dir).Select(d => Path.GetFileName(d)!).ToList();
             return Task.FromResult(versions);
         }
 
@@ -238,7 +238,7 @@ namespace YamaEngine.Packages
                 return Task.FromResult(new List<string>());
             var results = Directory.GetDirectories(RootDirectory)
                 .Where(d => Path.GetFileName(d).Contains(query, StringComparison.OrdinalIgnoreCase))
-                .Select(Path.GetFileName)
+                .Select(d => Path.GetFileName(d)!)
                 .ToList();
             return Task.FromResult(results);
         }
@@ -261,7 +261,7 @@ namespace YamaEngine.Packages
             _client = new HttpClient();
         }
 
-        public override async Task<Stream> DownloadAsync(string packageName, string version)
+        public override async Task<Stream?> DownloadAsync(string packageName, string version)
         {
             var url = $"{BaseUrl}/packages/{packageName}/{version}/download";
             var response = await _client.GetAsync(url);
@@ -269,7 +269,7 @@ namespace YamaEngine.Packages
             return await response.Content.ReadAsStreamAsync();
         }
 
-        public override async Task<PackageManifest> GetManifestAsync(string packageName, string version)
+        public override async Task<PackageManifest?> GetManifestAsync(string packageName, string version)
         {
             var url = $"{BaseUrl}/packages/{packageName}/{version}/manifest.json";
             var json = await _client.GetStringAsync(url);
@@ -302,15 +302,15 @@ namespace YamaEngine.Packages
             SourceType = PackageSourceType.Git;
         }
 
-        public override Task<Stream> DownloadAsync(string packageName, string version)
+        public override Task<Stream?> DownloadAsync(string packageName, string version)
         {
             // In real implementation: clone / archive download
-            return Task.FromResult<Stream>(null);
+            return Task.FromResult<Stream?>(null);
         }
 
-        public override Task<PackageManifest> GetManifestAsync(string packageName, string version)
+        public override Task<PackageManifest?> GetManifestAsync(string packageName, string version)
         {
-            return Task.FromResult<PackageManifest>(null);
+            return Task.FromResult<PackageManifest?>(null);
         }
 
         public override Task<List<string>> ListVersionsAsync(string packageName)
@@ -329,10 +329,10 @@ namespace YamaEngine.Packages
 
     public class PackageLockEntry
     {
-        public string Name { get; set; }
-        public string Version { get; set; }
-        public string Resolved { get; set; }
-        public string Integrity { get; set; }
+        public string? Name { get; set; }
+        public string? Version { get; set; }
+        public string? Resolved { get; set; }
+        public string? Integrity { get; set; }
         public List<string> Dependencies { get; set; } = new List<string>();
     }
 
@@ -357,7 +357,7 @@ namespace YamaEngine.Packages
 
         public void AddOrUpdate(PackageLockEntry entry)
         {
-            Packages[entry.Name] = entry;
+            Packages[entry.Name!] = entry;
         }
     }
 
@@ -371,7 +371,7 @@ namespace YamaEngine.Packages
         private readonly PackageLock _lock;
         private readonly Dictionary<string, InstalledPackage> _installed = new Dictionary<string, InstalledPackage>();
 
-        public PackageManager(string packagesDirectory, string lockFilePath = null)
+        public PackageManager(string packagesDirectory, string? lockFilePath = null)
         {
             _packagesDirectory = packagesDirectory;
             _lockFilePath = lockFilePath ?? Path.Combine(packagesDirectory, "package-lock.json");
@@ -392,7 +392,7 @@ namespace YamaEngine.Packages
                 return false;
             }
 
-            var targetDir = Path.Combine(_packagesDirectory, packageName, manifest.Version);
+            var targetDir = Path.Combine(_packagesDirectory, packageName, manifest.Version!);
             if (Directory.Exists(targetDir))
             {
                 Console.WriteLine($"Package {packageName}@{manifest.Version} already installed.");
@@ -400,7 +400,7 @@ namespace YamaEngine.Packages
             else
             {
                 Directory.CreateDirectory(targetDir);
-                var stream = await DownloadAsync(packageName, manifest.Version);
+                var stream = await DownloadAsync(packageName, manifest.Version!);
                 if (stream != null)
                 {
                     using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
@@ -433,9 +433,9 @@ namespace YamaEngine.Packages
             {
                 foreach (var dep in manifest.Dependencies.Where(d => !d.Optional))
                 {
-                    if (!_installed.ContainsKey(dep.Name))
+                    if (!_installed.ContainsKey(dep.Name!))
                     {
-                        var success = await InstallAsync(dep.Name, dep.VersionRange);
+                        var success = await InstallAsync(dep.Name!, dep.VersionRange!);
                         if (!success && !dep.Optional)
                         {
                             Console.WriteLine($"Failed to install required dependency {dep.Name}@{dep.VersionRange}");
@@ -528,15 +528,15 @@ namespace YamaEngine.Packages
             while (stack.Count > 0)
             {
                 var (current, depth) = stack.Pop();
-                if (visited.Contains(current.Name)) continue;
-                visited.Add(current.Name);
-                all[current.Name] = current;
+                if (visited.Contains(current.Name!)) continue;
+                visited.Add(current.Name!);
+                all[current.Name!] = current;
 
                 if (current.Dependencies != null)
                 {
                     foreach (var dep in current.Dependencies.Where(d => !d.Optional))
                     {
-                        if (all.ContainsKey(dep.Name)) continue;
+                        if (all.ContainsKey(dep.Name!)) continue;
                         var resolved = _installed.Values.FirstOrDefault(p => p.Manifest.Name == dep.Name)?.Manifest;
                         if (resolved != null)
                             stack.Push((resolved, depth + 1));
@@ -550,16 +550,16 @@ namespace YamaEngine.Packages
 
         private List<PackageManifest> TopologicalSort(List<PackageManifest> packages)
         {
-            var inDegree = packages.ToDictionary(p => p.Name, _ => 0);
-            var adj = packages.ToDictionary(p => p.Name, _ => new List<string>());
+            var inDegree = packages.ToDictionary(p => p.Name!, _ => 0);
+            var adj = packages.ToDictionary(p => p.Name!, _ => new List<string>());
 
             foreach (var pkg in packages)
             {
                 if (pkg.Dependencies == null) continue;
-                foreach (var dep in pkg.Dependencies.Where(d => !d.Optional && inDegree.ContainsKey(d.Name)))
+                foreach (var dep in pkg.Dependencies.Where(d => !d.Optional && inDegree.ContainsKey(d.Name!)))
                 {
-                    adj[pkg.Name].Add(dep.Name);
-                    inDegree[dep.Name]++;
+                    adj[pkg.Name!].Add(dep.Name!);
+                    inDegree[dep.Name!]++;
                 }
             }
 
@@ -596,7 +596,8 @@ namespace YamaEngine.Packages
                     {
                         var json = File.ReadAllText(manifestPath);
                         var manifest = PackageManifest.FromJson(json);
-                        _installed[manifest.Name] = new InstalledPackage
+                        if (manifest == null) continue;
+                        _installed[manifest.Name!] = new InstalledPackage
                         {
                             Manifest = manifest,
                             InstallPath = verDir
@@ -606,7 +607,7 @@ namespace YamaEngine.Packages
             }
         }
 
-        private async Task<PackageManifest> ResolveManifestAsync(string packageName, string versionRange)
+        private async Task<PackageManifest?> ResolveManifestAsync(string packageName, string versionRange)
         {
             foreach (var source in _sources)
             {
@@ -625,7 +626,7 @@ namespace YamaEngine.Packages
             return null;
         }
 
-        private async Task<string> GetLatestVersionAsync(string packageName)
+        private async Task<string?> GetLatestVersionAsync(string packageName)
         {
             foreach (var source in _sources)
             {
@@ -643,7 +644,7 @@ namespace YamaEngine.Packages
             return null;
         }
 
-        private async Task<Stream> DownloadAsync(string packageName, string version)
+        private async Task<Stream?> DownloadAsync(string packageName, string version)
         {
             foreach (var source in _sources)
             {
@@ -669,13 +670,13 @@ namespace YamaEngine.Packages
                 sha.TransformBlock(content, 0, content.Length, null, 0);
             }
             sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            return BitConverter.ToString(sha.Hash).Replace("-", "").ToLowerInvariant();
+            return BitConverter.ToString(sha.Hash!).Replace("-", "").ToLowerInvariant();
         }
     }
 
     public class InstalledPackage
     {
-        public PackageManifest Manifest { get; set; }
-        public string InstallPath { get; set; }
+        public PackageManifest Manifest { get; set; } = null!;
+        public string InstallPath { get; set; } = null!;
     }
 }

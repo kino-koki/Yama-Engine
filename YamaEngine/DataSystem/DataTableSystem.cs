@@ -164,7 +164,11 @@ namespace YamaEngine.DataSystem
                 for (int j = 0; j < Math.Min(values.Length, headers.Length); j++) fields[headers[j].Trim()] = values[j].Trim();
                 var row = new TRow(); row.FromDictionary(fields);
                 if (string.IsNullOrEmpty(row.Name) && fields.TryGetValue("Name", out var name)) row.Name = name;
-                if (!string.IsNullOrEmpty(row.Name)) { try { AddOrReplaceRow(row); imported++; } catch { } }
+                if (!string.IsNullOrEmpty(row.Name))
+                {
+                    try { AddOrReplaceRow(row); imported++; }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"DataTable CSV 跳过第 {i} 行(损坏数据): {ex.Message}"); }
+                }
             }
             return imported;
         }
@@ -196,7 +200,11 @@ namespace YamaEngine.DataSystem
                     var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var prop in element.EnumerateObject()) fields[prop.Name] = prop.Value.ValueKind == JsonValueKind.String ? (prop.Value.GetString() ?? "") : prop.Value.GetRawText();
                     var row = new TRow(); row.FromDictionary(fields);
-                    if (!string.IsNullOrEmpty(row.Name)) { try { AddOrReplaceRow(row); imported++; } catch { } }
+                    if (!string.IsNullOrEmpty(row.Name))
+                    {
+                        try { AddOrReplaceRow(row); imported++; }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"DataTable JSON 跳过损坏行: {ex.Message}"); }
+                    }
                 }
                 return imported;
             } catch { return 0; }
@@ -220,22 +228,80 @@ namespace YamaEngine.DataSystem
 
         public bool ImportBinary(byte[] data)
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
             Clear();
             try
             {
                 using var ms = new MemoryStream(data); using var reader = new BinaryReader(ms, Encoding.UTF8);
-                _tableName = reader.ReadString(); int rowCount = reader.ReadInt32(); int colCount = reader.ReadInt32(); _columnNames.Clear();
-                for (int i = 0; i < colCount; i++) _columnNames.Add(reader.ReadString());
+                _tableName = SafeReadString(reader, data.Length); int rowCount = reader.ReadInt32(); int colCount = reader.ReadInt32(); _columnNames.Clear();
+
+                // 工业级防御: 未受信计数必须非负且受可用字节/绝对上限约束,
+                // 否则损坏数据可致 OOM 或长时间 DoS 循环。
+                if (rowCount < 0 || colCount < 0)
+                    return false;
+                const int MaxCols = 16384, MaxRows = 16 * 1024 * 1024;
+                if (colCount > MaxCols || rowCount > MaxRows)
+                    return false;
+                // 每列至少 2 字节(长度+空串), 每行至少 4 字节(fieldCount)。
+                if ((long)colCount * 2 > data.Length || (long)rowCount * 4 > data.Length)
+                    return false;
+
+                for (int i = 0; i < colCount; i++) _columnNames.Add(SafeReadString(reader, data.Length));
                 for (int i = 0; i < rowCount; i++)
                 {
-                    var name = reader.ReadString(); int fieldCount = reader.ReadInt32();
+                    var name = SafeReadString(reader, data.Length); int fieldCount = reader.ReadInt32();
+                    // 工业级防御: fieldCount 非法 (负/超上限) → 损坏数据。
+                    if (fieldCount < 0 || fieldCount > MaxCols)
+                        return false;
                     var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    for (int j = 0; j < fieldCount; j++) fields[reader.ReadString()] = reader.ReadString();
+                    for (int j = 0; j < fieldCount; j++)
+                        fields[SafeReadString(reader, data.Length)] = SafeReadString(reader, data.Length);
                     var row = new TRow(); row.FromDictionary(fields); row.Name = name;
-                    try { AddOrReplaceRow(row); } catch { }
+                    try { AddOrReplaceRow(row); }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"DataTable Binary 跳过第 {i} 行(损坏数据): {ex.Message}"); }
                 }
                 return true;
             } catch { return false; }
+        }
+
+        /// <summary>
+        /// 工业级防御: 安全读取 7-bit 编码长度前缀字符串。
+        /// BinaryReader.ReadString 会先按长度前缀分配 char[length] 再读内容,
+        /// 损坏数据可伪造 0x7FFFFFFF 长度前缀 → 立即 OOM (即便流很短)。
+        /// 先解析长度前缀, 校验其不超过流剩余字节, 再读取/分配。
+        /// </summary>
+        private static string SafeReadString(BinaryReader reader, int totalDataLength)
+        {
+            int length = Read7BitEncodedIntSafe(reader);
+            if (length < 0)
+                throw new EndOfStreamException("字符串长度为负");
+            // UTF-8 字符串至少占 length 字节; 校验不超剩余可用字节。
+            if ((long)length > totalDataLength)
+                throw new EndOfStreamException($"字符串长度超流: {length}");
+            if (length == 0) return string.Empty;
+            byte[] bytes = reader.ReadBytes(length);
+            if (bytes.Length < length)
+                throw new EndOfStreamException("字符串内容不足");
+            return Encoding.UTF8.GetString(bytes);
+        }
+
+        /// <summary>
+        /// 读取 7-bit 编码长度前缀 (与 BinaryReader.Read7BitEncodedInt 一致),
+        /// 但显式校验字节数上限, 防止前缀声称超 int.MaxValue 触发溢出/死循环。
+        /// </summary>
+        private static int Read7BitEncodedIntSafe(BinaryReader reader)
+        {
+            int value = 0;
+            int shift = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                byte b = reader.ReadByte();
+                value |= (b & 0x7F) << shift;
+                if ((b & 0x80) == 0)
+                    return value;
+                shift += 7;
+            }
+            throw new InvalidDataException("7-bit 编码长度前缀无效 (超过 5 字节)");
         }
 
         public DataTableValidationResult Validate()

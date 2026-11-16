@@ -471,12 +471,12 @@ namespace YamaEngine.DataSystem
             using var reader = new BinaryReader(ms, Encoding.UTF8);
 
             // 读取格式头
-            var magic = reader.ReadString();
+            var magic = ReadSafeString(reader);
             if (magic != "SHY_BIN")
                 throw new FormatException("Invalid binary format: magic mismatch.");
 
             int version = reader.ReadInt32();
-            string typeName = reader.ReadString();
+            string typeName = ReadSafeString(reader);
 
             var props = ReadProperties(reader);
 
@@ -501,13 +501,13 @@ namespace YamaEngine.DataSystem
             using var ms = new MemoryStream(data);
             using var reader = new BinaryReader(ms, Encoding.UTF8);
 
-            var magic = reader.ReadString();
+            var magic = ReadSafeString(reader);
             if (magic != "SHY_BIN")
                 throw new FormatException("Invalid binary format: magic mismatch.");
 
             int version = reader.ReadInt32();
             if (version > 1)
-                reader.ReadString(); // 跳过类型名（兼容旧格式）
+                ReadSafeString(reader); // 跳过类型名（兼容旧格式）
 
             var props = ReadProperties(reader);
 
@@ -598,10 +598,11 @@ namespace YamaEngine.DataSystem
         private static Dictionary<string, object?> ReadProperties(BinaryReader reader)
         {
             int count = reader.ReadInt32();
+            CheckCountAgainstStream(reader, count);
             var props = new Dictionary<string, object?>(count);
             for (int i = 0; i < count; i++)
             {
-                string name = reader.ReadString();
+                string name = ReadSafeString(reader);
                 props[name] = ReadValue(reader);
             }
             return props;
@@ -628,7 +629,7 @@ namespace YamaEngine.DataSystem
                 MarkerFloat => reader.ReadSingle(),
                 MarkerDouble => reader.ReadDouble(),
                 MarkerBool => reader.ReadBoolean(),
-                MarkerString => reader.ReadString(),
+                MarkerString => ReadSafeString(reader),
                 MarkerVector2 => new Vector2(reader.ReadSingle(), reader.ReadSingle()),
                 MarkerVector3 => new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
                 MarkerVector4 => new Vector4(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
@@ -637,7 +638,7 @@ namespace YamaEngine.DataSystem
                 MarkerGuid => new Guid(reader.ReadBytes(16)),
                 MarkerDateTime => DateTime.FromBinary(reader.ReadInt64()),
                 MarkerEnum => reader.ReadInt32(), // 简化：直接返回整数
-                MarkerBytes => reader.ReadBytes(reader.ReadInt32()),
+                MarkerBytes => ReadSafeBytes(reader),
                 MarkerArray => ReadArray(reader),
                 MarkerMap => ReadMap(reader),
                 _ => null // 未知标记，跳过
@@ -662,6 +663,7 @@ namespace YamaEngine.DataSystem
         private static object ReadArray(BinaryReader reader)
         {
             int count = reader.ReadInt32();
+            CheckCountAgainstStream(reader, count);
             var list = new List<object?>(count);
             for (int i = 0; i < count; i++)
                 list.Add(ReadValue(reader));
@@ -671,6 +673,7 @@ namespace YamaEngine.DataSystem
         private static object ReadMap(BinaryReader reader)
         {
             int count = reader.ReadInt32();
+            CheckCountAgainstStream(reader, count);
             var dict = new Dictionary<object, object?>(count);
             for (int i = 0; i < count; i++)
             {
@@ -679,6 +682,71 @@ namespace YamaEngine.DataSystem
                 if (key != null) dict[key] = value;
             }
             return dict;
+        }
+
+        /// <summary>
+        /// 校验容器元素计数不越过剩余可读字节（每个元素至少 1 字节标记），
+        /// 防止损坏/恶意流伪造超大 count 导致 OOM（List/Dictionary 预分配）。
+        /// </summary>
+        private static void CheckCountAgainstStream(BinaryReader reader, int count)
+        {
+            if (count < 0)
+                throw new InvalidDataException($"Serialization data corrupt: negative element count {count}.");
+            long remaining = reader.BaseStream.Length - reader.BaseStream.Position;
+            // 每个元素至少占 1 字节类型标记；count 不可能超过剩余字节数
+            if (count > remaining)
+                throw new InvalidDataException(
+                    $"Serialization data corrupt: declared count {count} exceeds remaining {remaining} bytes.");
+        }
+
+        /// <summary>
+        /// 读取带 4 字节长度前缀的字节数组，长度前缀经剩余字节校验，
+        /// 防止损坏/恶意流伪造超大长度导致 OOM（BinaryReader.ReadBytes 先分配后读）。
+        /// </summary>
+        private static byte[] ReadSafeBytes(BinaryReader reader)
+        {
+            int count = reader.ReadInt32();
+            if (count <= 0) return Array.Empty<byte>();
+            long remaining = reader.BaseStream.Length - reader.BaseStream.Position;
+            if (count > remaining)
+                throw new InvalidDataException(
+                    $"Serialization data corrupt: declared bytes length {count} exceeds remaining {remaining} bytes.");
+            return reader.ReadBytes(count);
+        }
+
+        /// <summary>
+        /// 安全读取 7-bit 变长长度前缀的字符串。BinaryReader.ReadString 内部用 int 累加
+        /// 7-bit 块长度, 恶意流可伪造 5+ 字节前缀使 int 溢出, 导致分配巨量内存 (OOM 向量)。
+        /// 此实现用 long 累加防溢出, 并在分配前用剩余字节数预校验。
+        /// </summary>
+        private static string ReadSafeString(BinaryReader reader)
+        {
+            long remaining = reader.BaseStream.Length - reader.BaseStream.Position;
+            // 长度前缀本身至少 1 字节
+            if (remaining < 1)
+                throw new InvalidDataException("Serialization data corrupt: string length prefix missing.");
+
+            long length = 0;
+            int shift = 0;
+            while (true)
+            {
+                if (shift >= 35 || remaining < 1)
+                    throw new InvalidDataException("Serialization data corrupt: invalid string length prefix.");
+                int b = reader.ReadByte();
+                remaining--;
+                length |= (long)(b & 0x7F) << shift;
+                if ((b & 0x80) == 0) break;
+                shift += 7;
+            }
+
+            // 长度前缀已读取完毕; length 为 UTF-8 字节数。
+            // 预校验: 剩余可读字节必须足以容纳该字符串, 否则为损坏/恶意数据。
+            if (length < 0 || length > remaining)
+                throw new InvalidDataException(
+                    $"Serialization data corrupt: declared string length {length} exceeds remaining {remaining} bytes.");
+
+            byte[] bytes = reader.ReadBytes((int)length); // length <= remaining (long), 强转 int 安全 (remaining <= int.MaxValue)
+            return Encoding.UTF8.GetString(bytes);
         }
     }
 

@@ -212,46 +212,88 @@ namespace YamaEngine.Core
             return ms.ToArray();
         }
 
+        /// <summary>
+        /// 从不可信字节数组安全读取 7-bit 编码长度字符串, 预校验防 OOM/越界。
+        /// </summary>
+        private static string ReadSafeString(BinaryReader br, Stream ms)
+        {
+            long remaining = ms.Length - ms.Position;
+            // 7-bit 长度前缀: 每个字节贡献 7 位, 最多 5 字节 (int), 先校验剩余字节足够读取前缀。
+            long prefixBytes = 0;
+            long len = 0;
+            int shift = 0;
+            while (shift < 35)
+            {
+                if (prefixBytes >= remaining)
+                    throw new InvalidDataException("存档字符串长度前缀截断");
+                byte b = br.ReadByte();
+                prefixBytes++;
+                len |= (long)(b & 0x7F) << shift;
+                if ((b & 0x80) == 0) break;
+                shift += 7;
+            }
+            if (len < 0 || len > remaining - prefixBytes)
+                throw new InvalidDataException($"存档字符串长度非法: {len}, 剩余 {remaining - prefixBytes}");
+            if (len == 0) return string.Empty;
+            return Encoding.UTF8.GetString(br.ReadBytes((int)len));
+        }
+
         /// <summary>从二进制字节数组反序列化为 WorldSnapshot。</summary>
         public static WorldSnapshot Deserialize(byte[] data)
         {
             var snap = new WorldSnapshot();
             using var ms = new MemoryStream(data);
             using var br = new BinaryReader(ms, Encoding.UTF8, leaveOpen: false);
-            int entCount = br.ReadInt32();
+
+            // 工业级防御: 所有 count/len 来自不可信字节, 必须与剩余字节比对, 防 OOM/死循环/静默截断。
+            int entCount = ReadCount(br, ms, "实体数");
             for (int i = 0; i < entCount; i++)
             {
                 var ent = new EntitySnapshot
                 {
                     EntityId = br.ReadInt32(),
-                    Name = br.ReadString(),
+                    Name = ReadSafeString(br, ms),
                     ParentId = br.ReadInt32(),
                 };
-                int compCount = br.ReadInt32();
+                int compCount = ReadCount(br, ms, "组件数");
                 for (int j = 0; j < compCount; j++)
                 {
                     var comp = new ComponentSnapshot
                     {
-                        TypeName = br.ReadString(),
+                        TypeName = ReadSafeString(br, ms),
                     };
                     int len = br.ReadInt32();
+                    if (len < 0 || len > ms.Length - ms.Position)
+                        throw new InvalidDataException($"存档组件数据长度非法: {len}, 剩余 {ms.Length - ms.Position}");
                     comp.Data = len > 0 ? br.ReadBytes(len) : Array.Empty<byte>();
                     ent.Components.Add(comp);
                 }
                 snap.Entities.Add(ent);
             }
-            int resCount = br.ReadInt32();
+            int resCount = ReadCount(br, ms, "资源引用数");
             for (int i = 0; i < resCount; i++)
             {
                 snap.Resources.Add(new ResourceReference(
-                    br.ReadString(), br.ReadString(), br.ReadString()));
+                    ReadSafeString(br, ms), ReadSafeString(br, ms), ReadSafeString(br, ms)));
             }
-            int varCount = br.ReadInt32();
+            int varCount = ReadCount(br, ms, "游戏变量数");
             for (int i = 0; i < varCount; i++)
             {
-                snap.GameVariables[br.ReadString()] = br.ReadString();
+                snap.GameVariables[ReadSafeString(br, ms)] = ReadSafeString(br, ms);
             }
             return snap;
+        }
+
+        /// <summary>
+        /// 读取非负 count 并与剩余字节比对 (每个元素至少占 4 字节 Int32 计数头)。
+        /// </summary>
+        private static int ReadCount(BinaryReader br, Stream ms, string what)
+        {
+            int count = br.ReadInt32();
+            long remaining = ms.Length - ms.Position;
+            if (count < 0 || (long)count * 4 > remaining)
+                throw new InvalidDataException($"存档{what}非法: {count}, 剩余 {remaining}");
+            return count;
         }
 
         /// <summary>使用 Gzip 压缩字节数据。</summary>
@@ -560,6 +602,11 @@ namespace YamaEngine.Core
                 UncompressedLength = br.ReadInt64(),
                 CompressedLength = br.ReadInt64(),
             };
+            // 工业级防御: CompressedLength 来自文件头(不可信), 必须校验非负且不超出文件剩余字节,
+            // 防强转 int 溢出/OOM/静默截断。
+            long remaining = fs.Length - fs.Position;
+            if (header.CompressedLength < 0 || header.CompressedLength > remaining)
+                throw new InvalidDataException($"存档压缩数据长度非法: {header.CompressedLength}, 剩余 {remaining}");
             byte[] compressed = br.ReadBytes((int)header.CompressedLength);
             byte[] raw = SaveSerializer.Decompress(compressed);
             return SaveSerializer.Deserialize(raw);

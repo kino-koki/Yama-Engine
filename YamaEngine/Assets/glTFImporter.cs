@@ -493,7 +493,7 @@ namespace YamaEngine.Assets
 
             // 相对/绝对文件路径
             string basePath = Path.GetDirectoryName(Path.GetFullPath(gltfPath)) ?? string.Empty;
-            string fullPath = Path.Combine(basePath, uri);
+            string fullPath = ResolveExternalResourcePath(basePath, uri);
             if (!File.Exists(fullPath))
                 throw new FileNotFoundException($"External glTF buffer not found: {fullPath}", fullPath);
             return File.ReadAllBytes(fullPath);
@@ -590,13 +590,13 @@ namespace YamaEngine.Assets
         private static void LoadNodeRecursive(GlTFModel model, int nodeIdx, Matrix4x4 parentMatrix,
             List<byte[]> buffers, LoadedModel result, Dictionary<int, Matrix4x4> worldMatrices)
         {
-            if (nodeIdx < 0 || nodeIdx >= model.Nodes.Count) return;
+            if (nodeIdx < 0 || nodeIdx >= model.Nodes!.Count) return;
 
             var node = model.Nodes[nodeIdx];
             Matrix4x4 localMatrix = ComputeLocalMatrix(node);
             Matrix4x4 worldMatrix = localMatrix * parentMatrix;
 
-            if (node.Mesh.HasValue && node.Mesh.Value >= 0 && node.Mesh.Value < model.Meshes.Count)
+            if (node.Mesh.HasValue && node.Mesh.Value >= 0 && node.Mesh.Value < model.Meshes!.Count)
             {
                 var mesh = model.Meshes[node.Mesh.Value];
                 string meshName = mesh.Name ?? node.Name ?? $"Mesh_{node.Mesh.Value}";
@@ -649,10 +649,10 @@ namespace YamaEngine.Assets
 
             // POSITION
             if (prim.Attributes.TryGetValue("POSITION", out int posAccessorIdx)
-                && posAccessorIdx >= 0 && posAccessorIdx < model.Accessors.Count)
+                && posAccessorIdx >= 0 && posAccessorIdx < model.Accessors!.Count)
             {
                 var accessor = model.Accessors[posAccessorIdx];
-                var positions = ReadAccessorFloats(accessor, model.BufferViews, buffers);
+                var positions = ReadAccessorFloats(accessor, model.BufferViews!, buffers);
                 subMesh.Positions = positions;
             }
 
@@ -661,7 +661,7 @@ namespace YamaEngine.Assets
                 && normAccessorIdx >= 0 && normAccessorIdx < model.Accessors.Count)
             {
                 var accessor = model.Accessors[normAccessorIdx];
-                subMesh.Normals = ReadAccessorFloats(accessor, model.BufferViews, buffers);
+                subMesh.Normals = ReadAccessorFloats(accessor, model.BufferViews!, buffers);
 
                 // 变换法线（仅使用矩阵的旋转部分）
                 if (subMesh.Normals != null)
@@ -672,17 +672,17 @@ namespace YamaEngine.Assets
 
             // TEXCOORD_0
             if (prim.Attributes.TryGetValue("TEXCOORD_0", out int uvAccessorIdx)
-                && uvAccessorIdx >= 0 && uvAccessorIdx < model.Accessors.Count)
+                && uvAccessorIdx >= 0 && uvAccessorIdx < model.Accessors!.Count)
             {
                 var accessor = model.Accessors[uvAccessorIdx];
-                subMesh.TexCoords0 = ReadAccessorFloats(accessor, model.BufferViews, buffers);
+                subMesh.TexCoords0 = ReadAccessorFloats(accessor, model.BufferViews!, buffers);
             }
 
             // 索引
-            if (prim.Indices.HasValue && prim.Indices.Value >= 0 && prim.Indices.Value < model.Accessors.Count)
+            if (prim.Indices.HasValue && prim.Indices.Value >= 0 && prim.Indices.Value < model.Accessors!.Count)
             {
                 var accessor = model.Accessors[prim.Indices.Value];
-                subMesh.Indices = ReadAccessorIndices(accessor, model.BufferViews, buffers);
+                subMesh.Indices = ReadAccessorIndices(accessor, model.BufferViews!, buffers);
                 subMesh.Use32BitIndices = accessor.IsUnsignedInt;
             }
             else
@@ -835,7 +835,7 @@ namespace YamaEngine.Assets
             else
             {
                 // 没有场景定义：从非子节点开始
-                for (int i = 0; i < model.Nodes.Count; i++)
+                for (int i = 0; i < model.Nodes!.Count; i++)
                     if (!childNodes.Contains(i)) sceneRoots.Add(i);
             }
 
@@ -850,7 +850,7 @@ namespace YamaEngine.Assets
         private static void ComputeWorldMatrixRecursive(GlTFModel model, int nodeIdx, Matrix4x4 parentWorld,
             Dictionary<int, Matrix4x4> worldMatrices)
         {
-            if (nodeIdx < 0 || nodeIdx >= model.Nodes.Count) return;
+            if (nodeIdx < 0 || nodeIdx >= model.Nodes!.Count) return;
 
             var node = model.Nodes[nodeIdx];
             Matrix4x4 local = ComputeLocalMatrix(node);
@@ -990,13 +990,13 @@ namespace YamaEngine.Assets
         {
             if (textureIdx < 0 || textureIdx >= model.Textures?.Count) return null;
 
-            var texture = model.Textures[textureIdx];
+            var texture = model.Textures![textureIdx];
             if (!texture.Source.HasValue) return null;
 
             int imageIdx = texture.Source.Value;
             if (imageIdx < 0 || imageIdx >= model.Images?.Count) return null;
 
-            var image = model.Images[imageIdx];
+            var image = model.Images![imageIdx];
             if (string.IsNullOrWhiteSpace(image.Uri)) return null;
 
             // data URI 不返回路径
@@ -1004,7 +1004,29 @@ namespace YamaEngine.Assets
 
             // 相对路径
             string basePath = Path.GetDirectoryName(Path.GetFullPath(sourcePath)) ?? string.Empty;
-            return Path.Combine(basePath, image.Uri);
+            return ResolveExternalResourcePath(basePath, image.Uri);
+        }
+
+        /// <summary>
+        /// 解析 glTF 外部资源 (buffer/image) 的相对路径, 并确保其不逃逸资产目录。
+        /// glTF URI 来自未受信文件, 可包含 ../ 或绝对路径, 直接 Combine 会读到资产目录之外的任意文件。
+        /// </summary>
+        private static string ResolveExternalResourcePath(string assetRoot, string uri)
+        {
+            if (string.IsNullOrWhiteSpace(uri))
+                throw new InvalidDataException("glTF external resource URI is empty.");
+
+            string candidate = Path.IsPathRooted(uri) ? uri : Path.Combine(assetRoot, uri);
+            string fullPath = Path.GetFullPath(candidate);
+            string fullRoot = Path.GetFullPath(assetRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+            if (!string.Equals(fullPath, fullRoot, StringComparison.OrdinalIgnoreCase)
+                && !fullPath.StartsWith(fullRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedAccessException(
+                    $"glTF external resource '{uri}' escapes asset root '{fullRoot}'.");
+            }
+            return fullPath;
         }
 
         // ── JSON 序列化配置 ──

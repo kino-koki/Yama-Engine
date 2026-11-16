@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>index.html</loc><lastmod>2026-11-15</lastmod><priority>1.0</priority></url>
+  <url><loc>index-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>why.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>capabilities.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>scenarios.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>architecture.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>status.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>get-started.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>faq.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>poem.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>compare.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>why-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>capabilities-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>status-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>architecture-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>get-started-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>scenarios-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>compare-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+  <url><loc>faq-en.html</loc><lastmod>2026-11-15</lastmod><priority>0.8</priority></url>
+</urlset>

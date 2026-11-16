@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -61,10 +62,10 @@ namespace YamaEngine.GameFramework
     public class SceneReal
     {
         /// <summary>场景名称。</summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>场景路径（资源路径）。</summary>
-        public string Path { get; set; }
+        public string Path { get; set; } = string.Empty;
 
         /// <summary>BuildIndex（构建索引）。</summary>
         public int BuildIndex { get; set; } = -1;
@@ -108,14 +109,14 @@ namespace YamaEngine.GameFramework
         internal void NotifySceneActivated() => SceneActivated?.Invoke(this);
         internal void NotifySceneDeactivated() => SceneDeactivated?.Invoke(this);
 
-        public SceneReal(string name, string path = null)
+        public SceneReal(string name, string? path = null)
         {
             Name = name;
-            Path = path;
+            Path = path ?? string.Empty;
         }
 
         /// <summary>添加根GameObject到场景。</summary>
-        internal void AddRootObject(GameObjectReal obj)
+        public void AddRootObject(GameObjectReal obj)
         {
             if (obj == null) throw new ArgumentNullException(nameof(obj));
             obj.Scene = this;
@@ -126,13 +127,13 @@ namespace YamaEngine.GameFramework
         internal bool RemoveRootObject(GameObjectReal obj)
         {
             if (!_rootObjects.Contains(obj)) return false;
-            obj.Scene = null;
+            obj.Scene = null!;
             _rootObjects.Remove(obj);
             return true;
         }
 
         /// <summary>查找场景中的GameObject（按名称，递归）。</summary>
-        public GameObjectReal FindGameObject(string name)
+        public GameObjectReal? FindGameObject(string name)
         {
             foreach (var root in _rootObjects)
             {
@@ -141,6 +142,85 @@ namespace YamaEngine.GameFramework
                 if (found != null) return found;
             }
             return null;
+        }
+
+        /// <summary>按标签递归查找场景中所有匹配的GameObject（Godot 分组/标签查询语义）。</summary>
+        public List<GameObjectReal> FindGameObjectsWithTag(string tag)
+        {
+            var result = new List<GameObjectReal>();
+            foreach (var obj in AllGameObjects)
+            {
+                if (obj.Tag == tag)
+                    result.Add(obj);
+            }
+            return result;
+        }
+
+        /// <summary>按层级递归查找场景中所有匹配的GameObject。</summary>
+        public List<GameObjectReal> FindGameObjectsInLayer(int layer)
+        {
+            var result = new List<GameObjectReal>();
+            foreach (var obj in AllGameObjects)
+            {
+                if (obj.Layer == layer)
+                    result.Add(obj);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 递归查找场景中所有挂载了指定类型组件的活跃对象（对应 Godot 的
+        /// get_nodes_in_group / get_tree().get_nodes_in_group 语义的组件版）。
+        /// 仅返回 IsActive 的对象。
+        /// </summary>
+        public List<GameObjectReal> FindObjectsOfType<T>() where T : ComponentReal
+        {
+            var result = new List<GameObjectReal>();
+            foreach (var obj in AllGameObjects)
+            {
+                if (obj.IsActive && obj.HasComponent<T>())
+                    result.Add(obj);
+            }
+            return result;
+        }
+
+        /// <summary>返回场景中所有挂载了指定类型组件的活跃对象上的组件实例。</summary>
+        public List<T> FindComponentsOfType<T>() where T : ComponentReal
+        {
+            var result = new List<T>();
+            foreach (var obj in AllGameObjects)
+            {
+                if (!obj.IsActive) continue;
+                var comp = obj.GetComponent<T>();
+                if (comp != null) result.Add(comp);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 返回场景中属于指定分组的所有活跃对象（对应 Godot 的
+        /// get_tree().get_nodes_in_group）。仅返回 IsActive 的对象。
+        /// </summary>
+        public List<GameObjectReal> GetNodesInGroup(string group)
+        {
+            var result = new List<GameObjectReal>();
+            if (string.IsNullOrEmpty(group)) return result;
+            foreach (var obj in AllGameObjects)
+            {
+                if (obj.IsActive && obj.IsInGroup(group))
+                    result.Add(obj);
+            }
+            return result;
+        }
+
+        /// <summary>返回场景中属于指定分组的对象数量（含非活跃）。</summary>
+        public int CountNodesInGroup(string group)
+        {
+            int n = 0;
+            if (string.IsNullOrEmpty(group)) return n;
+            foreach (var obj in AllGameObjects)
+                if (obj.IsInGroup(group)) n++;
+            return n;
         }
 
         /// <summary>递归收集所有GameObject。</summary>
@@ -198,7 +278,7 @@ namespace YamaEngine.GameFramework
         public int SceneCount => _loadedScenes.Count;
 
         /// <summary>当前活跃场景。</summary>
-        public SceneReal ActiveScene => _activeScene;
+        public SceneReal? ActiveScene => _activeScene;
 
         /// <summary>场景加载完成事件。</summary>
         public event Action<SceneReal>? OnSceneLoaded;
@@ -210,13 +290,13 @@ namespace YamaEngine.GameFramework
         public event Action<SceneReal, SceneReal>? OnActiveSceneChanged;
 
         private readonly List<SceneReal> _loadedScenes = new();
-        private SceneReal _activeScene;
+        private SceneReal? _activeScene;
         private readonly Dictionary<string, SceneReal> _sceneByName = new();
         private readonly Dictionary<int, SceneReal> _sceneByBuildIndex = new();
         private readonly object _lock = new();
 
         // 场景数据提供器（从文件读取场景数据）
-        public Func<string, string> SceneDataProvider { get; set; }
+        public Func<string, string>? SceneDataProvider { get; set; }
 
         /// <summary>
         /// 加载场景。
@@ -234,7 +314,7 @@ namespace YamaEngine.GameFramework
                 switch (mode)
                 {
                     case LoadSceneMode.UnloadAdditive:
-                        return HandleUnloadAdditive();
+                        return HandleUnloadAdditive()!;
 
                     case LoadSceneMode.Single:
                         // 卸载所有已加载场景
@@ -259,7 +339,7 @@ namespace YamaEngine.GameFramework
                 scene.State = SceneLifecycleState.Loading;
 
                 // 读取场景数据（使用SceneDataProvider或空数据）
-                string sceneData = null;
+                string? sceneData = null;
                 if (SceneDataProvider != null)
                 {
                     try
@@ -332,7 +412,7 @@ namespace YamaEngine.GameFramework
                 if (_activeScene == scene)
                 {
                     _activeScene = _loadedScenes.Count > 0 ? _loadedScenes[0] : null;
-                    OnActiveSceneChanged?.Invoke(scene, _activeScene);
+                    OnActiveSceneChanged?.Invoke(scene, _activeScene!);
                 }
 
                 OnSceneUnloaded?.Invoke(scene);
@@ -363,18 +443,18 @@ namespace YamaEngine.GameFramework
                 scene.State = SceneLifecycleState.Active;
                 scene.NotifySceneActivated();
 
-                OnActiveSceneChanged?.Invoke(oldActive, scene);
+                OnActiveSceneChanged?.Invoke(oldActive!, scene);
             }
         }
 
         /// <summary>获取活跃场景。</summary>
-        public SceneReal GetActiveScene()
+        public SceneReal? GetActiveScene()
         {
             return _activeScene;
         }
 
         /// <summary>按索引获取已加载场景。</summary>
-        public SceneReal GetSceneAt(int index)
+        public SceneReal? GetSceneAt(int index)
         {
             if (index < 0 || index >= _loadedScenes.Count)
                 return null;
@@ -382,14 +462,14 @@ namespace YamaEngine.GameFramework
         }
 
         /// <summary>按名称获取场景。</summary>
-        public SceneReal GetSceneByName(string name)
+        public SceneReal? GetSceneByName(string name)
         {
             _sceneByName.TryGetValue(name, out var scene);
             return scene;
         }
 
         /// <summary>按BuildIndex获取场景。</summary>
-        public SceneReal GetSceneByBuildIndex(int buildIndex)
+        public SceneReal? GetSceneByBuildIndex(int buildIndex)
         {
             _sceneByBuildIndex.TryGetValue(buildIndex, out var scene);
             return scene;
@@ -419,10 +499,10 @@ namespace YamaEngine.GameFramework
             _loadedScenes.Clear();
             _sceneByName.Clear();
             _sceneByBuildIndex.Clear();
-            _activeScene = null;
+            _activeScene = null!;
         }
 
-        private SceneReal HandleUnloadAdditive()
+        private SceneReal? HandleUnloadAdditive()
         {
             // 卸载最后加载的叠加场景
             if (_loadedScenes.Count > 0)
@@ -448,19 +528,20 @@ namespace YamaEngine.GameFramework
             try
             {
                 // 查找"roots"数组
-                int rootsIdx = sceneData.IndexOf("\"roots\":[", StringComparison.Ordinal);
+                int rootsIdx = sceneData.IndexOf("\"roots\":", StringComparison.Ordinal);
                 if (rootsIdx < 0) return;
 
-                int startIdx = rootsIdx + "\"roots\":[".Length;
+                int startIdx = rootsIdx + "\"roots\":".Length;
                 var rootObjects = ParseGameObjectArray(sceneData, ref startIdx);
                 foreach (var obj in rootObjects)
                 {
                     scene.AddRootObject(obj);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 解析失败，创建空场景
+                // 解析失败: 记录原因, 创建空场景 (避免主线程崩溃, 但保留故障可见性)。
+                System.Diagnostics.Debug.WriteLine($"[SceneManagement] 场景解析失败, 创建空场景: {ex.Message}");
             }
         }
 
@@ -508,7 +589,7 @@ namespace YamaEngine.GameFramework
         /// <summary>
         /// 解析单个GameObject的JSON。
         /// </summary>
-        private GameObjectReal ParseSingleGameObject(string json, ref int pos)
+        private GameObjectReal? ParseSingleGameObject(string json, ref int pos)
         {
             pos = SkipWhitespace(json, pos);
             if (pos >= json.Length || json[pos] != '{')
@@ -527,19 +608,24 @@ namespace YamaEngine.GameFramework
 
             // 解析name字段
             var obj = new GameObjectReal(ExtractJsonStringField(objJson, "name") ?? "GameObject");
-            string tag = ExtractJsonStringField(objJson, "tag");
+            string? tag = ExtractJsonStringField(objJson, "tag");
             if (tag != null) obj.Tag = tag;
 
             // 解析pos字段
-            string posStr = ExtractJsonArrayField(objJson, "pos");
+            string? posStr = ExtractJsonArrayField(objJson, "pos");
             if (posStr != null)
             {
                 var parts = posStr.Split(',');
                 if (parts.Length == 3)
                 {
-                    float x = float.Parse(parts[0].Trim());
-                    float y = float.Parse(parts[1].Trim());
-                    float z = float.Parse(parts[2].Trim());
+                    // 工业级防御: 损坏场景 JSON 的 pos 字段不合法时抛 InvalidDataException, 而非被外层吞掉静默创建空场景。
+                    if (!float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out float x) ||
+                        !float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out float y) ||
+                        !float.TryParse(parts[2].Trim(), System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out float z))
+                        throw new InvalidDataException($"场景JSON pos 字段非法: '{posStr}'");
                     obj.Transform.LocalPosition = new Vector3(x, y, z);
                 }
             }
@@ -568,7 +654,7 @@ namespace YamaEngine.GameFramework
             return pos;
         }
 
-        private static string ExtractJsonStringField(string json, string fieldName)
+        private static string? ExtractJsonStringField(string json, string fieldName)
         {
             string key = $"\"{fieldName}\":";
             int idx = json.IndexOf(key, StringComparison.Ordinal);
@@ -582,7 +668,7 @@ namespace YamaEngine.GameFramework
             return json.Substring(start, end - start);
         }
 
-        private static string ExtractJsonArrayField(string json, string fieldName)
+        private static string? ExtractJsonArrayField(string json, string fieldName)
         {
             string key = $"\"{fieldName}\":";
             int idx = json.IndexOf(key, StringComparison.Ordinal);
@@ -673,7 +759,7 @@ namespace YamaEngine.GameFramework
         public float LoadPriority { get; set; } = float.MaxValue;
 
         /// <summary>关联的场景。</summary>
-        public SceneReal Scene { get; internal set; }
+        public SceneReal? Scene { get; internal set; }
 
         /// <summary>距离观察者的距离。</summary>
         public float DistanceToViewer { get; set; } = float.MaxValue;
@@ -700,7 +786,7 @@ namespace YamaEngine.GameFramework
         public int X, Y, Z;
         public Vector3Int(int x, int y, int z) { X = x; Y = y; Z = z; }
         public bool Equals(Vector3Int other) => X == other.X && Y == other.Y && Z == other.Z;
-        public override bool Equals(object obj) => obj is Vector3Int v && Equals(v);
+        public override bool Equals(object? obj) => obj is Vector3Int v && Equals(v);
         public override int GetHashCode() => HashCode.Combine(X, Y, Z);
         public static bool operator ==(Vector3Int a, Vector3Int b) => a.Equals(b);
         public static bool operator !=(Vector3Int a, Vector3Int b) => !a.Equals(b);
@@ -926,7 +1012,7 @@ namespace YamaEngine.GameFramework
             }
 
             cell.State = CellState.Unloaded;
-            cell.Scene = null;
+            cell.Scene = null!;
             LoadedCellCount--;
             _cells.Remove(cell.GridPosition);
             CellUnloaded?.Invoke(cell);

@@ -331,7 +331,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>DTO → Composite</summary>
-        private static InputBindingComposite CreateCompositeFromDTO(InputBindingCompositeDTO dto)
+        private static InputBindingComposite? CreateCompositeFromDTO(InputBindingCompositeDTO dto)
         {
             return dto.TypeName switch
             {
@@ -424,7 +424,7 @@ namespace YamaEngine.Input.Enhanced
             private bool _pendingReload;
 
             /// <summary>热重载完成事件</summary>
-            public event Action<InputActionAsset> OnHotReloaded;
+            public event Action<InputActionAsset>? OnHotReloaded;
 
             public HotReloadWatcher(InputActionAsset asset, string filePath)
             {
@@ -457,9 +457,10 @@ namespace YamaEngine.Input.Enhanced
                             _asset = HotReload(_asset, _filePath);
                             OnHotReloaded?.Invoke(_asset);
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            // 重载失败，忽略
+                            // 重载失败: 记录原因, 保持旧资产可用。
+                            Console.WriteLine($"[InputAction] 热重载失败: {ex.GetType().Name}: {ex.Message}");
                         }
                     }
                 }
@@ -513,10 +514,10 @@ namespace YamaEngine.Input.Enhanced
                         el.TryGetProperty("overrideBinding", out var overEl))
                     {
                         asset.BindingOverrides.Add(new BindingOverride(
-                            mapEl.GetString(),
-                            actionEl.GetString(),
-                            origEl.GetString(),
-                            overEl.GetString(),
+                            mapEl.GetString() ?? string.Empty,
+                            actionEl.GetString() ?? string.Empty,
+                            origEl.GetString() ?? string.Empty,
+                            overEl.GetString() ?? string.Empty,
                             el.TryGetProperty("controlScheme", out var csEl) ? csEl.GetString() : null
                         ));
                     }
@@ -534,48 +535,48 @@ namespace YamaEngine.Input.Enhanced
     /// <summary>资产 DTO</summary>
     public class InputActionAssetDTO
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int Version { get; set; }
-        internal List<InputActionMapDTO> Maps { get; set; }
-        internal List<ControlSchemeDTO> ControlSchemes { get; set; }
-        internal List<BindingOverrideDTO> BindingOverrides { get; set; }
+        internal List<InputActionMapDTO> Maps { get; set; } = new();
+        internal List<ControlSchemeDTO> ControlSchemes { get; set; } = new();
+        internal List<BindingOverrideDTO> BindingOverrides { get; set; } = new();
         /// <summary>v1 兼容字段</summary>
         [JsonPropertyName("actionMaps")]
-        internal List<InputActionMapDTO> V1ActionMaps { get; set; }
+        internal List<InputActionMapDTO>? V1ActionMaps { get; set; }
     }
 
     /// <summary>映射表 DTO</summary>
     internal class InputActionMapDTO
     {
-        public string Name { get; set; }
-        public string DisplayName { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public int Priority { get; set; }
         public bool Enabled { get; set; }
-        public string ControlScheme { get; set; }
-        public List<EnhancedInputActionDTO> Actions { get; set; }
+        public string? ControlScheme { get; set; }
+        public List<EnhancedInputActionDTO> Actions { get; set; } = new();
     }
 
     /// <summary>动作 DTO</summary>
     internal class EnhancedInputActionDTO
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public InputActionType ExpectedControlType { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         public bool Enabled { get; set; }
-        public List<InputBindingDTO> Bindings { get; set; }
-        public List<InputBindingCompositeDTO> Composites { get; set; }
+        public List<InputBindingDTO> Bindings { get; set; } = new();
+        public List<InputBindingCompositeDTO> Composites { get; set; } = new();
     }
 
     /// <summary>绑定 DTO</summary>
     internal class InputBindingDTO
     {
-        public string Id { get; set; }
-        public string Path { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
         public InputBindingType BindingType { get; set; }
-        public string CompositeName { get; set; }
-        public string CompositePart { get; set; }
-        public string Groups { get; set; }
+        public string? CompositeName { get; set; }
+        public string? CompositePart { get; set; }
+        public string? Groups { get; set; }
         public bool Enabled { get; set; }
         public float Weight { get; set; }
     }
@@ -583,30 +584,30 @@ namespace YamaEngine.Input.Enhanced
     /// <summary>组合绑定 DTO</summary>
     internal class InputBindingCompositeDTO
     {
-        public string Name { get; set; }
-        public string TypeName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string TypeName { get; set; } = string.Empty;
         public InputActionType ValueType { get; set; }
     }
 
     /// <summary>控制方案 DTO</summary>
     internal class ControlSchemeDTO
     {
-        public string Name { get; set; }
-        public string DisplayName { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
-        public List<string> RequiredDeviceTypes { get; set; }
-        public List<BindingOverrideDTO> BindingOverrides { get; set; }
+        public List<string> RequiredDeviceTypes { get; set; } = new();
+        public List<BindingOverrideDTO> BindingOverrides { get; set; } = new();
     }
 
     /// <summary>绑定覆盖 DTO</summary>
     internal class BindingOverrideDTO
     {
-        public string ActionMap { get; set; }
-        public string Action { get; set; }
-        public string OriginalBinding { get; set; }
-        public string OverrideBinding { get; set; }
-        public string ControlScheme { get; set; }
+        public string ActionMap { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string OriginalBinding { get; set; } = string.Empty;
+        public string OverrideBinding { get; set; } = string.Empty;
+        public string? ControlScheme { get; set; }
     }
 
     #endregion

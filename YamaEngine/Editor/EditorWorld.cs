@@ -87,7 +87,7 @@ namespace YamaEngine.Editor
         }
 
         /// <summary>添加层。</summary>
-        public EditorLayer AddLayer(string name)
+        public EditorLayer? AddLayer(string name)
         {
             if (_layers.Count >= MaxLayers) return null;
             int idx = _layers.Count;
@@ -97,11 +97,11 @@ namespace YamaEngine.Editor
         }
 
         /// <summary>按名称查找层。</summary>
-        public EditorLayer GetLayer(string name) =>
+        public EditorLayer? GetLayer(string name) =>
             _layers.FirstOrDefault(l => l.Name == name);
 
         /// <summary>按索引获取层。</summary>
-        public EditorLayer GetLayer(int index) =>
+        public EditorLayer? GetLayer(int index) =>
             index >= 0 && index < _layers.Count ? _layers[index] : null;
 
         /// <summary>设置层可见性。</summary>
@@ -150,10 +150,10 @@ namespace YamaEngine.Editor
         private readonly AssetDatabase _assets;
         private readonly List<SceneObject> _selected = new();
         /// <summary>主选择 (最后选中, Inspector 显示目标)。</summary>
-        public SceneObject Active { get; private set; }
+        public SceneObject? Active { get; private set; }
 
         /// <summary>选中数量变化事件。</summary>
-        public event Action<IReadOnlyList<SceneObject>> OnSelectionChanged;
+        public event Action<IReadOnlyList<SceneObject>>? OnSelectionChanged;
 
         public IReadOnlyList<SceneObject> Selected => _selected;
         public int Count => _selected.Count;
@@ -369,7 +369,7 @@ namespace YamaEngine.Editor
 
         private readonly AssetDatabase _assets;
         /// <summary>当前正在编辑的预制体实例。</summary>
-        public SceneObject EditingInstance;
+        public SceneObject? EditingInstance;
         /// <summary>是否处于 Prefab 编辑模式。</summary>
         public bool IsActive => EditingInstance != null;
         /// <summary>覆盖列表 (属性名 -> 是否被修改)。</summary>
@@ -548,10 +548,10 @@ namespace YamaEngine.Editor
         /// <summary>当前状态。</summary>
         public PieState State { get; private set; } = PieState.Editing;
         /// <summary>状态切换事件。</summary>
-        public event Action<PieState, PieState> OnStateChanged;
+        public event Action<PieState, PieState>? OnStateChanged;
 
         // 编辑器场景快照 (进入运行前保存)
-        private string _snapshot;
+        private string? _snapshot;
         private readonly AssetDatabase _assets;
 
         public PieStateMachine(AssetDatabase assets) { _assets = assets; }
@@ -633,12 +633,12 @@ namespace YamaEngine.Editor
         private sealed class SnapshotDto
         {
             public Guid Id { get; set; }
-            public string Name { get; set; }
-            public float[] Pos { get; set; }
-            public float[] Rot { get; set; }
-            public float[] Scl { get; set; }
-            public string MeshAssetPath { get; set; }
-            public float[] BaseColor { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public float[] Pos { get; set; } = Array.Empty<float>();
+            public float[] Rot { get; set; } = Array.Empty<float>();
+            public float[] Scl { get; set; } = Array.Empty<float>();
+            public string MeshAssetPath { get; set; } = string.Empty;
+            public float[] BaseColor { get; set; } = Array.Empty<float>();
             public float Metallic { get; set; }
             public float Roughness { get; set; }
             public int Layer { get; set; }
@@ -788,9 +788,9 @@ namespace YamaEngine.Editor
         public bool IsDirty;
 
         /// <summary>场景变更事件。</summary>
-        public event Action OnSceneChanged;
+        public event Action? OnSceneChanged;
         /// <summary>脏标记变化事件。</summary>
-        public event Action<bool> OnDirtyChanged;
+        public event Action<bool>? OnDirtyChanged;
 
         public EditorSceneManager(AssetDatabase assets, EditorCommandStack undo)
         {
@@ -856,12 +856,12 @@ namespace YamaEngine.Editor
         }
 
         /// <summary>创建对象 (进撤销栈)。</summary>
-        public SceneObject CreateObject(string name = null, string meshType = "Box", Vector3? position = null)
+        public SceneObject CreateObject(string? name = null, string meshType = "Box", Vector3? position = null)
         {
             var cmd = new CreateObjectCommand(_assets, name ?? "GameObject", meshType, position ?? Vector3.Zero);
             _undo.Execute(cmd);
             MarkDirty();
-            return _assets.SceneObjects.LastOrDefault();
+            return _assets.SceneObjects.LastOrDefault()!;
         }
 
         /// <summary>删除选中对象 (进撤销栈)。</summary>
@@ -873,7 +873,7 @@ namespace YamaEngine.Editor
         }
 
         /// <summary>按名称查找对象。</summary>
-        public SceneObject FindObject(string name) => _assets.FindObjectByName(name);
+        public SceneObject? FindObject(string name) => _assets.FindObjectByName(name);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -946,7 +946,7 @@ namespace YamaEngine.Editor
         /// PieIntegration 兼容构造: 以 ECS / 资产数据库 / 引擎系统创建编辑器世界 (无渲染设备)。
         /// </summary>
         public EditorWorld(EntityComponentSystem ecs, AssetDatabase assets, YamaEngine.Core.EngineSystems engineSystems)
-            : this(null, null, assets, ecs)
+            : this(null!, null!, assets, ecs)
         {
         }
 
@@ -1002,7 +1002,7 @@ namespace YamaEngine.Editor
         // 复制单个对象。AssetDatabase.DuplicateObject 已负责创建并加入场景,
         // 此处不再额外执行 CreateObjectCommand (否则会重复创建第二个对象)。
         // 撤销可通过删除命令间接支持 (用户撤销后可手动删除)。
-        private SceneObject _DuplicateOne(SceneObject source)
+        private SceneObject? _DuplicateOne(SceneObject source)
         {
             return Assets.DuplicateObject(source);
         }

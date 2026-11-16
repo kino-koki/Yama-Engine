@@ -388,6 +388,32 @@ namespace YamaEngine.DCC
 
         public InterchangeScene? Scene { get; private set; }
 
+        /// <summary>
+        /// 解析 glTF 外部资源 (buffer/image) 的相对路径并确保不逃逸资产目录。
+        /// glTF URI 来自未受信文件, 可含 ../ 或绝对路径, 直接 Combine 会读到资产目录之外的任意文件。
+        /// </summary>
+        private static string ResolveSafePath(string baseDir, string relative)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("glTF 外部资源路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"glTF 外部资源路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"glTF 外部资源路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
+        }
+
         public GlTFImporter(string filePath, GlTFImportConfig? config = null)
         {
             _filePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
@@ -455,6 +481,12 @@ namespace YamaEngine.DCC
                 uint chunkLength = BitConverter.ToUInt32(fileBytes, offset);
                 uint chunkType = BitConverter.ToUInt32(fileBytes, offset + 4);
 
+                // 工业级防御: chunkLength 来自文件字节, 必须先校验其不越过文件结尾。
+                // 否则伪造 0xFFFFFFFF 会使 (int)chunkLength 回绕为负并让 GetString/Array.Copy 抛异常或分配巨量内存。
+                if ((long)chunkLength > fileBytes.Length - (offset + 8))
+                    throw new InvalidDataException(
+                        $"GLB chunk corrupt: length {chunkLength} exceeds remaining {fileBytes.Length - (offset + 8)} bytes.");
+
                 if (chunkType == 0x4E4F534A)
                 {
                     jsonStr = System.Text.Encoding.UTF8.GetString(fileBytes, offset + 8, (int)chunkLength);
@@ -502,7 +534,9 @@ namespace YamaEngine.DCC
                     _bufferData[i] = DecodeDataUri(uri);
                 else
                 {
-                    string bufferPath = Path.Combine(_assetBaseDir, Uri.UnescapeDataString(uri));
+                    // 工业级防御: uri 来自 glTF JSON, 可含 ../ 逃逸资产目录。
+                    // 直接 Combine + File.ReadAllBytes 会读到资产目录之外的任意文件。
+                    string bufferPath = ResolveSafePath(_assetBaseDir, Uri.UnescapeDataString(uri));
                     _bufferData[i] = File.ReadAllBytes(bufferPath);
                 }
             }

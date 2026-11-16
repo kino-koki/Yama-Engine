@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using YamaEngine.Diagnostics;
 
 namespace YamaEngine.Build
 {
@@ -105,6 +106,15 @@ namespace YamaEngine.Build
 
         /// <summary>自定义配置键值对。</summary>
         public Dictionary<string, string> CustomConfig { get; set; } = new();
+
+        /// <summary>是否启用崩溃上报 (打包时生成 CrashReporterConfig.json)。</summary>
+        public bool EnableCrashReporting { get; set; } = true;
+
+        /// <summary>崩溃报告输出目录 (包内相对路径)。</summary>
+        public string CrashReportsDirectory { get; set; } = "Saved/Crashes";
+
+        /// <summary>崩溃上报远端端点 (可选; 为空则仅本地落盘)。</summary>
+        public string? CrashReportEndpoint { get; set; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -148,6 +158,15 @@ namespace YamaEngine.Build
 
         /// <summary>错误列表。</summary>
         public List<string> Errors { get; set; } = new();
+
+        /// <summary>崩溃上报是否已集成。</summary>
+        public bool CrashReportingEnabled { get; set; }
+
+        /// <summary>崩溃上报配置文件路径 (包内)。</summary>
+        public string CrashReportConfigPath { get; set; } = string.Empty;
+
+        /// <summary>崩溃上报配置文件内容 (验证用)。</summary>
+        public string CrashReportConfigJson { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -237,13 +256,19 @@ namespace YamaEngine.Build
                 sw.Stop();
                 result.PhaseTimingsMs["GenerateConfig"] = sw.Elapsed.TotalMilliseconds;
 
-                // 阶段 5: 平台特定打包
+                // 阶段 5: 崩溃上报集成 (生成 CrashReporterConfig.json)
+                sw.Restart();
+                IntegrateCrashReporting(config, packageDir, result);
+                sw.Stop();
+                result.PhaseTimingsMs["CrashReporting"] = sw.Elapsed.TotalMilliseconds;
+
+                // 阶段 6: 平台特定打包
                 sw.Restart();
                 PerformPlatformSpecificPackaging(config, packageDir, result);
                 sw.Stop();
                 result.PhaseTimingsMs["PlatformPackage"] = sw.Elapsed.TotalMilliseconds;
 
-                // 阶段 6: 验证
+                // 阶段 7: 验证
                 sw.Restart();
                 result.Validation = ValidatePackage(config, packageDir);
                 sw.Stop();
@@ -449,6 +474,41 @@ if errorlevel 1 (
 endlocal".Replace("\r\n", "\r\n");
 
             File.WriteAllText(Path.Combine(packageDir, "launch.bat"), script, Encoding.UTF8);
+        }
+
+        // ── 阶段 5: 崩溃上报集成 ──
+
+        /// <summary>
+        /// 生成崩溃上报配置文件 (CrashReporterConfig.json) 到包根目录。
+        /// 运行时由 <see cref="CrashReporter.ConfigureFromFile(string)"/> 读取并自配置,
+        /// 使打包产物具备崩溃上报闭环。
+        /// </summary>
+        private void IntegrateCrashReporting(PackageConfig config, string packageDir, PackageResult result)
+        {
+            if (!config.EnableCrashReporting)
+            {
+                result.CrashReportingEnabled = false;
+                return;
+            }
+
+            var crashConfig = new CrashReporterConfig
+            {
+                Enabled = true,
+                ReportsDirectory = string.IsNullOrWhiteSpace(config.CrashReportsDirectory)
+                    ? "Saved/Crashes"
+                    : config.CrashReportsDirectory,
+                EngineVersion = config.Version,
+                RemoteEndpoint = config.CrashReportEndpoint,
+                ProjectName = config.ProjectName
+            };
+
+            var configJson = crashConfig.ToJson();
+            var configPath = Path.Combine(packageDir, "CrashReporterConfig.json");
+            File.WriteAllText(configPath, configJson, Encoding.UTF8);
+
+            result.CrashReportingEnabled = true;
+            result.CrashReportConfigPath = Path.Combine(GetPackageOutputDirectory(config), "CrashReporterConfig.json");
+            result.CrashReportConfigJson = configJson;
         }
 
         // ── 阶段 5: 平台特定打包 ──

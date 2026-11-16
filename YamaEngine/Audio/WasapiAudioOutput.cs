@@ -9,6 +9,11 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
+// WASAPI 为 Windows 专属 Core Audio API。整体抑制 CA1416：
+// 调用方 (AdvancedAudioEngine.InitializeBackend) 已用 try/catch + 回退兜底，
+// 且该驱动仅作 Windows 平台音频输出使用，非 Windows 上不会走到这里。
+#pragma warning disable CA1416
+
 namespace YamaEngine.Audio
 {
     /// <summary>
@@ -293,3 +298,5 @@ namespace YamaEngine.Audio
         }
     }
 }
+
+#pragma warning restore CA1416

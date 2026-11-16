@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — Yama Engine</title>
+<meta name="description" content="Six layers, one graphics backend. How Yama Engine's RHI abstraction isolates Vulkan 1.4, why a single backend is a decision rather than laziness, and the dependency rules that keep it maintainable.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="architecture-en.html">
+<link rel="alternate" hreflang="en" href="architecture-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="Architecture — Yama Engine">
+<meta property="og:description" content="Six layers, one graphics backend. How Yama Engine's RHI abstraction isolates Vulkan 1.4, why a single backend is a decision rather than laziness, and the dependency rules that keep it maintainable.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-banner" role="region" aria-label="Announcement">
+  <span><span class="hl">NEW</span> — Real physics engine v2 merged: analytic-grade tests + joint constraint system</span>
+  <a href="status-en.html#roadmap">See the roadmap</a>
+  <button class="dismiss" aria-label="Close announcement">✕</button>
+</div>
+
+<nav class="m-past">
+  <div class="wrap">
+    <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why-en.html">Why</a>
+      <a href="capabilities-en.html">Capabilities</a>
+      <a href="compare-en.html">Compare</a>
+      <a href="architecture-en.html" aria-current="page">Architecture</a>
+      <a href="status-en.html">Honest Status</a>
+      <a href="get-started-en.html">Quick Start</a>
+      <a href="faq-en.html">FAQ</a>
+      <a href="index.html" class="lang">中文</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">04 / Architecture</div>
+    <h1>Six layers,<br>one <em>graphics backend</em>.</h1>
+    <p class="lede">
+      D3D12 was deprecated and removed from the project. The entire engine has exactly one graphics backend — Vulkan 1.4, isolated from upper subsystems through the RHI abstraction layer. That means only one graphics code path to maintain. This page explains the six layers, the module dependencies, and the reasoning behind that decision.
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="arch reveal" style="margin-top:64px">
+      <div class="arch-head"><span>Layer</span><span>Contents</span></div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">YamaEditor<span class="tag-lite">· WinUI 3</span></div>
+        <div class="arch-layer-body">Native Windows editor shell. The XAML UI framework embeds a Vulkan surface and provides viewport, outline, inspector, content browser and sequence editor.
+          <div class="mods"><span>Viewport</span><span>Outliner</span><span>Inspector</span><span>Content Browser</span><span>Sequence Editor</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Gameplay &amp; Scripting</div>
+        <div class="arch-layer-body">Gameplay logic and script runtimes. GameplayAbilities provides the ability system; Roslyn C# scripting supports hot-reload.
+          <div class="mods"><span>GameplayAbilities</span><span>VisualScript</span><span>Roslyn Scripting</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Engine Systems</div>
+        <div class="arch-layer-body">The engine's core subsystems — the functional layer all gameplay calls directly. 12 modules cooperate through the ECS architecture.
+          <div class="mods"><span>Rendering</span><span>Physics</span><span>AI</span><span>Animation</span><span>Audio</span><span>Network</span><span>ECS</span><span>Assets</span><span>Input</span><span>Particles</span><span>VFX</span><span>Build</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">RHI Layer</div>
+        <div class="arch-layer-body">The render hardware abstraction interface. Descriptor management, command buffer recording, GPU synchronization. Upper-layer code never touches the Vulkan API.
+          <div class="mods"><span>RHI Abstraction</span><span>21 files</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Vulkan<span class="tag-lite">· Silk.NET</span></div>
+        <div class="arch-layer-body">The only graphics backend. Vulkan 1.4 via Silk.NET 2.22 bindings; 17 files encapsulate the full lifecycle of Instance / Device / Swapchain / Pipeline.
+          <div class="mods"><span>Vulkan 1.4</span><span>Silk.NET 2.22</span><span>17 files</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Core &amp; Platform</div>
+        <div class="arch-layer-body">Engine infrastructure. Math, serialization, thread pools, memory management — the foundation every upper module depends on.
+          <div class="mods"><span>EngineCore</span><span>MathUtils</span><span>Serialization</span><span>Threading</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="prose reveal" style="padding:56px 32px 20px">
+      <h3>Why "one backend" is a decision, not laziness</h3>
+      <p>Many engines maintain two or even three graphics backends for compatibility. Yama deliberately maintains one, for three reasons:</p>
+      <ol>
+        <li><div><strong>Half the code paths.</strong> One RHI abstraction, one command recording path, one synchronization logic. Every GPU crash fix only needs to happen once.</div></li>
+        <li><div><strong>No feature compromise.</strong> Vulkan 1.4 covers mesh shaders, ray tracing, bindless resources and dynamic rendering. Rather than the "greatest common divisor" of two APIs, take the full set of one.</div></li>
+        <li><div><strong>maintainable by one person.</strong> Yama is currently driven by a single primary maintainer; a second backend is a real maintenance tax, not a bonus.</div></li>
+      </ol>
+
+      <div class="callout">
+        <span class="callout-tag">Cost</span>
+        <p>The cost is platform reach: Yama currently runs on Windows only, because the WinUI 3 editor depends on it. Linux / macOS via a translation layer like MoltenVK is theoretically possible, but is not the current priority.</p>
+      </div>
+
+      <h3>The RHI abstraction: upper layers never touch Vulkan</h3>
+      <p>The RHI layer (21 files) is the only boundary between the engine and the API. Upper subsystems only know abstract handles like <code>RHICommandBuffer</code>, <code>RHIPipeline</code> and <code>RHIDescriptorSet</code>; real Vulkan objects are encapsulated inside the implementation. This is the structural foundation that makes the "one backend" decision viable — if a new backend is ever added, the RHI is the only place that changes.</p>
+      <ul>
+        <li><div><strong>Descriptor management:</strong> unified binding of UBO / SSBO / samplers, so upper layers never hand-write descriptor layouts.</div></li>
+        <li><div><strong>Command buffer recording:</strong> render commands are wrapped into replayable command lists, supporting multi-threaded recording.</div></li>
+        <li><div><strong>GPU synchronization:</strong> fences, semaphores and resource barriers are encapsulated; upper layers never handle Vulkan sync primitives directly.</div></li>
+      </ul>
+
+      <h3>Dependency direction</h3>
+      <p>Dependencies may only point from upper layers to lower ones; reverse dependencies go through interface injection. This way, Core &amp; Platform knows nothing about any graphics API and can be covered by unit tests; the Vulkan layer is only referenced by the RHI and can be replaced.</p>
+      <div class="two-col">
+        <div class="spec-card">
+          <h4>Upper → lower</h4>
+          <span class="spec-sub">Allowed</span>
+          <p>Editor → Gameplay → Engine Systems → RHI → Vulkan → Core.</p>
+        </div>
+        <div class="spec-card">
+          <h4>Lower → upper</h4>
+          <span class="spec-sub">Forbidden</span>
+          <p>Core doesn't know Rendering exists; Vulkan doesn't know the Editor exists. Decoupled through interface injection.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Quote band ══════════ -->
+<section class="quote-band">
+  <div class="q">"A storm is coming — <span class="em">the wind fills the tower</span>."</div>
+  <span class="src">Xu Hun, "East Tower of Xianyang City" · Tang dynasty</span>
+  <p class="note">Compile errors are at zero — the mountain rain is near — but the real GPU end-to-end validation hasn't run yet. Closing that gap is exactly what Phase 1 is about.</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>A desktop game &amp; modeling engine prototype built from scratch in C#/.NET 10, targeting UE5-class rendering with a lightweight integrated workflow. MIT licensed.</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub repository">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">Open source · Star the repo to support development</span>
+        </div>
+      </div>
+      <div class="foot-copy">© 2026 Lu’an Qingnai Technology Co., Ltd. · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Engine</h4>
+        <a href="why-en.html">Why Yama</a>
+        <a href="capabilities-en.html">Core systems</a>
+        <a href="compare-en.html">Compare</a>
+        <a href="architecture-en.html">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>Status</h4>
+        <a href="status-en.html">Honest status</a>
+        <a href="status-en.html#build">Build results</a>
+        <a href="status-en.html#roadmap">Roadmap</a>
+        <a href="get-started-en.html">Quick start</a>
+      </div>
+      <div class="foot-col">
+        <h4>Modules</h4>
+        <a href="capabilities-en.html#rendering">Render pipeline</a>
+        <a href="capabilities-en.html#physics">Physics engine</a>
+        <a href="capabilities-en.html#ai">Artificial intelligence</a>
+        <a href="capabilities-en.html#ecs">ECS architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>More</h4>
+        <a href="poem.html">A Tang poem</a>
+        <a href="status-en.html">Maturity assessment</a>
+        <a href="faq-en.html#contribute">Contribute</a>
+        <a href="index.html">中文首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · Open-source desktop engine</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="Back to top">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

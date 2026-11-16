@@ -129,6 +129,12 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>
+        /// 姿态后处理钩子：动画采样完成、骨骼矩阵计算之前触发。
+        /// 供口型/注视/程序化 IK 等在当帧覆盖局部骨骼。
+        /// </summary>
+        public event Action<AnimationInstance>? PosePostProcess;
+
+        /// <summary>
         /// 更新所有活跃动画实例。
         /// </summary>
         /// <param name="deltaTime">帧间隔时间（秒）。</param>
@@ -149,6 +155,9 @@ namespace YamaEngine.Animation
 
                 // 更新 Animator（采样动画、混合、根运动等）
                 instance.Animator.Update(deltaTime);
+
+                // 允许 AI 口型/注视等在骨骼矩阵计算前覆盖姿态
+                PosePostProcess?.Invoke(instance);
 
                 // 计算骨骼矩阵供渲染器使用
                 instance.ComputeBoneMatrices();

@@ -69,6 +69,14 @@ namespace YamaEngine.Network
         private const int HeaderSize = 5;             // Channel(1) + Sequence(4)
         private const int FragmentHeaderSize = 17;     // Channel(1) + Seq(4) + MsgId(4) + TotalFrags(4) + FragIdx(4)
         private const int MaxFragmentSize = DefaultMTU - FragmentHeaderSize;
+        // 单条消息最大分片数。对端可伪造 totalFragments 巨值触发 OOM,
+        // 此处防御上限与 TCP 的 MaxMessageSize (16MB) 对齐:
+        // 16384 * 1383 ≈ 22.6MB, 超过即视为损坏数据并丢弃。
+        private const int MaxFragmentCount = 16384;
+        // 并发活跃分片重组缓冲区上限。对端可伪造大量不同 messageId 的分片头,
+        // 每个都会分配 `new byte[totalFragments][]` (最多 16384 个槽位),
+        // 若不设上限, 5 秒清理窗口内可被灌满内存。超过即丢弃新分片头。
+        private const int MaxActiveFragmentBuffers = 512;
         private const int MaxRetries = 8;
         private const double DefaultRTO = 1.0;         // 初始重传超时 (秒)
         private const double MinRTO = 0.1;
@@ -78,10 +86,21 @@ namespace YamaEngine.Network
 
         // ── 网络 ──────────────────────────────────────────────────
 
-        private UdpClient _udpClient;
-        private CancellationTokenSource _cts;
-        private Task _receiveTask;
+        private UdpClient? _udpClient;
+        private CancellationTokenSource? _cts;
+        private Task? _receiveTask;
         private bool _running;
+
+        // ── 接收异常节流日志 (防刷屏, 同时不静默吞掉) ──
+        private long _lastRecvErrorLogMs;
+
+        private void LogReceiveError(Exception ex)
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastRecvErrorLogMs < 5000) return;
+            _lastRecvErrorLogMs = now;
+            Console.WriteLine($"[NetworkTransport] UDP 接收异常: {ex.GetType().Name}: {ex.Message}");
+        }
 
         // ── 连接管理 ──────────────────────────────────────────────
 
@@ -108,13 +127,13 @@ namespace YamaEngine.Network
 
         // ── 回调 ──────────────────────────────────────────────────
 
-        private Action<IPEndPoint, byte[]> _receiveCallback;
-        private Action<IPEndPoint> _connectCallback;
-        private Action<IPEndPoint> _disconnectCallback;
+        private Action<IPEndPoint, byte[]>? _receiveCallback;
+        private Action<IPEndPoint>? _connectCallback;
+        private Action<IPEndPoint>? _disconnectCallback;
 
         // ── 丢包模拟 ──────────────────────────────────────────────
 
-        private PacketLossSimulator _lossSimulator;
+        private PacketLossSimulator? _lossSimulator;
 
         // ── 心跳 ──────────────────────────────────────────────────
 
@@ -144,7 +163,7 @@ namespace YamaEngine.Network
 
         private class ConnectionInfo
         {
-            public IPEndPoint EndPoint;
+            public IPEndPoint? EndPoint;
             public uint LocalSequence;
             public uint RemoteSequence;
             public uint LastAckedSequence;
@@ -159,8 +178,8 @@ namespace YamaEngine.Network
         private class PendingPacket
         {
             public uint Sequence;
-            public IPEndPoint Remote;
-            public byte[] Data;
+            public IPEndPoint Remote = null!;
+            public byte[] Data = null!;
             public double SendTime;
             public int RetryCount;
             public TransportChannel Channel;
@@ -170,10 +189,10 @@ namespace YamaEngine.Network
         {
             public ulong MessageId;
             public int TotalFragments;
-            public byte[][] Fragments;
+            public byte[][] Fragments = null!;
             public int ReceivedCount;
             public double FirstReceivedTime;
-            public IPEndPoint Remote;
+            public IPEndPoint Remote = null!;
         }
 
         // ── 构造函数 ──────────────────────────────────────────────
@@ -244,22 +263,32 @@ namespace YamaEngine.Network
 
         private async Task ReceiveLoopAsync()
         {
-            while (_running && !_cts.Token.IsCancellationRequested)
+            while (_running && !_cts!.Token.IsCancellationRequested)
             {
                 UdpReceiveResult result;
                 try
                 {
-                    result = await _udpClient.ReceiveAsync(_cts.Token);
+                    result = await _udpClient!.ReceiveAsync(_cts.Token);
                 }
                 catch (OperationCanceledException) { break; }
                 catch (ObjectDisposedException) { break; }
-                catch (Exception) { continue; }
+                catch (Exception ex) { LogReceiveError(ex); continue; }
 
                 // 丢包模拟
                 if (_lossSimulator != null && _lossSimulator.ShouldDrop())
                     continue;
 
-                ProcessPacket(result.RemoteEndPoint, result.Buffer);
+                // 处理单个数据包必须包在 try-catch 内: 若 ProcessPacket 抛异常,
+                // 接收循环会被杀死 (DoS 向量)。对端可发送畸形包触发索引越界/
+                // BitConverter 越界等, 导致整个传输层停止接收。
+                try
+                {
+                    ProcessPacket(result.RemoteEndPoint, result.Buffer);
+                }
+                catch (Exception)
+                {
+                    // 忽略单个畸形包, 继续接收后续包。
+                }
             }
         }
 
@@ -428,12 +457,19 @@ namespace YamaEngine.Network
 
             if (totalFragments == 0 || fragmentIndex >= totalFragments) return;
 
+            // 对端可伪造 totalFragments 巨值 (如 0xFFFFFFFF) 触发 `new byte[totalFragments][]` OOM。
+            // 防御上限: 超过 MaxFragmentCount 即视为损坏数据, 直接丢弃该分片。
+            if (totalFragments > MaxFragmentCount) return;
+
             ulong key = ((ulong)remote.GetHashCode() << 32) | messageId;
 
             lock (_lock)
             {
                 if (!_fragmentBuffers.TryGetValue(key, out var reassembly))
                 {
+                    // 防御: 活跃分片缓冲区已达上限时丢弃新分片头, 防对端撑爆内存。
+                    if (_fragmentBuffers.Count >= MaxActiveFragmentBuffers) return;
+
                     reassembly = new FragmentReassembly
                     {
                         MessageId = messageId,
@@ -858,7 +894,7 @@ namespace YamaEngine.Network
             {
                 _udpClient?.Send(data, data.Length, remote);
             }
-            catch (Exception) { /* 忽略发送错误 */ }
+            catch (Exception ex) { Console.WriteLine($"[NetworkTransport] UDP 发送失败: {ex.GetType().Name}: {ex.Message}"); }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -963,35 +999,38 @@ namespace YamaEngine.Network
 
         // ── 服务器 ────────────────────────────────────────────────
 
-        private TcpListener _listener;
+        private TcpListener? _listener;
         private readonly List<TcpConnection> _serverConnections = new List<TcpConnection>();
         private readonly object _connLock = new object();
 
+        // ── Accept 异常节流日志 (防刷屏, 同时不静默吞掉) ──
+        private long _lastAcceptErrorLogMs;
+
         // ── 客户端 ────────────────────────────────────────────────
 
-        private TcpConnection _clientConnection;
+        private TcpConnection? _clientConnection;
 
         // ── 通用 ──────────────────────────────────────────────────
 
-        private CancellationTokenSource _cts;
+        private CancellationTokenSource? _cts;
         private bool _running;
         private double _heartbeatTimer;
 
         // ── 回调 ──────────────────────────────────────────────────
 
-        private Action<IPEndPoint, byte[]> _receiveCallback;
-        private Action<IPEndPoint> _connectCallback;
-        private Action<IPEndPoint> _disconnectCallback;
+        private Action<IPEndPoint, byte[]>? _receiveCallback;
+        private Action<IPEndPoint>? _connectCallback;
+        private Action<IPEndPoint>? _disconnectCallback;
 
         // ── 内部数据结构 ──────────────────────────────────────────
 
         private class TcpConnection
         {
-            public TcpClient Client;
-            public NetworkStream Stream;
-            public IPEndPoint EndPoint;
+            public TcpClient Client = null!;
+            public NetworkStream Stream = null!;
+            public IPEndPoint EndPoint = null!;
             public byte[] LengthBuffer = new byte[LengthPrefixSize];
-            public Task ReadTask;
+            public Task? ReadTask;
             public double LastActivity;
             public bool IsConnected;
         }
@@ -1026,21 +1065,30 @@ namespace YamaEngine.Network
 
         private async Task AcceptLoopAsync()
         {
-            while (_running && !_cts.Token.IsCancellationRequested)
+            while (_running && !_cts!.Token.IsCancellationRequested)
             {
                 TcpClient client;
                 try
                 {
-                    client = await _listener.AcceptTcpClientAsync(_cts.Token);
+                    client = await _listener!.AcceptTcpClientAsync(_cts.Token);
                 }
                 catch (OperationCanceledException) { break; }
-                catch (Exception) { continue; }
+                catch (Exception ex)
+                {
+                    long now = Environment.TickCount64;
+                    if (now - _lastAcceptErrorLogMs >= 5000)
+                    {
+                        _lastAcceptErrorLogMs = now;
+                        Console.WriteLine($"[TCPTransport] Accept 异常: {ex.GetType().Name}: {ex.Message}");
+                    }
+                    continue;
+                }
 
-                var ep = (IPEndPoint)client.Client.RemoteEndPoint;
+                var ep = (IPEndPoint)client.Client.RemoteEndPoint!;
                 var conn = new TcpConnection
                 {
                     Client = client,
-                    Stream = client.GetStream(),
+                    Stream = client.GetStream()!,
                     EndPoint = ep,
                     LastActivity = GetTime(),
                     IsConnected = true
@@ -1054,7 +1102,7 @@ namespace YamaEngine.Network
                     _serverConnections.Add(conn);
                 }
 
-                _connectCallback?.Invoke(ep);
+                _connectCallback?.Invoke(ep!);
                 conn.ReadTask = ReadLoopAsync(conn);
             }
         }
@@ -1073,11 +1121,11 @@ namespace YamaEngine.Network
             _cts = new CancellationTokenSource();
             _running = true;
 
-            var ep = (IPEndPoint)client.Client.RemoteEndPoint;
+            var ep = (IPEndPoint)client.Client.RemoteEndPoint!;
             _clientConnection = new TcpConnection
             {
                 Client = client,
-                Stream = client.GetStream(),
+                Stream = client.GetStream()!,
                 EndPoint = ep,
                 LastActivity = GetTime(),
                 IsConnected = true
@@ -1085,7 +1133,7 @@ namespace YamaEngine.Network
 
             SetKeepAlive(client, HeartbeatInterval);
             _clientConnection.ReadTask = ReadLoopAsync(_clientConnection);
-            _connectCallback?.Invoke(ep);
+            _connectCallback?.Invoke(ep!);
         }
 
         /// <summary>断开客户端连接。</summary>
@@ -1119,7 +1167,7 @@ namespace YamaEngine.Network
         {
             try
             {
-                while (_running && conn.IsConnected && !_cts.Token.IsCancellationRequested)
+                while (_running && conn.IsConnected && !_cts!.Token.IsCancellationRequested)
                 {
                     // 读取 4 字节长度前缀
                     if (!await ReadExactAsync(conn.Stream, conn.LengthBuffer, LengthPrefixSize))
@@ -1142,7 +1190,12 @@ namespace YamaEngine.Network
                 }
             }
             catch (OperationCanceledException) { }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // 静默吞掉真实故障会掩盖协议 bug / 网络异常，至少记录以便生产环境诊断
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NetworkTransport] ReceiveLoop {conn.EndPoint} error: {ex.Message}");
+            }
 
             // 连接断开
             conn.IsConnected = false;
@@ -1180,7 +1233,7 @@ namespace YamaEngine.Network
             BitConverter.TryWriteBytes(framed, data.Length);
             Array.Copy(data, 0, framed, LengthPrefixSize, data.Length);
 
-            TcpConnection conn = FindConnection(target);
+            TcpConnection? conn = FindConnection(target);
             if (conn != null && conn.IsConnected)
             {
                 _ = SendAsync(conn, framed);
@@ -1255,7 +1308,7 @@ namespace YamaEngine.Network
         // ── 辅助方法 ──────────────────────────────────────────────
 
         /// <summary>查找指定端点的连接。</summary>
-        private TcpConnection FindConnection(IPEndPoint ep)
+        private TcpConnection? FindConnection(IPEndPoint ep)
         {
             if (_clientConnection != null && _clientConnection.EndPoint.Equals(ep))
                 return _clientConnection;
@@ -1282,6 +1335,7 @@ namespace YamaEngine.Network
         /// <summary>设置 TCP KeepAlive (应用层)。</summary>
         private static void SetKeepAlive(TcpClient client, double intervalSeconds)
         {
+#pragma warning disable CA1416 // IOControlCode.KeepAliveValues 为 Windows 专属，外层 try/catch 已兜底
             try
             {
                 // 使用 Socket 的 IOControl 设置 KeepAlive
@@ -1296,6 +1350,7 @@ namespace YamaEngine.Network
                 client.Client.IOControl(IOControlCode.KeepAliveValues, keepAliveValues, null);
             }
             catch { /* 平台不支持时忽略 */ }
+#pragma warning restore CA1416
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1363,7 +1418,7 @@ namespace YamaEngine.Network
         public double ReorderProbability { get; set; } = 0.0;
 
         private readonly Random _rng = new Random();
-        private byte[] _reorderBuffer;
+        private byte[]? _reorderBuffer;
         private double _reorderDelay;
 
         /// <summary>

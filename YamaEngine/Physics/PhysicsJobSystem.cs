@@ -222,10 +222,10 @@ namespace YamaEngine.Physics
     {
         public int StartIndex;
         public int EndIndex;
-        public Vector3[] Positions;
-        public Quaternion[] Orientations;
-        public Vector3[] HalfExtents; // 简化: 用AABB
-        public int[] BodyIds;
+        public Vector3[] Positions = Array.Empty<Vector3>();
+        public Quaternion[] Orientations = Array.Empty<Quaternion>();
+        public Vector3[] HalfExtents = Array.Empty<Vector3>(); // 简化: 用AABB
+        public int[] BodyIds = Array.Empty<int>();
         public ConcurrentBag<(int a, int b)> OutputPairs;
 
         public string Name => $"Broadphase_{StartIndex}_{EndIndex}";
@@ -275,7 +275,7 @@ namespace YamaEngine.Physics
             public Quaternion RotB;
         }
 
-        public CollisionPair[] Pairs;
+        public CollisionPair[] Pairs = Array.Empty<CollisionPair>();
         public int StartIndex;
         public int EndIndex;
         public ConcurrentBag<NarrowphaseResult> Results;
@@ -349,14 +349,14 @@ namespace YamaEngine.Physics
             public float Slope;
         }
 
-        public ContactConstraint[] Constraints;
+        public ContactConstraint[] Constraints = Array.Empty<ContactConstraint>();
         public int StartIndex;
         public int EndIndex;
         public int Iterations;
-        public Vector3[] LinearVelocityDeltaA;
-        public Vector3[] LinearVelocityDeltaB;
-        public Vector3[] AngularVelocityDeltaA;
-        public Vector3[] AngularVelocityDeltaB;
+        public Vector3[] LinearVelocityDeltaA = Array.Empty<Vector3>();
+        public Vector3[] LinearVelocityDeltaB = Array.Empty<Vector3>();
+        public Vector3[] AngularVelocityDeltaA = Array.Empty<Vector3>();
+        public Vector3[] AngularVelocityDeltaB = Array.Empty<Vector3>();
 
         public string Name => $"ContactSolver_{StartIndex}_{EndIndex}";
         public JobPriority Priority => JobPriority.Normal;
@@ -418,12 +418,12 @@ namespace YamaEngine.Physics
     /// <summary>AABB更新任务。批量更新body的AABB。</summary>
     public class UpdateAabbJob : IPhysicsJob
     {
-        public int[] BodyIds;
-        public Vector3[] Positions;
-        public Quaternion[] Orientations;
-        public Vector3[] HalfExtents;
-        public Vector3[] AabbMin;
-        public Vector3[] AabbMax;
+        public int[] BodyIds = Array.Empty<int>();
+        public Vector3[] Positions = Array.Empty<Vector3>();
+        public Quaternion[] Orientations = Array.Empty<Quaternion>();
+        public Vector3[] HalfExtents = Array.Empty<Vector3>();
+        public Vector3[] AabbMin = Array.Empty<Vector3>();
+        public Vector3[] AabbMax = Array.Empty<Vector3>();
         public int StartIndex;
         public int EndIndex;
         public float Margin;
@@ -461,12 +461,12 @@ namespace YamaEngine.Physics
     {
         public int StartIndex;
         public int EndIndex;
-        public Vector3[] Velocities;
-        public Vector3[] AngularVelocities;
-        public Vector3[] Forces;
-        public Vector3[] Torques;
-        public float[] InverseMasses;
-        public Matrix4x4[] InverseInertias;
+        public Vector3[] Velocities = Array.Empty<Vector3>();
+        public Vector3[] AngularVelocities = Array.Empty<Vector3>();
+        public Vector3[] Forces = Array.Empty<Vector3>();
+        public Vector3[] Torques = Array.Empty<Vector3>();
+        public float[] InverseMasses = Array.Empty<float>();
+        public Matrix4x4[] InverseInertias = Array.Empty<Matrix4x4>();
         public Vector3 Gravity;
         public float Dt;
         public float LinearDamping;
@@ -501,11 +501,11 @@ namespace YamaEngine.Physics
     {
         public int StartIndex;
         public int EndIndex;
-        public Vector3[] Positions;
-        public Quaternion[] Orientations;
-        public Vector3[] Velocities;
-        public Vector3[] AngularVelocities;
-        public float[] InverseMasses;
+        public Vector3[] Positions = Array.Empty<Vector3>();
+        public Quaternion[] Orientations = Array.Empty<Quaternion>();
+        public Vector3[] Velocities = Array.Empty<Vector3>();
+        public Vector3[] AngularVelocities = Array.Empty<Vector3>();
+        public float[] InverseMasses = Array.Empty<float>();
         public float Dt;
 
         public string Name => $"IntegratePos_{StartIndex}_{EndIndex}";
@@ -546,11 +546,11 @@ namespace YamaEngine.Physics
     {
         public int StartIndex;
         public int EndIndex;
-        public Vector3[] Velocities;
-        public Vector3[] AngularVelocities;
-        public float[] InverseMasses;
-        public bool[] Sleeping;
-        public float[] SleepTimers;
+        public Vector3[] Velocities = Array.Empty<Vector3>();
+        public Vector3[] AngularVelocities = Array.Empty<Vector3>();
+        public float[] InverseMasses = Array.Empty<float>();
+        public bool[] Sleeping = Array.Empty<bool>();
+        public float[] SleepTimers = Array.Empty<float>();
         public float LinearThreshold = 0.05f;
         public float AngularThreshold = 0.1f;
         public float SleepTime = 1f;

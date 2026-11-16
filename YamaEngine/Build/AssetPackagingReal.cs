@@ -179,6 +179,17 @@ namespace YamaEngine.Build
             byte compressionType = reader.ReadByte();
             reader.ReadBytes(3); // Reserved
 
+            // 工业级防御: entryCount/entryTableOffset 来自包内未受信字节。
+            // 每个条目至少 8+8+8+8+2 = 34 字节, 条目表必须落在文件范围内。
+            // 否则恶意包声明 entryCount=0xFFFFFFFF 会循环数十亿次。
+            if (entryTableOffset < 0 || entryTableOffset > fs.Length)
+                throw new InvalidDataException($"条目表偏移越界: {entryTableOffset}, 文件 {fs.Length} 字节");
+            long entryTableBytes = fs.Length - entryTableOffset;
+            long maxEntries = entryTableBytes / 34;
+            if (entryCount > maxEntries)
+                throw new InvalidDataException(
+                    $"条目数越界: 声明 {entryCount}, 文件最多容纳 {maxEntries} 个条目");
+
             var package = new AssetPackageReal
             {
                 FilePath = path,
@@ -278,9 +289,22 @@ namespace YamaEngine.Build
         private byte[] ReadAssetEntry(AssetPackageReal package, AssetEntry entry)
         {
             using var fs = new FileStream(package.FilePath, FileMode.Open, FileAccess.Read);
+
+            // 工业级防御: entry.Offset/CompressedSize 来自包内未受信字节。
+            // 若直接 `new byte[entry.CompressedSize]`, 恶意包可声明 8GB 触发 OOM。
+            // 先校验偏移与长度均在文件实际范围内, 再分配。
+            if (entry.Offset < 0 || entry.Offset > fs.Length)
+                throw new IOException($"资产偏移越界: Offset={entry.Offset}, 文件 {fs.Length} 字节");
+            if (entry.CompressedSize < 0 ||
+                entry.CompressedSize > fs.Length - entry.Offset)
+                throw new IOException(
+                    $"资产压缩大小越界: CompressedSize={entry.CompressedSize}, 可用 {fs.Length - entry.Offset} 字节");
+            if (entry.CompressedSize > int.MaxValue)
+                throw new IOException($"资产压缩大小超出单数组上限: {entry.CompressedSize} 字节");
+
             fs.Seek(entry.Offset, SeekOrigin.Begin);
 
-            byte[] compressedData = new byte[entry.CompressedSize];
+            byte[] compressedData = new byte[(int)entry.CompressedSize];
             int bytesRead = fs.Read(compressedData, 0, compressedData.Length);
             if (bytesRead != entry.CompressedSize)
                 throw new IOException(
@@ -294,6 +318,17 @@ namespace YamaEngine.Build
             }
 
             // 解压数据
+            // 工业级防御: entry.UncompressedSize 来自包内未受信字节。
+            // 声明 5GB → (int)=1GB → new byte[1GB] OOM; 声明 8GB → (int)=0 → 静默空数组。
+            // 在强转前校验: 非负、不超单数组上限、且与压缩数据规模相称。
+            if (entry.UncompressedSize < 0 || entry.UncompressedSize > int.MaxValue)
+                throw new IOException($"资产未压缩大小越界: {entry.UncompressedSize} 字节");
+            // 防御: 未压缩大小不得超过压缩大小 × 合理膨胀比 (LZ4/LZMA 最大约 255x, 取 1024x 上限)。
+            // 且不得超过单数组预算 1GB, 防声明巨量未压缩大小分配 OOM。
+            if (entry.UncompressedSize > 1024L * 1024 * 1024 ||
+                entry.UncompressedSize > (long)entry.CompressedSize * 1024)
+                throw new IOException($"资产未压缩大小异常: {entry.UncompressedSize} 字节 (压缩 {entry.CompressedSize} 字节)");
+
             byte[] decompressed = DecompressData(compressedData, entry.Compression,
                 (int)entry.UncompressedSize);
             return decompressed;
@@ -537,6 +572,10 @@ namespace YamaEngine.Build
             if (compressed == null || compressed.Length == 0)
                 return Array.Empty<byte>();
 
+            // 工业级防御: expectedSize 可能为负/巨值 (调用方数据未受信) → new byte[expectedSize] OOM 或非 InvalidDataException。
+            if (expectedSize < 0 || expectedSize > 1024 * 1024 * 1024)
+                throw new InvalidDataException($"LZ4 未压缩大小非法: {expectedSize}");
+
             var output = new byte[expectedSize];
             int outIdx = 0;
             int inIdx = 0;
@@ -553,6 +592,8 @@ namespace YamaEngine.Build
                     byte extra;
                     do
                     {
+                        if (inIdx >= compressed.Length)
+                            throw new InvalidDataException("LZ4 数据损坏: literal 长度越界");
                         extra = compressed[inIdx++];
                         literalLen += extra;
                     } while (extra == 255);
@@ -566,8 +607,14 @@ namespace YamaEngine.Build
                 if (inIdx >= compressed.Length) break;
 
                 // Match offset (2字节小端序)
+                // 工业级防御: 压缩数据来自包内未受信字节。
+                // (1) inIdx+1 越界读 → OOB; (2) matchOffset 可 > outIdx 使 matchPos 为负 → 负索引写。
+                if (inIdx + 1 >= compressed.Length)
+                    throw new InvalidDataException("LZ4 数据损坏: match offset 越界");
                 int matchOffset = compressed[inIdx] | (compressed[inIdx + 1] << 8);
                 inIdx += 2;
+                if (matchOffset <= 0 || matchOffset > outIdx)
+                    throw new InvalidDataException($"LZ4 数据损坏: match offset {matchOffset} 非法 (outIdx={outIdx})");
 
                 // Match长度 (低4位 + 4)
                 int matchLen = (token & 0x0F) + 4;
@@ -576,6 +623,8 @@ namespace YamaEngine.Build
                     byte extra;
                     do
                     {
+                        if (inIdx >= compressed.Length)
+                            throw new InvalidDataException("LZ4 数据损坏: match 长度越界");
                         extra = compressed[inIdx++];
                         matchLen += extra;
                     } while (extra == 255);
@@ -583,6 +632,8 @@ namespace YamaEngine.Build
 
                 // 复制match（可能重叠）
                 int matchPos = outIdx - matchOffset;
+                // 工业级防御: matchPos 已校验 >= 0 (matchOffset <= outIdx), 但 matchPos+matchLen 可能越过 outIdx (重叠复制合法)。
+                // matchPos+matchLen 不可超过 expectedSize, 否则越界写。
                 for (int i = 0; i < matchLen && outIdx < expectedSize; i++)
                 {
                     output[outIdx] = output[matchPos + i];
@@ -701,6 +752,12 @@ namespace YamaEngine.Build
         {
             if (compressed == null || compressed.Length == 0)
                 return Array.Empty<byte>();
+
+            // 工业级防御: expectedSize 为负/巨值 → new byte[] OOM; 属性头越界 → OOB。
+            if (expectedSize < 0 || expectedSize > 1024 * 1024 * 1024)
+                throw new InvalidDataException($"LZMA 未压缩大小非法: {expectedSize}");
+            if (compressed.Length < 15)
+                throw new InvalidDataException("LZMA 数据损坏: 属性头越界");
 
             var output = new byte[expectedSize];
             int outIdx = 0;
@@ -845,9 +902,18 @@ namespace YamaEngine.Build
             if (compressed == null || compressed.Length == 0)
                 return Array.Empty<byte>();
 
+            // 工业级防御: expectedSize 为负/巨值 → new byte[] OOM; 流边界越界 → OOB。
+            if (expectedSize < 0 || expectedSize > 1024 * 1024 * 1024)
+                throw new InvalidDataException($"Zlib 未压缩大小非法: {expectedSize}");
+            if (compressed.Length <= 2)
+                throw new InvalidDataException("Zlib 数据损坏: 头越界");
+
             int inIdx = 2; // 跳过zlib头 (2字节)
 
             // 读取deflate块
+            // 工业级防御: inIdx+1 越界读。
+            if (inIdx + 1 >= compressed.Length)
+                throw new InvalidDataException("Zlib 数据损坏: deflate 块头越界");
             byte bfinal = (byte)((compressed[inIdx] >> 0) & 1);
             int btype = (compressed[inIdx] >> 1) & 3;
             inIdx++;
@@ -855,6 +921,9 @@ namespace YamaEngine.Build
             if (btype == 0)
             {
                 // 未压缩块
+                // 工业级防御: LEN 块 (inIdx..inIdx+3) 越界读。
+                if (inIdx + 3 >= compressed.Length)
+                    throw new InvalidDataException("Zlib 数据损坏: 未压缩块长度越界");
                 int len = compressed[inIdx] | (compressed[inIdx + 1] << 8);
                 inIdx += 4; // 跳过LEN+NLEN
 
@@ -1107,9 +1176,10 @@ namespace YamaEngine.Build
 
                 File.WriteAllBytes(cacheFile, data);
             }
-            catch
+            catch (Exception ex)
             {
-                // 磁盘缓存写入失败不影响运行
+                // 磁盘缓存写入失败: 记录, 不影响运行。
+                System.Diagnostics.Debug.WriteLine($"[AssetPackaging] 磁盘缓存写入失败: {ex.Message}");
             }
         }
 
@@ -1143,9 +1213,10 @@ namespace YamaEngine.Build
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 忽略清理错误
+                // 忽略清理错误: 记录, 不影响功能。
+                System.Diagnostics.Debug.WriteLine($"[AssetPackaging] 清理缓存失败: {ex.Message}");
             }
 
             return cleaned;

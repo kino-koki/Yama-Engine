@@ -246,7 +246,12 @@ namespace YamaEngine.Plugins
                         var v = Convert.ToDouble(value);
                         if (v < min) return;
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        // 数值转换失败: 拒绝写入非数值值 (避免绕过范围约束)。
+                        System.Diagnostics.Debug.WriteLine($"[ModFramework] 配置 '{key}' MinValue 校验失败: {ex.Message}");
+                        return;
+                    }
                 }
                 if (entry.MaxValue != null)
                 {
@@ -256,7 +261,11 @@ namespace YamaEngine.Plugins
                         var v = Convert.ToDouble(value);
                         if (v > max) return;
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ModFramework] 配置 '{key}' MaxValue 校验失败: {ex.Message}");
+                        return;
+                    }
                 }
             }
             _values[key] = value;
@@ -569,8 +578,19 @@ namespace YamaEngine.Plugins
         {
             if (_allowedPaths.Count == 0) return true;
             var fullPath = Path.GetFullPath(path);
-            return _allowedPaths.Any(allowed =>
-                fullPath.StartsWith(allowed, StringComparison.OrdinalIgnoreCase));
+            // 工业级防御: 前缀匹配必须带目录分隔符边界, 防 `C:\Mods\A` 放行 `C:\Mods\AB\evil.dll` (前缀混淆/沙箱绕过)。
+            foreach (var allowed in _allowedPaths)
+            {
+                string allowedWithSep = allowed.EndsWith(Path.DirectorySeparatorChar) || allowed.EndsWith(Path.AltDirectorySeparatorChar)
+                    ? allowed
+                    : allowed + Path.DirectorySeparatorChar;
+                if (fullPath.StartsWith(allowedWithSep, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                // 精确等于白名单目录本身也允许。
+                if (string.Equals(fullPath, allowed, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>检查类型是否允许加载。</summary>

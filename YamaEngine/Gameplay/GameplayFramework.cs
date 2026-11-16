@@ -377,6 +377,10 @@ namespace YamaEngine.Gameplay
             if (actor.World != null && actor.World != this)
                 throw new InvalidOperationException("Actor already registered in another world.");
             actor.World = this;
+            // GameFramework.Actor (体系 B) 拥有遮蔽基类的独立 World 属性,
+            // 需同步设置以便 B 层代码 (如 AIController.EQS 收集 WorldActors) 访问。
+            if (actor is YamaEngine.GameFramework.Actor gfActor)
+                gfActor.World = this;
             if (_started)
                 _pendingAdd.Add(actor);
             else
@@ -400,7 +404,7 @@ namespace YamaEngine.Gameplay
             GameMode.SpawnDefaultPawnFor(LocalPlayerController, this);
             FlushPending();
             foreach (var a in _actors.ToArray())
-                a.InvokeBeginPlay();
+                InvokeBeginPlayDispatch(a);
         }
 
         public void Tick(float deltaTime)
@@ -409,7 +413,7 @@ namespace YamaEngine.Gameplay
             FlushPending();
             TimeSeconds += MathF.Max(0f, deltaTime);
             foreach (var a in _actors.ToArray())
-                a.InvokeTick(deltaTime);
+                InvokeTickDispatch(a, deltaTime);
             FlushPending();
         }
 
@@ -417,7 +421,7 @@ namespace YamaEngine.Gameplay
         {
             foreach (var a in _actors.ToArray())
             {
-                a.InvokeEndPlay();
+                InvokeEndPlayDispatch(a);
             }
             _actors.Clear();
             _pendingAdd.Clear();
@@ -448,7 +452,7 @@ namespace YamaEngine.Gameplay
                 foreach (var a in _pendingAdd)
                 {
                     _actors.Add(a);
-                    if (_started) a.InvokeBeginPlay();
+                    if (_started) InvokeBeginPlayDispatch(a);
                 }
                 _pendingAdd.Clear();
             }
@@ -458,7 +462,7 @@ namespace YamaEngine.Gameplay
                 {
                     if (_actors.Remove(a))
                     {
-                        a.InvokeEndPlay();
+                        InvokeEndPlayDispatch(a);
                         a.World = null;
                     }
                     else
@@ -468,6 +472,30 @@ namespace YamaEngine.Gameplay
                 }
                 _pendingRemove.Clear();
             }
+        }
+
+        // ── 双体系 Actor 生命周期派发 ────────────────────────────────────
+        // GameFramework.Actor (体系 B: 含 AIController/Pawn/GameMode/GameState,
+        // 拥有独立 _components/LifecyclePhase/World) 必须走其自身
+        // BeginPlayActor/TickActor/EndPlayActor, 否则 B 的 OnTick 覆写与组件
+        // 永不执行 (基类 InvokeTick 调用的是空的基类 OnTick 槽位)。
+        // 其余 Gameplay.Actor (体系 A) 保持原有基类协议。
+        private static void InvokeBeginPlayDispatch(Actor a)
+        {
+            if (a is YamaEngine.GameFramework.Actor gf) gf.BeginPlayActor();
+            else a.InvokeBeginPlay();
+        }
+
+        private static void InvokeTickDispatch(Actor a, float deltaTime)
+        {
+            if (a is YamaEngine.GameFramework.Actor gf) gf.TickActor(deltaTime);
+            else a.InvokeTick(deltaTime);
+        }
+
+        private static void InvokeEndPlayDispatch(Actor a)
+        {
+            if (a is YamaEngine.GameFramework.Actor gf) gf.EndPlayActor();
+            else a.InvokeEndPlay();
         }
     }
 }

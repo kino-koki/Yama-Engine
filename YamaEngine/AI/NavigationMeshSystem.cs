@@ -181,6 +181,7 @@ namespace YamaEngine.AI
 
         public bool ContainsPoint(Vector3 point, float margin = 0f)
         {
+            if (!IsActive) return false;
             float dx = point.X - Position.X;
             float dz = point.Z - Position.Z;
             float dy = point.Y - Position.Y;

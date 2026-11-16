@@ -394,7 +394,7 @@ namespace YamaEngine.Assets
                     case "mtllib":
                         if (parts.Length > 1 && basePath != null)
                         {
-                            string mtlPath = Path.Combine(basePath, parts[1]);
+                            string mtlPath = ResolveSafePath(basePath, parts[1]);
                             if (File.Exists(mtlPath))
                                 ParseMtlFile(mtlPath, ctx.Model.Materials);
                         }
@@ -693,6 +693,32 @@ namespace YamaEngine.Assets
         }
 
         /// <summary>
+        /// 解析 OBJ/MTL 引用的相对路径并确保不逃逸资产目录。
+        /// OBJ/MTL 文本来自未受信文件, 可含 ../ 或绝对路径, 直接 Combine 会读到资产目录之外的任意文件。
+        /// </summary>
+        private static string ResolveSafePath(string basePath, string relative)
+        {
+            if (string.IsNullOrEmpty(basePath) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("资产引用路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"资产引用路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(basePath);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"资产引用路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
+        }
+
+        /// <summary>
         /// 解析贴图路径。OBJ 贴图行可能包含 -bm（混合系数）等选项，
         /// 文件路径可能在中间（-o/-s 等选项之间）或行尾。
         /// </summary>
@@ -703,7 +729,7 @@ namespace YamaEngine.Assets
             for (int i = parts.Length - 1; i >= 1; i--)
             {
                 if (!parts[i].StartsWith("-"))
-                    return Path.Combine(basePath, parts[i]);
+                    return ResolveSafePath(basePath, parts[i]);
             }
             return null;
         }

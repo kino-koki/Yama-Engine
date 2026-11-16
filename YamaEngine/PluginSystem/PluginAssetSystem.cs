@@ -94,9 +94,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>资产挂载点。</summary>
     public sealed class AssetMountPoint
     {
-        public string PluginId { get; set; }
-        public string PhysicalRoot { get; set; }
-        public string VirtualRoot { get; set; }
+        public string PluginId { get; set; } = string.Empty;
+        public string PhysicalRoot { get; set; } = string.Empty;
+        public string VirtualRoot { get; set; } = string.Empty;
         public int Priority { get; set; }
         public bool IsReadOnly { get; set; } = true;
         public List<PluginAssetEntry> Entries { get; } = new List<PluginAssetEntry>();
@@ -111,9 +111,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>资产重定向规则。</summary>
     public sealed class AssetRedirect
     {
-        public string FromPath { get; set; }
-        public string ToPath { get; set; }
-        public string PluginId { get; set; }
+        public string FromPath { get; set; } = string.Empty;
+        public string ToPath { get; set; } = string.Empty;
+        public string PluginId { get; set; } = string.Empty;
         public int Priority { get; set; }
 
         public override string ToString() => $"{FromPath} → {ToPath} [{PluginId}]";
@@ -126,9 +126,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>资产依赖记录。</summary>
     public sealed class AssetDependencyRecord
     {
-        public string AssetPath { get; set; }
-        public string DependentPluginId { get; set; }
-        public string ProviderPluginId { get; set; }
+        public string AssetPath { get; set; } = string.Empty;
+        public string DependentPluginId { get; set; } = string.Empty;
+        public string ProviderPluginId { get; set; } = string.Empty;
         public DateTime AccessTime { get; set; }
         public int AccessCount { get; set; }
 
@@ -143,9 +143,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>资产搜索结果。</summary>
     public sealed class AssetSearchResult
     {
-        public PluginAssetEntry Entry { get; set; }
+        public PluginAssetEntry Entry { get; set; } = null!;
         public int MatchScore { get; set; }
-        public string MatchReason { get; set; }
+        public string MatchReason { get; set; } = string.Empty;
 
         public override string ToString() => $"{Entry} (Score: {MatchScore})";
     }
@@ -188,10 +188,10 @@ namespace YamaEngine.PluginSystem
         private long _currentCacheSize;
 
         // 事件
-        public event Action<PluginAssetEntry> OnAssetMounted;
-        public event Action<PluginAssetEntry> OnAssetUnmounted;
-        public event Action<string, PluginAssetEntry> OnAssetAccessed;
-        public event Action<string, string> OnAssetRedirected;
+        public event Action<PluginAssetEntry>? OnAssetMounted;
+        public event Action<PluginAssetEntry>? OnAssetUnmounted;
+        public event Action<string, PluginAssetEntry>? OnAssetAccessed;
+        public event Action<string, string>? OnAssetRedirected;
 
         private PluginAssetProvider() { }
 
@@ -309,7 +309,7 @@ namespace YamaEngine.PluginSystem
         #region 资产访问
 
         /// <summary>解析虚拟路径 (考虑重定向和优先级)。</summary>
-        public PluginAssetEntry ResolveAsset(string virtualPath)
+        public PluginAssetEntry? ResolveAsset(string virtualPath)
         {
             virtualPath = NormalizePath(virtualPath);
 
@@ -333,7 +333,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>读取资产字节。</summary>
-        public byte[] LoadAssetBytes(string virtualPath)
+        public byte[]? LoadAssetBytes(string virtualPath)
         {
             var entry = ResolveAsset(virtualPath);
             if (entry == null || !entry.Exists) return null;
@@ -354,7 +354,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>读取资产文本。</summary>
-        public string LoadAssetText(string virtualPath)
+        public string? LoadAssetText(string virtualPath)
         {
             var entry = ResolveAsset(virtualPath);
             if (entry == null || !entry.Exists) return null;
@@ -373,7 +373,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>读取资产流。</summary>
-        public Stream LoadAssetStream(string virtualPath)
+        public Stream? LoadAssetStream(string virtualPath)
         {
             var entry = ResolveAsset(virtualPath);
             if (entry == null || !entry.Exists) return null;
@@ -398,7 +398,7 @@ namespace YamaEngine.PluginSystem
         #region 资产覆盖
 
         /// <summary>获取资产提供者 (按优先级)。</summary>
-        public string GetAssetProvider(string virtualPath)
+        public string? GetAssetProvider(string virtualPath)
         {
             var entry = ResolveAsset(virtualPath);
             return entry?.PluginId;
@@ -422,7 +422,7 @@ namespace YamaEngine.PluginSystem
         #region 资产合并
 
         /// <summary>合并资产 (配置/数据表/本地化)。</summary>
-        public string MergeAssets(string virtualPathPattern, AssetMergeMode mode = AssetMergeMode.DeepMerge)
+        public string? MergeAssets(string virtualPathPattern, AssetMergeMode mode = AssetMergeMode.DeepMerge)
         {
             var entries = GetAllAssetsMatching(virtualPathPattern);
             if (entries.Count == 0) return null;
@@ -433,17 +433,17 @@ namespace YamaEngine.PluginSystem
             // 按优先级排序 (低优先级先加载，高优先级覆盖)
             var sorted = entries.OrderBy(e => e.Priority).ToList();
 
-            string merged = null;
+            string? merged = null;
             foreach (var entry in sorted)
             {
-                string content = LoadAssetText(entry.VirtualPath);
+                string? content = LoadAssetText(entry.VirtualPath);
                 if (merged == null)
                 {
                     merged = content;
                 }
                 else
                 {
-                    merged = MergeContent(merged, content, mode);
+                    merged = MergeContent(merged, content ?? "", mode);
                 }
             }
 
@@ -461,7 +461,7 @@ namespace YamaEngine.PluginSystem
 
             foreach (var entry in entries)
             {
-                string content = LoadAssetText(entry.VirtualPath);
+                string? content = LoadAssetText(entry.VirtualPath);
                 if (string.IsNullOrEmpty(content)) continue;
                 try
                 {
@@ -509,7 +509,7 @@ namespace YamaEngine.PluginSystem
                             return JsonSerializer.Serialize(existingDict, new JsonSerializerOptions { WriteIndented = true });
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[PluginAsset] JSON 合并失败: {ex.Message}"); }
                     return incoming; // 非 JSON 直接覆盖
 
                 default:
@@ -576,11 +576,11 @@ namespace YamaEngine.PluginSystem
                 {
                     if (redirect.FromPath == path)
                         return redirect.ToPath;
-                    // 通配符匹配
+                    // 通配符匹配 (工业级防御: 需校验分隔符边界, 防 `Assets/` 误匹配 `AssetsFoo/`)
                     if (redirect.FromPath.EndsWith("/*"))
                     {
                         string prefix = redirect.FromPath.Substring(0, redirect.FromPath.Length - 1);
-                        if (path.StartsWith(prefix))
+                        if (StartsWithBoundary(path, prefix))
                             return redirect.ToPath.TrimEnd('/') + path.Substring(prefix.Length - 1);
                     }
                 }
@@ -593,7 +593,7 @@ namespace YamaEngine.PluginSystem
         #region 资产搜索
 
         /// <summary>跨插件搜索资产。</summary>
-        public List<AssetSearchResult> SearchAssets(string query, PluginAssetType? typeFilter = null, List<string> tagFilter = null, int maxResults = 100)
+        public List<AssetSearchResult> SearchAssets(string query, PluginAssetType? typeFilter = null, List<string>? tagFilter = null, int maxResults = 100)
         {
             var results = new List<AssetSearchResult>();
             query = query?.ToLowerInvariant() ?? "";
@@ -710,10 +710,21 @@ namespace YamaEngine.PluginSystem
         private bool MatchPattern(string path, string pattern)
         {
             if (pattern.EndsWith("/*"))
-                return path.StartsWith(pattern.Substring(0, pattern.Length - 1));
+                return StartsWithBoundary(path, pattern.Substring(0, pattern.Length - 1));
             if (pattern == "*" || pattern == "")
                 return true;
             return path == pattern;
+        }
+
+        /// <summary>
+        /// 前缀匹配但强制目录分隔符/串尾边界, 防 `Assets/` 误匹配 `AssetsFoo/...` (前缀混淆)。
+        /// </summary>
+        private static bool StartsWithBoundary(string path, string prefix)
+        {
+            if (!path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return false;
+            if (path.Length == prefix.Length) return true;
+            char next = path[prefix.Length];
+            return next == '/' || next == '\\';
         }
 
         #endregion
@@ -721,7 +732,7 @@ namespace YamaEngine.PluginSystem
         #region 资产版本
 
         /// <summary>获取资产版本。</summary>
-        public SemanticVersion GetAssetVersion(string virtualPath)
+        public SemanticVersion? GetAssetVersion(string virtualPath)
         {
             var entry = ResolveAsset(virtualPath);
             return entry?.Version;

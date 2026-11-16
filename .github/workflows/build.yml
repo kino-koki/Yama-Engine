@@ -1,4 +1,4 @@
-name: Build & Verify
+﻿name: Build & Verify
 
 on:
   push:
@@ -27,18 +27,19 @@ jobs:
       - name: Restore
         run: dotnet restore YamaEngine/YamaEngine.csproj && dotnet restore YamaEngine.Tests/YamaEngine.Tests.csproj && dotnet restore YamaCLI/YamaCLI.csproj
 
-      - name: Build (Debug | x64)
+      # 0 警告门禁：-warnaserror 让任何未被 Directory.Build.props 显式抑制的警告
+      # （包括新增代码引入的可空性 / 性能 / API 废弃问题）直接失败。
+      - name: Build (Debug | x64 | -warnaserror)
         run: |
-          dotnet build YamaEngine/YamaEngine.csproj -c Debug -p:Platform=x64 --no-restore
-          dotnet build YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug -p:Platform=x64 --no-restore
-          dotnet build YamaCLI/YamaCLI.csproj -c Debug -p:Platform=x64 --no-restore
+          dotnet build YamaEngine/YamaEngine.csproj -c Debug -p:Platform=x64 --no-restore -warnaserror
+          dotnet build YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug -p:Platform=x64 --no-restore -warnaserror
+          dotnet build YamaCLI/YamaCLI.csproj -c Debug -p:Platform=x64 --no-restore -warnaserror
 
-      # 测试套件为自定义控制台（YamaEngine.Tests 是 Exe，非标准测试框架，dotnet test 无效）。
-      # 套件存在已知未跑通的用例（如 RenderGraph 默认传递断言），属“测试全用例跑通”独立待办，
-      # 故此处运行但不阻塞无头回归门禁（continue-on-error），门禁红灯条件为构建 + smoke。
-      - name: Test (console suite, informational)
-        continue-on-error: true
-        run: dotnet run --project YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug --no-build
+      # 测试套件已接入 xUnit（YamaEngine.Tests/XunitAdapter.cs 反射发现全部自研
+      # public static void Test*() 方法并逐个以 [Theory] 执行，1559 用例）。
+      # 以 dotnet test 作为回归门禁：任何用例失败即以非 0 退出码红灯。
+      - name: Test (xUnit suite, regression gate)
+        run: dotnet test YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug -p:Platform=x64 --no-build --logger trx --results-directory TestResults
 
       # 无头引擎回归门禁：YamaCLI smoke 引导 EngineSystems 并 Tick 60 帧（不碰 GPU）。
       # smoke 失败时返回非 0，作为 CI 红灯条件；任何引擎引导/音频/物理子系统回归都会在此暴露。
@@ -51,3 +52,10 @@ jobs:
         with:
           name: build-artifacts
           path: artifacts/
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/

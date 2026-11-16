@@ -578,7 +578,7 @@ namespace YamaEngine.AI
                         if (delta.TryGetProperty("text", out var txt)) onToken(txt.GetString() ?? "");
                     }
                 }
-                catch { }
+                catch (Exception ex) { Console.WriteLine($"[LLM] Anthropic SSE 流解析失败: {ex.Message}"); }
             }, ct).ConfigureAwait(false);
         }
 
@@ -674,7 +674,7 @@ namespace YamaEngine.AI
                     if (d.RootElement.TryGetProperty("message", out var msg) && msg.TryGetProperty("content", out var c))
                         onToken(c.GetString() ?? "");
                 }
-                catch { }
+                catch (Exception ex) { Console.WriteLine($"[LLM] Ollama NDJSON 流解析失败: {ex.Message}"); }
             }
         }
     }
@@ -782,7 +782,7 @@ namespace YamaEngine.AI
                             onToken(t.GetString() ?? "");
                     }
                 }
-                catch { }
+                catch (Exception ex) { Console.WriteLine($"[LLM] Qwen SSE 流解析失败: {ex.Message}"); }
             }, ct).ConfigureAwait(false);
         }
     }
@@ -890,7 +890,7 @@ namespace YamaEngine.AI
                     using var d = Parse(evt.Data);
                     if (d.RootElement.TryGetProperty("result", out var r)) onToken(r.GetString() ?? "");
                 }
-                catch { }
+                catch (Exception ex) { Console.WriteLine($"[LLM] Ernie SSE 流解析失败: {ex.Message}"); }
             }, ct).ConfigureAwait(false);
         }
     }

@@ -747,6 +747,10 @@ namespace YamaEngine.Network
                 {
                     // 全量同步
                     int count = reader.ReadInt32();
+                    // 工业级防御: count 来自未受信网络包, 巨大值会让循环空转直到流耗尽 (DoS)。
+                    // 每个对象状态至少 12 字节, count 不可能超过剩余字节。
+                    if (count < 0 || count > reader.Remaining)
+                        throw new InvalidDataException($"同步对象计数非法: {count}, 剩余 {reader.Remaining} 字节");
                     for (int i = 0; i < count; i++)
                     {
                         var state = ReadFullObjectState(reader);
@@ -768,6 +772,10 @@ namespace YamaEngine.Network
                 {
                     // Delta同步
                     int count = reader.ReadInt32();
+                    // 工业级防御: count 来自未受信网络包, 巨大值会让循环空转 (DoS)。
+                    // 每条 delta 至少 5 字节 (marker + objId)。
+                    if (count < 0 || count > reader.Remaining / 5)
+                        throw new InvalidDataException($"Delta 同步对象计数非法: {count}, 剩余 {reader.Remaining} 字节");
                     lock (_stateLock)
                     {
                         for (int i = 0; i < count; i++)

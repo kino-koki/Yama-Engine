@@ -584,6 +584,9 @@ namespace YamaEngine.Physics
             if (len == 0) return null;
             if (len < 0 || len > 1024 * 1024 * 100) // 100MB上限
                 throw new InvalidDataException($"字符串长度异常: {len}");
+            if (len > RemainingBytes)
+                throw new InvalidDataException(
+                    $"字符串长度 {len} 越过剩余字节 {RemainingBytes}");
             byte[] bytes = _reader.ReadBytes(len);
             return Encoding.UTF8.GetString(bytes);
         }
@@ -592,8 +595,12 @@ namespace YamaEngine.Physics
         {
             int len = _reader.ReadInt32();
             if (len == 0) return null;
-            if (len < 0 || len > 100_000_000)
+            if (len < 0)
                 throw new InvalidDataException($"数组长度异常: {len}");
+            // 预算校验: len*4 字节, 用 long 防溢出, 并须能容纳于剩余字节 (防 OOM/越界读取)。
+            long needBytes = (long)len * 4;
+            if (len > 100_000_000 || needBytes > RemainingBytes)
+                throw new InvalidDataException($"数组长度异常: {len} (需要 {needBytes} 字节, 剩余 {RemainingBytes})");
             var arr = new float[len];
             for (int i = 0; i < len; i++)
                 arr[i] = _reader.ReadSingle();
@@ -604,8 +611,12 @@ namespace YamaEngine.Physics
         {
             int len = _reader.ReadInt32();
             if (len == 0) return null;
-            if (len < 0 || len > 100_000_000)
+            if (len < 0)
                 throw new InvalidDataException($"数组长度异常: {len}");
+            // 预算校验: len*4 字节。
+            long needBytes = (long)len * 4;
+            if (len > 100_000_000 || needBytes > RemainingBytes)
+                throw new InvalidDataException($"数组长度异常: {len} (需要 {needBytes} 字节, 剩余 {RemainingBytes})");
             var arr = new int[len];
             for (int i = 0; i < len; i++)
                 arr[i] = _reader.ReadInt32();
@@ -616,8 +627,12 @@ namespace YamaEngine.Physics
         {
             int len = _reader.ReadInt32();
             if (len == 0) return null;
-            if (len < 0 || len > 100_000_000)
+            if (len < 0)
                 throw new InvalidDataException($"数组长度异常: {len}");
+            // 预算校验: len*12 字节 (Vector3 = 3*float)。
+            long needBytes = (long)len * 12;
+            if (len > 100_000_000 || needBytes > RemainingBytes)
+                throw new InvalidDataException($"数组长度异常: {len} (需要 {needBytes} 字节, 剩余 {RemainingBytes})");
             var arr = new Vector3[len];
             for (int i = 0; i < len; i++)
             {
@@ -632,12 +647,21 @@ namespace YamaEngine.Physics
             if (len == 0) return null;
             if (len < 0 || len > 100_000_000)
                 throw new InvalidDataException($"数组长度异常: {len}");
+            if (len > RemainingBytes)
+                throw new InvalidDataException(
+                    $"字节数组长度 {len} 越过剩余字节 {RemainingBytes}");
             return _reader.ReadBytes(len);
         }
 
         public Dictionary<string, string> ReadStringDict()
         {
             int count = _reader.ReadInt32();
+            if (count < 0)
+                throw new InvalidDataException($"字典条目数异常: {count}");
+            // 每个条目至少占 2 字节 (key 长度 + value 长度前缀各至少 1 字节)。
+            if ((long)count * 2 > RemainingBytes)
+                throw new InvalidDataException(
+                    $"字典条目数 {count} 越过剩余字节 {RemainingBytes}");
             var dict = new Dictionary<string, string>(count);
             for (int i = 0; i < count; i++)
             {
@@ -648,6 +672,9 @@ namespace YamaEngine.Physics
             }
             return dict;
         }
+
+        /// <summary>剩余字节数。</summary>
+        public long RemainingBytes => _reader.BaseStream.Length - _reader.BaseStream.Position;
     }
 
     // ============================================================================================
@@ -1523,6 +1550,12 @@ namespace YamaEngine.Physics
                     break;
                 case CollisionShapeType.Compound:
                     int childCount = reader.ReadInt32();
+                    if (childCount < 0)
+                        throw new InvalidDataException($"子形状数量异常: {childCount}");
+                    // 每个子形状至少占 4 字节 (ShapeId int) + 12 字节 (Offset Vector3) + 16 字节 (Rotation Quaternion)。
+                    if ((long)childCount * 32 > reader.RemainingBytes)
+                        throw new InvalidDataException(
+                            $"子形状数量 {childCount} 越过剩余字节 {reader.RemainingBytes}");
                     if (childCount > 0)
                     {
                         shape.CompoundChildren = new List<SerializedSubShape>(childCount);
@@ -1806,7 +1839,9 @@ namespace YamaEngine.Physics
                 verIdx += 10;
                 int end = json.IndexOf(',', verIdx);
                 if (end < 0) end = json.IndexOf('}', verIdx);
-                if (int.TryParse(json.Substring(verIdx, end - verIdx).Trim(), out int v))
+                // 恶意/畸形 JSON 下 end 可能仍为 -1（逗号与右括号都缺失），
+                // 直接 Substring 会抛 ArgumentOutOfRangeException。需校验 end 有效。
+                if (end > verIdx && int.TryParse(json.Substring(verIdx, end - verIdx).Trim(), out int v))
                     scene.Version = v;
             }
 

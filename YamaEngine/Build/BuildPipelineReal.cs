@@ -572,8 +572,25 @@ namespace YamaEngine.Build
         public byte[] CookTexture(byte[] sourceData, int width, int height, int channels,
             TextureCompressionFormat format)
         {
+            // 工业级防御: 尺寸/声道非法 → 防溢出与越界
+            if (sourceData == null) throw new ArgumentNullException(nameof(sourceData));
+            if (width <= 0 || height <= 0)
+                throw new ArgumentOutOfRangeException($"纹理尺寸非法: {width}x{height}");
+            if (channels is not (1 or 3 or 4))
+                throw new ArgumentOutOfRangeException(nameof(channels), $"纹理通道数非法: {channels}");
+
+            long pixelCountL = (long)width * height;
+            // 工业级防御: 像素总数上限 (防 width*height 溢出/OOM)
+            const long MaxPixels = 256L * 1024 * 1024; // 2.56亿像素 ≈ 1GB RGBA
+            if (pixelCountL > MaxPixels)
+                throw new InvalidDataException($"纹理像素总数过大: {pixelCountL}");
+            int pixelCount = (int)pixelCountL;
+
+            // sourceData 必须至少容纳 channels*pixelCount 字节
+            if ((long)channels * pixelCount > sourceData.Length)
+                throw new InvalidDataException("纹理源数据不足");
+
             // 1. 解码原始像素数据 (假设sourceData为原始RGBA像素)
-            int pixelCount = width * height;
             int sourceBytesPerPixel = channels;
             byte[] pixels = new byte[pixelCount * 4]; // 目标RGBA
 
@@ -653,7 +670,11 @@ namespace YamaEngine.Build
             {
                 int newWidth = Math.Max(1, mipWidth >> 1);
                 int newHeight = Math.Max(1, mipHeight >> 1);
-                byte[] newMip = new byte[newWidth * newHeight * bpp];
+                // 工业级防御: 新层字节数溢出校验
+                long newMipBytes = (long)newWidth * newHeight * bpp;
+                if (newMipBytes > 256L * 1024 * 1024 || newMipBytes > int.MaxValue)
+                    throw new InvalidDataException("Mipmap层过大");
+                byte[] newMip = new byte[(int)newMipBytes];
                 byte[] srcMip = mipLevels[mipLevels.Count - 1];
 
                 // 盒式滤波：2x2像素块取平均

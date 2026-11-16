@@ -798,7 +798,14 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>导出 RAW 16bit 高度图。</summary>
         private static bool ExportRaw16(TerrainData data, string filePath)
         {
-            int count = data.Width * data.Height;
+            // 工业级防御: Width*Height 用 long 提升, 防负/溢出→OOM 或负分配。
+            long countL = (long)data.Width * data.Height;
+            if (countL <= 0 || countL > int.MaxValue / 2)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TerrainExporter] ExportRaw16: 高度图尺寸非法 ({data.Width}x{data.Height})");
+                return false;
+            }
+            int count = (int)countL;
             var buffer = new ushort[count];
             for (int i = 0; i < count; i++)
                 buffer[i] = (ushort)(data.Heightmap[i] * 65535f);
@@ -818,7 +825,14 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>导出 RAW 32bit float 高度图。</summary>
         private static bool ExportRaw32(TerrainData data, string filePath)
         {
-            int count = data.Width * data.Height;
+            // 工业级防御: Width*Height 用 long 提升, 防负/溢出→OOM 或负分配。
+            long countL = (long)data.Width * data.Height;
+            if (countL <= 0 || countL > int.MaxValue / 4)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TerrainExporter] ExportRaw32: 高度图尺寸非法 ({data.Width}x{data.Height})");
+                return false;
+            }
+            int count = (int)countL;
             var bytes = new byte[count * 4];
             System.Buffer.BlockCopy(data.Heightmap, 0, bytes, 0, bytes.Length);
 

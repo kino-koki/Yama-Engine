@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Buffers;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -198,12 +199,12 @@ namespace YamaEngine.Network
 
         // ── 字符串写入 ──────────────────────────────────────────────
 
-        /// <summary>写入字符串 (VarInt长度前缀 + UTF-8 字节)。</summary>
+        /// <summary>写入字符串 (4 字节 Int32 长度前缀 + UTF-8 字节，与 NetworkReaderReal.ReadString 配对)。</summary>
         public void WriteString(string value)
         {
             if (value == null) value = string.Empty;
             byte[] bytes = Encoding.UTF8.GetBytes(value);
-            VarIntUtility.WriteVarInt(this, (uint)bytes.Length);
+            WriteInt32(bytes.Length);
             if (bytes.Length > 0)
             {
                 WriteRawBytes(bytes, 0, bytes.Length);
@@ -291,15 +292,15 @@ namespace YamaEngine.Network
 
         // ── 字节数组写入 ──────────────────────────────────────────
 
-        /// <summary>写入字节数组 (VarInt长度前缀 + 数据)。</summary>
+        /// <summary>写入字节数组 (4 字节 Int32 长度前缀 + 数据，与 NetworkReaderReal.ReadBytes 配对)。</summary>
         public void WriteBytes(byte[] data)
         {
             if (data == null || data.Length == 0)
             {
-                VarIntUtility.WriteVarInt(this, 0);
+                WriteInt32(0);
                 return;
             }
-            VarIntUtility.WriteVarInt(this, (uint)data.Length);
+            WriteInt32(data.Length);
             WriteRawBytes(data, 0, data.Length);
         }
 
@@ -1089,7 +1090,15 @@ namespace YamaEngine.Network
         /// <summary>写入原始字节 (必须已对齐到字节边界)。</summary>
         public void WriteRawBytes(byte[] data, int offset, int count)
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (offset < 0 || count < 0 || offset + count > data.Length)
+                throw new ArgumentOutOfRangeException(nameof(count),
+                    $"Invalid raw-byte range: offset {offset}, count {count}, data length {data.Length}.");
             PadToByte();
+            // count * 8 可能溢出 int (count 过大时)，提前以 int.MaxValue/8 为界防御。
+            if (count > int.MaxValue / 8)
+                throw new InvalidOperationException(
+                    $"Raw byte count {count} too large for bit encoding (would overflow int).");
             EnsureCapacityBits(count * 8);
             Array.Copy(data, offset, _buffer, _bitPosition >> 3, count);
             _bitPosition += count * 8;
@@ -1203,7 +1212,15 @@ namespace YamaEngine.Network
         /// <summary>读取指定位数的有符号整数。</summary>
         public int ReadInt(int bits)
         {
-            return unchecked((int)ReadUInt(bits));
+            if (bits <= 0) return 0;
+            if (bits > 32) bits = 32;
+            uint value = ReadUInt(bits);
+            // 符号扩展: 非满位宽时, 若最高位为 1, 将高位补 1 (补码转有符号)。
+            if (bits < 32 && (value & (1u << (bits - 1))) != 0)
+            {
+                value |= ~((1u << bits) - 1u);
+            }
+            return unchecked((int)value);
         }
 
         /// <summary>读取量化浮点。</summary>
@@ -1234,10 +1251,14 @@ namespace YamaEngine.Network
             PadToByte();
             int bytePos = _bitPosition >> 3;
             int maxBytes = _buffer.Length - bytePos;
-            int actualCount = Math.Min(count, maxBytes);
-            byte[] result = new byte[actualCount];
-            Array.Copy(_buffer, bytePos, result, 0, actualCount);
-            _bitPosition += actualCount * 8;
+            // 工业级防御: count 来自未受信网络字节。
+            // 静默截断 (Math.Min) 会返回短数据导致下游解码错乱, 应抛异常明示损坏。
+            if (count < 0 || count > maxBytes)
+                throw new InvalidDataException(
+                    $"Network data corrupt: bit-unpacker byte count {count} exceeds buffer {maxBytes}.");
+            byte[] result = new byte[count];
+            Array.Copy(_buffer, bytePos, result, 0, count);
+            _bitPosition += count * 8;
             return result;
         }
 

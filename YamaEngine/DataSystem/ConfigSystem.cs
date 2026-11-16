@@ -83,7 +83,11 @@ namespace YamaEngine.DataSystem
                     if (MaxValue.HasValue && num > MaxValue.Value)
                         return (false, $"'{Key}' value {num} is above maximum {MaxValue.Value}.");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // 数值转换失败: 非数值配置值不应静默通过范围校验 (否则非法值绕过检查)。
+                    return (false, $"'{Key}' value '{value}' is not a valid number: {ex.Message}");
+                }
             }
 
             // 允许值检查
@@ -359,7 +363,12 @@ namespace YamaEngine.DataSystem
                     if (MinValue.HasValue && num < MinValue.Value) return false;
                     if (MaxValue.HasValue && num > MaxValue.Value) return false;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // 数值转换失败: 拒绝写入非数值值到范围配置 (避免绕过范围检查)。
+                    System.Diagnostics.Debug.WriteLine($"Config '{Name}' 写入值 '{value}' 不是有效数值: {ex.Message}");
+                    return false;
+                }
             }
 
             var oldValue = CurrentValue;

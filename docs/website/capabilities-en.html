@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Core Systems — Yama Engine</title>
+<meta name="description" content="Nine core systems of Yama Engine — rendering, physics, AI, animation, audio, ECS, editor, DCC bridges, networking — each with real code, file counts and key algorithms. Click any card to expand the deep dive.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="Core Systems — Yama Engine">
+<meta property="og:description" content="Nine core systems of Yama Engine — rendering, physics, AI, animation, audio, ECS, editor, DCC bridges, networking — each with real code, file counts and key algorithms. Click any card to expand the deep dive.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-banner" role="region" aria-label="Announcement">
+  <span><span class="hl">NEW</span> — Real physics engine v2 merged: analytic-grade tests + joint constraint system</span>
+  <a href="status-en.html#roadmap">See the roadmap</a>
+  <button class="dismiss" aria-label="Close announcement">✕</button>
+</div>
+
+<nav class="m-past">
+  <div class="wrap">
+    <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why-en.html">Why</a>
+      <a href="capabilities-en.html" aria-current="page">Capabilities</a>
+      <a href="compare-en.html">Compare</a>
+      <a href="architecture-en.html">Architecture</a>
+      <a href="status-en.html">Honest Status</a>
+      <a href="get-started-en.html">Quick Start</a>
+      <a href="faq-en.html">FAQ</a>
+      <a href="index.html" class="lang">中文</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">02 / Engine Capabilities</div>
+    <h1>Nine core systems —<br>every layer <em>genuinely exists</em>.</h1>
+    <p class="lede">
+      Not concept art, not placeholders on a roadmap. Every system below has a real code implementation; file counts and key algorithms are printed on each card. Click any card to expand the deep dive.
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="caps">
+  <div class="wrap">
+    <div class="caps-grid">
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="rendering">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18"/><circle cx="8.5" cy="8.5" r="1.5" fill="var(--orange)"/><path d="M21 15l-5-5L5 21"/></svg>
+        </div>
+        <h3>Render pipeline</h3>
+        <span class="files">113 files · C#</span>
+        <p>PBR materials, skeletal skinning, cascaded shadows, temporal anti-aliasing (TSR) and foliage rendering are wired into the SceneRendererReal pipeline. ReSTIR global illumination and path tracing exist at the algorithm layer, awaiting end-to-end GPU validation.</p>
+        <div class="cap-tags"><span class="tag">PBR</span><span class="tag">Cascade Shadow</span><span class="tag">TSR</span><span class="tag">Skinning</span><span class="tag">ReSTIR</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>Deferred path + full post-processing stack: bloom, depth of field, tone mapping, vignette, chromatic aberration, lens flare, TAA; transparent objects use the forward path. PBR uses Cook-Torrance BRDF; cascaded shadows support 4 cascades. ReSTIR / SVGF / path tracing have complete algorithm and shader code, pending GPU validation.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="physics">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <h3>Physics engine</h3>
+        <span class="files">82 files · pure C#</span>
+        <p>Zero dependencies. GJK / EPA / SAT collision detection, 9 joint constraint types, custom vector &amp; quaternion libraries, shape dispatchers, fluid and cloth simulation — all hand-written from the math up, with no third-party physics library.</p>
+        <div class="cap-tags"><span class="tag">GJK</span><span class="tag">EPA</span><span class="tag">SAT</span><span class="tag">9 Joints</span><span class="tag">Fluid</span><span class="tag">Cloth</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>Collision detection includes GJK (Gilbert-Johnson-Keerthi), EPA penetration depth and SAT (OBB / AABB / capsules); the constraint solver supports hinge, slider, ball-and-socket and 6 other joint types; cloth uses Verlet integration; fluid mixes Eulerian grids and particles. Tests verify against analytic solutions: free fall, impulse-momentum, angular momentum conservation, Coulomb friction, restitution.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="ai">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>Artificial intelligence</h3>
+        <span class="files">35 files · C#</span>
+        <p>NavMesh baking, A* / D*Lite / JPS+ / Theta* pathfinding, GOAP goal-oriented planning, behavior trees, ORCA crowd avoidance. LLM-driven NPC dialogue integration in progress.</p>
+        <div class="cap-tags"><span class="tag">NavMesh</span><span class="tag">A* / JPS+</span><span class="tag">GOAP</span><span class="tag">Behavior Tree</span><span class="tag">ORCA</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>NavMesh uses Recast-style voxel baking + triangulated queries; pathfinding ships four implementations (A*, JPS+, Theta*, D*Lite); GOAP supports preconditions/effects with plan reuse; behavior trees have blackboards and decorators; crowd avoidance is an ORCA implementation based on the RVO2 paper. On the LLM side, NpcBrain feeds JSON intents from a large model into behavior trees and StateTree.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="animation">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>Animation</h3>
+        <span class="files">34 files · C#</span>
+        <p>Motion Matching procedural clip selection, FABRIK / CCD / Two-Bone IK solvers, animation state graphs, skeletal retargeting — a complete toolchain for character animation and procedural motion.</p>
+        <div class="cap-tags"><span class="tag">Motion Matching</span><span class="tag">FABRIK IK</span><span class="tag">CCD</span><span class="tag">Retargeting</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>Motion Matching selects clips in real time from the animation library using trajectory matching (future trajectory + pose cost). IK ships three solvers: FABRIK, CCD and Two-Bone. Retargeting supports bone mapping with offset correction. Status: core algorithms done; editor preview integration in progress.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="audio">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        </div>
+        <h3>Audio</h3>
+        <span class="files">35 files · C#</span>
+        <p>Dual output backends (WASAPI and Miniaudio), FFT spectrum analysis, DSP effect chains, convolution reverb, a real-time synthesizer, and 3D spatial audio — from low-level DSP to the audio scene graph.</p>
+        <div class="cap-tags"><span class="tag">WASAPI</span><span class="tag">FFT / DSP</span><span class="tag">Convolution Reverb</span><span class="tag">3D Spatial</span><span class="tag">Synth</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>Dual backends: WASAPI (exclusive/shared modes) and Miniaudio. The DSP chain includes EQ, compressors, delays and reverb; convolution reverb uses FFT partitioned convolution; 3D audio applies an HRTF approximation from listener orientation. Status: backends and DSP done; audio scene graph integration in progress.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="ecs">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3>ECS architecture</h3>
+        <span class="files">19 files · C#</span>
+        <p>Archetype memory layout keeps component data contiguous for maximum cache hit rate. SystemScheduler manages execution order, EntityCommandBuffer defers entity operations, EntityQueryCache accelerates queries.</p>
+        <div class="cap-tags"><span class="tag">Archetype</span><span class="tag">SystemScheduler</span><span class="tag">CommandBuffer</span><span class="tag">QueryCache</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>Archetypes store entities in chunks per component combination, with 16KB chunks aligned to cache lines; SystemScheduler sorts by read/write dependencies and builds parallel groups; EntityCommandBuffer records and replays deferred changes; EntityQueryCache caches query results. Status: core done; benchmarks in progress.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="editor">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3>Integrated editor</h3>
+        <span class="files">41 files · WinUI 3</span>
+        <p>A WinUI 3 native window hosting a Vulkan surface, with ImGui-driven viewport, outline and inspector panels. Five work modes one click away: scene, terrain, modeling, code, test.</p>
+        <div class="cap-tags"><span class="tag">WinUI 3</span><span class="tag">ImGui</span><span class="tag">Viewport</span><span class="tag">Inspector</span><span class="tag">5 Modes</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>The WinUI 3 native window embeds a Vulkan surface via Win32 swapchain interop; ImGui panels include viewport, hierarchy outline, component inspector, console and asset browser; the five modes (scene / terrain / modeling / code / test) share one undo stack. Status: panels and mode switching work; UX polish ongoing.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="dcc">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3>DCC bridges</h3>
+        <span class="files">Blender · Maya · Max</span>
+        <p>A Blender LiveLink TCP plugin syncs meshes and animation in real time; Maya and 3ds Max Python plugins push assets into the engine's asset pipeline. Keep the modeling tools you already use.</p>
+        <div class="cap-tags"><span class="tag">Blender LiveLink</span><span class="tag">Maya</span><span class="tag">3ds Max</span><span class="tag">Asset Pipeline</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>The Blender side is a Python plugin + TCP LiveLink pushing meshes / skeletons / animation in real time; Maya and 3ds Max export intermediate formats via OpenMaya / MaxScript into the asset pipeline. Status: the Blender link runs basic mesh sync; Maya / Max are skeleton-level implementations.</p></div>
+      </div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="network">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <h3>Networking · assets · scripting</h3>
+        <span class="files">Multiple subsystems · C#</span>
+        <p>LiteNetLib state replication with client prediction for multiplayer sync; ProjectSystem and AssetDatabase drive the data asset pipeline; Roslyn provides C# hot-reload scripting, plus a visual script editor.</p>
+        <div class="cap-tags"><span class="tag">LiteNetLib</span><span class="tag">State Replication</span><span class="tag">Roslyn</span><span class="tag">Visual Script</span></div>
+        <div class="cap-more"><h4>Deep dive</h4><p>Networking: LiteNetLib transport + state replication (snapshot interpolation) + client prediction with server rollback. Assets: ProjectSystem / AssetDatabase support import, references and packaging. Scripting: Roslyn-based C# runtime hot-reload. Status: network replication and script hot-reload work.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="prose reveal" style="padding:64px 32px 20px">
+      <h3>Deep dive · how three systems cooperate</h3>
+      <p>The nine cards above are the horizontal "what exists". This section is the vertical "how it cooperates". A moving crate in a game passes through physics, rendering and ECS at the same time:</p>
+      <ol>
+        <li><div>ECS <strong>Transform</strong> components hold position and rotation; a <strong>RigidBody</strong> component declares participation in physics simulation.</div></li>
+        <li><div>The physics solver advances velocity and position at a fixed step and writes back to Transform.</div></li>
+        <li><div>The render system reads Transform, writes a unified model-matrix cache, and hands it to Vulkan push constants / UBOs.</div></li>
+        <li><div>The animation system modifies vertices via skeletal skinning while Motion Matching picks the clip — all on the GPU side.</div></li>
+        <li><div>The audio system computes 3D attenuation from listener-to-source distance and outputs to WASAPI / Miniaudio.</div></li>
+      </ol>
+
+      <div class="callout">
+        <span class="callout-tag">Honest Note</span>
+        <p>File counts measure "how much code exists", not "how stable it is". The render pipeline is at 60% maturity, DCC bridges at 30% — itemized numbers live on the <a href="status-en.html" style="color:var(--orange);text-decoration:underline">Honest Status</a> page.</p>
+      </div>
+
+      <h3>Technology choices at a glance</h3>
+      <div class="two-col">
+        <div class="spec-card">
+          <h4>Graphics API</h4>
+          <span class="spec-sub">Vulkan 1.4 · Silk.NET 2.22</span>
+          <p>The only backend. Dynamic rendering, mesh shaders, ray tracing and bindless resources are all available. D3D12 has been removed.</p>
+        </div>
+        <div class="spec-card">
+          <h4>UI framework</h4>
+          <span class="spec-sub">WinUI 3 + ImGui</span>
+          <p>Native window hosting a Vulkan surface. ImGui drives the viewport / outline / inspector; WinUI 3 provides system menus and dialogs.</p>
+        </div>
+        <div class="spec-card">
+          <h4>Scripting</h4>
+          <span class="spec-sub">Roslyn C# Hot-Reload</span>
+          <p>C# scripts compile and hot-reload at runtime — change one line and see the result immediately. A visual script editor is also included.</p>
+        </div>
+        <div class="spec-card">
+          <h4>Audio backend</h4>
+          <span class="spec-sub">WASAPI + Miniaudio</span>
+          <p>Dual output backends with a DSP effect chain, convolution reverb, a real-time synthesizer, and 3D spatial audio.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Quote band ══════════ -->
+<section class="quote-band">
+  <div class="q">"A storm is coming — <span class="em">the wind fills the tower</span>."</div>
+  <span class="src">Xu Hun, "East Tower of Xianyang City" · Tang dynasty</span>
+  <p class="note">Compile errors are at zero — the mountain rain is near — but the real GPU end-to-end validation hasn't run yet. Closing that gap is exactly what Phase 1 is about.</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>A desktop game &amp; modeling engine prototype built from scratch in C#/.NET 10, targeting UE5-class rendering with a lightweight integrated workflow. MIT licensed.</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub repository">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">Open source · Star the repo to support development</span>
+        </div>
+      </div>
+      <div class="foot-copy">© 2026 Lu’an Qingnai Technology Co., Ltd. · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Engine</h4>
+        <a href="why-en.html">Why Yama</a>
+        <a href="capabilities-en.html">Core systems</a>
+        <a href="compare-en.html">Compare</a>
+        <a href="architecture-en.html">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>Status</h4>
+        <a href="status-en.html">Honest status</a>
+        <a href="status-en.html#build">Build results</a>
+        <a href="status-en.html#roadmap">Roadmap</a>
+        <a href="get-started-en.html">Quick start</a>
+      </div>
+      <div class="foot-col">
+        <h4>Modules</h4>
+        <a href="capabilities-en.html#rendering">Render pipeline</a>
+        <a href="capabilities-en.html#physics">Physics engine</a>
+        <a href="capabilities-en.html#ai">Artificial intelligence</a>
+        <a href="capabilities-en.html#ecs">ECS architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>More</h4>
+        <a href="poem.html">A Tang poem</a>
+        <a href="status-en.html">Maturity assessment</a>
+        <a href="faq-en.html#contribute">Contribute</a>
+        <a href="index.html">中文首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · Open-source desktop engine</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="Back to top">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

@@ -791,7 +791,7 @@ namespace YamaEngine.Scenes
                             if (value != null)
                                 field.SetValue(instance, value);
                         }
-                        catch { /* 跳过无法恢复的字段 */ }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[SceneSerializer] 恢复脚本字段 {fieldKv.Key} 失败: {ex.Message}"); }
                     }
                 }
 

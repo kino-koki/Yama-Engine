@@ -2287,6 +2287,25 @@ namespace YamaEngine.VisualScript
                     var lalpha = ToFloat(inputs, "Alpha");
                     outputs["Result"] = la + (lb - la) * lalpha;
                     break;
+                case "InverseLerp":
+                {
+                    var ia = ToFloat(inputs, "A");
+                    var ib = ToFloat(inputs, "B");
+                    var iv = ToFloat(inputs, "Value");
+                    outputs["Result"] = Math.Abs(ib - ia) < 0.00001f ? 0f : (iv - ia) / (ib - ia);
+                    break;
+                }
+                case "MapRange":
+                {
+                    var mv = ToFloat(inputs, "Value");
+                    var inMin = ToFloat(inputs, "InMin");
+                    var inMax = ToFloat(inputs, "InMax");
+                    var outMin = ToFloat(inputs, "OutMin");
+                    var outMax = ToFloat(inputs, "OutMax");
+                    var t = Math.Abs(inMax - inMin) < 0.00001f ? 0f : (mv - inMin) / (inMax - inMin);
+                    outputs["Result"] = outMin + (outMax - outMin) * t;
+                    break;
+                }
 
                 // 向量节点
                 case "Vector3Add":
@@ -2297,6 +2316,9 @@ namespace YamaEngine.VisualScript
                     break;
                 case "Vector3Scale":
                     outputs["Result"] = ToVec3(inputs, "Vector") * ToFloat(inputs, "Scale");
+                    break;
+                case "Vector3Lerp":
+                    outputs["Result"] = Vector3.Lerp(ToVec3(inputs, "A"), ToVec3(inputs, "B"), ToFloat(inputs, "Alpha"));
                     break;
                 case "CrossProduct":
                     outputs["Result"] = Vector3.Cross(ToVec3(inputs, "A"), ToVec3(inputs, "B"));
@@ -2340,6 +2362,12 @@ namespace YamaEngine.VisualScript
                 case "XOR":
                     outputs["Result"] = ToBool(inputs, "A") ^ ToBool(inputs, "B");
                     break;
+                case "NAND":
+                    outputs["Result"] = !(ToBool(inputs, "A") && ToBool(inputs, "B"));
+                    break;
+                case "NOR":
+                    outputs["Result"] = !(ToBool(inputs, "A") || ToBool(inputs, "B"));
+                    break;
 
                 // 比较节点
                 case "Equal":
@@ -2360,6 +2388,59 @@ namespace YamaEngine.VisualScript
                 case "LessEqual":
                     outputs["ReturnValue"] = ToFloat(inputs, "A") <= ToFloat(inputs, "B");
                     break;
+                case "ApproxEqual":
+                {
+                    var ae = ToFloat(inputs, "A");
+                    var be = ToFloat(inputs, "B");
+                    outputs["ReturnValue"] = Math.Abs(ae - be) < 0.0001f;
+                    break;
+                }
+                case "StringEqual":
+                    outputs["ReturnValue"] = ToString(inputs, "A") == ToString(inputs, "B");
+                    break;
+                case "NameEqual":
+                    outputs["ReturnValue"] = ToString(inputs, "A") == ToString(inputs, "B");
+                    break;
+                case "EnumEqual":
+                    outputs["ReturnValue"] = ToInt(inputs, "A") == ToInt(inputs, "B");
+                    break;
+
+                // 类型转换节点
+                case "ToFloat":
+                    outputs["Output"] = ToFloat(inputs, "Input");
+                    break;
+                case "ToInt":
+                    outputs["Output"] = ToInt(inputs, "Input");
+                    break;
+                case "ToBool":
+                    outputs["Output"] = ToBool(inputs, "Input");
+                    break;
+                case "ToString":
+                    outputs["Output"] = ToString(inputs, "Input");
+                    break;
+                case "ToVector3":
+                    outputs["Output"] = ToVec3(inputs, "Input");
+                    break;
+                case "ToColor":
+                {
+                    var colorVal = inputs.GetValueOrDefault("Input");
+                    outputs["Output"] = colorVal is YamaEngine.UI.Color c
+                        ? c
+                        : colorVal is Vector4 v4 ? new YamaEngine.UI.Color(v4.X, v4.Y, v4.Z, v4.W)
+                        : new YamaEngine.UI.Color(1, 1, 1, 1);
+                    break;
+                }
+                case "ToRotator":
+                    // Rotator 以 Vector3 欧拉角表示
+                    outputs["Output"] = ToVec3(inputs, "Input");
+                    break;
+                case "ToQuaternion":
+                {
+                    var euler = ToVec3(inputs, "Rotator");
+                    outputs["Result"] = Quaternion.CreateFromYawPitchRoll(
+                        euler.Y * MathF.PI / 180f, euler.X * MathF.PI / 180f, euler.Z * MathF.PI / 180f);
+                    break;
+                }
 
                 default:
                     // 未知节点类型，返回空输出
@@ -2373,25 +2454,41 @@ namespace YamaEngine.VisualScript
         private static float ToFloat(Dictionary<string, object?> inputs, string key)
         {
             if (!inputs.TryGetValue(key, out var val) || val == null) return 0f;
-            return Convert.ToSingle(val);
+            try { return Convert.ToSingle(val); }
+            catch
+            {
+                return float.TryParse(val.ToString(), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 0f;
+            }
         }
 
         private static int ToInt(Dictionary<string, object?> inputs, string key)
         {
             if (!inputs.TryGetValue(key, out var val) || val == null) return 0;
-            return Convert.ToInt32(val);
+            try { return Convert.ToInt32(val); }
+            catch
+            {
+                return int.TryParse(val.ToString(), out var i) ? i : 0;
+            }
         }
 
         private static bool ToBool(Dictionary<string, object?> inputs, string key)
         {
             if (!inputs.TryGetValue(key, out var val) || val == null) return false;
-            return Convert.ToBoolean(val);
+            if (val is bool b) return b;
+            try { return Convert.ToBoolean(val); }
+            catch
+            {
+                return val.ToString() is string s
+                    ? (s.Equals("true", StringComparison.OrdinalIgnoreCase) || s == "1")
+                    : false;
+            }
         }
 
         private static string ToString(Dictionary<string, object?> inputs, string key)
         {
             if (!inputs.TryGetValue(key, out var val) || val == null) return string.Empty;
-            return val.ToString() ?? string.Empty;
+            return val is string s ? s : val.ToString() ?? string.Empty;
         }
 
         private static Vector3 ToVec3(Dictionary<string, object?> inputs, string key)

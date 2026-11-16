@@ -729,9 +729,10 @@ namespace YamaEngine.Build
                     var tree = CSharpSyntaxTree.ParseText(sourceText, path: file);
                     syntaxTrees.Add(tree);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 跳过无法解析的文件
+                    // 无法解析的脚本: 记录并跳过, 编译结果可能缺类。
+                    Console.WriteLine($"[Build] 解析脚本 {file} 失败: {ex.Message}");
                 }
             }
 
@@ -860,9 +861,10 @@ namespace YamaEngine.Build
                     var asm = Assembly.Load(name);
                     refs.Add(MetadataReference.CreateFromFile(asm.Location));
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 某些平台可能缺少部分程序集, 忽略
+                    // 某些平台可能缺少部分程序集: 记录, 忽略。
+                    Console.WriteLine($"[Build] 加载核心程序集 {name} 失败: {ex.Message}");
                 }
             }
 
@@ -1165,9 +1167,11 @@ namespace YamaEngine.Build
                         _index[entry.AssetPath] = entry;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 索引文件损坏, 重新开始
+                // 索引文件损坏: 记录并清空重建, 不静默。
+                Console.WriteLine($"[Build] 索引文件 {_indexFile} 损坏: {ex.Message}");
+                _index.Clear();
             }
         }
 
@@ -1281,10 +1285,23 @@ namespace YamaEngine.Build
 
             // 4. 复制变更与新增文件到热更新包
             long totalSize = 0;
+            // 工业级防御: entry.RelativePath 来自清单(未受信), 含 "../" 可逃逸 cook 目录或包目录 → 路径穿越。
+            // 计算安全根并用 GetFullPath 归一化后做前缀边界校验。
+            string cookRoot = Path.GetFullPath(_currentCookDir);
+            string cookRootWithSep = cookRoot.EndsWith(Path.DirectorySeparatorChar)
+                ? cookRoot : cookRoot + Path.DirectorySeparatorChar;
+            string pkgRoot = Path.GetFullPath(packageDir);
+            string pkgRootWithSep = pkgRoot.EndsWith(Path.DirectorySeparatorChar)
+                ? pkgRoot : pkgRoot + Path.DirectorySeparatorChar;
             foreach (var entry in addedFiles.Concat(changedFiles))
             {
-                var sourcePath = Path.Combine(_currentCookDir, entry.RelativePath);
-                var destPath = Path.Combine(packageDir, entry.RelativePath);
+                var sourcePath = Path.GetFullPath(Path.Combine(cookRoot, entry.RelativePath));
+                var destPath = Path.GetFullPath(Path.Combine(pkgRoot, entry.RelativePath));
+                // 前缀边界校验: 解析后必须仍在各自根目录之下, 否则拒绝 (防 "../" 逃逸)。
+                if (!sourcePath.StartsWith(cookRootWithSep, StringComparison.OrdinalIgnoreCase) ||
+                    !destPath.StartsWith(pkgRootWithSep, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException(
+                        $"热更新路径逃逸: {entry.RelativePath} → {sourcePath} / {destPath}");
                 Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
                 if (File.Exists(sourcePath))
                 {
@@ -1700,9 +1717,10 @@ namespace YamaEngine.Build
                 SceneSerializer.Save(scenePath, options.Assets!.SceneObjects,
                     string.IsNullOrWhiteSpace(options.SceneName) ? "Main" : options.SceneName);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // 场景序列化失败不阻断构建
+                // 场景序列化失败不阻断构建: 记录, 但打包产物可能缺场景。
+                Console.WriteLine($"[Build] 场景序列化失败: {ex.GetType().Name}: {ex.Message}");
             }
         }
 
@@ -1886,9 +1904,10 @@ namespace YamaEngine.Build
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 读取失败返回空列表
+                // 读取失败: 记录, 返回空列表 (shader 变体丢失)。
+                Console.WriteLine($"[Build] 提取 shader 关键字 {shaderPath} 失败: {ex.Message}");
             }
             return keywords.Distinct().ToList();
         }
@@ -1921,9 +1940,10 @@ namespace YamaEngine.Build
                         entryPoints.Add("AS");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 读取失败
+                // 读取失败: 记录, 回退默认入口点。
+                Console.WriteLine($"[Build] 提取 shader 入口点 {shaderPath} 失败: {ex.Message}");
             }
             return entryPoints.Count > 0 ? entryPoints : new List<string> { "VS", "PS" };
         }

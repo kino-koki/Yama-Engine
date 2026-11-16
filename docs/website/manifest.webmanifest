@@ -1,0 +1,14 @@
+{
+  "name": "Yama Engine — 用 C# 造一个真引擎",
+  "short_name": "Yama",
+  "description": "用 C#/.NET 10 从零构建的桌面游戏与建模引擎。Vulkan 1.4 单后端，手写物理与渲染，WinUI 3 一体化编辑器。MIT 许可。",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#FFFAEB",
+  "theme_color": "#FFFAEB",
+  "icons": [
+    { "src": "assets/brand/logo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/brand/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/brand/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -108,6 +108,8 @@ namespace YamaEngine.Core
         {
             int newCapacity = _items.Length == 0 ? 4 : _items.Length * 2;
             if (newCapacity < minCapacity) newCapacity = minCapacity;
+            if (newCapacity < _items.Length) // 整数溢出保护
+                throw new InvalidOperationException("NativeList capacity overflow.");
             Array.Resize(ref _items, newCapacity);
         }
 
@@ -222,6 +224,7 @@ namespace YamaEngine.Core
 
         public RingBuffer(int capacity)
         {
+            if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
             _buffer = new T[capacity];
             _head = 0;
             _tail = 0;
@@ -292,6 +295,7 @@ namespace YamaEngine.Core
 
         public SparseSet(int maxSparse = 64)
         {
+            if (maxSparse <= 0) throw new ArgumentOutOfRangeException(nameof(maxSparse));
             _sparse = new int[maxSparse];
             Array.Fill(_sparse, -1);
             _dense = new int[16];
@@ -304,20 +308,20 @@ namespace YamaEngine.Core
 
         public bool Has(int externalId)
         {
-            if ((uint)externalId >= (uint)_sparse.Length) return false;
+            if (externalId < 0 || (uint)externalId >= (uint)_sparse.Length) return false;
             int denseIdx = _sparse[externalId];
             return denseIdx >= 0 && denseIdx < _count && _dense[denseIdx] == externalId;
         }
 
         public ref T Get(int externalId)
         {
-            if (!Has(externalId)) throw new KeyNotFoundException($"SparseSet 未找到 ID {externalId}");
+            if (externalId < 0 || !Has(externalId)) throw new KeyNotFoundException($"SparseSet 未找到 ID {externalId}");
             return ref _denseValues[_sparse[externalId]];
         }
 
         public bool TryGet(int externalId, out T value)
         {
-            if (Has(externalId))
+            if (externalId >= 0 && Has(externalId))
             {
                 value = _denseValues[_sparse[externalId]];
                 return true;
@@ -328,11 +332,14 @@ namespace YamaEngine.Core
 
         public void Add(int externalId, in T value)
         {
+            if (externalId < 0) throw new ArgumentOutOfRangeException(nameof(externalId));
             EnsureSparseCapacity(externalId);
             if (Has(externalId)) { Get(externalId) = value; return; }
 
             if (_count >= _dense.Length)
             {
+                if (_dense.Length > int.MaxValue / 2)
+                    throw new InvalidOperationException("SparseSet capacity overflow.");
                 int newCap = _dense.Length * 2;
                 Array.Resize(ref _dense, newCap);
                 Array.Resize(ref _denseValues, newCap);
@@ -346,7 +353,7 @@ namespace YamaEngine.Core
 
         public bool Remove(int externalId)
         {
-            if (!Has(externalId)) return false;
+            if (externalId < 0 || !Has(externalId)) return false;
 
             int idx = _sparse[externalId];
             int lastIdx = _count - 1;
@@ -377,6 +384,8 @@ namespace YamaEngine.Core
             if (id >= _sparse.Length)
             {
                 int newSize = Math.Max(_sparse.Length * 2, id + 1);
+                if (newSize < _sparse.Length) // 整数溢出保护
+                    throw new InvalidOperationException("SparseSet capacity overflow.");
                 int[] newSparse = new int[newSize];
                 Array.Fill(newSparse, -1);
                 Array.Copy(_sparse, newSparse, _sparse.Length);
@@ -395,11 +404,14 @@ namespace YamaEngine.Core
     /// <summary>
     /// 每个元素拥有唯一 Token（uint）的列表。适合资源句柄管理。
     /// 删除不会移动其他元素（用 nextFree 链表追踪空闲槽）。
+    /// Generation 独立 32 位存储，避免旧实现的 24 位 ABA 碰撞与 8 位空闲链表限制。
     /// </summary>
     public sealed class TokenList<T> : IEnumerable<T> where T : class
     {
+        private const uint GenerationMask = 0x7FFFFFFF; // 高位保留避免溢出为负数
         private T?[] _items = Array.Empty<T?>();
         private uint[] _generations = Array.Empty<uint>();
+        private int[] _freeLinks = Array.Empty<int>(); // 空闲槽链表：next free 索引，-1 表示链尾
         private int _freeHead = -1;
         private int _count;
 
@@ -418,19 +430,25 @@ namespace YamaEngine.Core
 
         public Token Add(T item)
         {
+            ArgumentNullException.ThrowIfNull(item);
             if (_freeHead >= 0)
             {
                 int idx = _freeHead;
-                // 从 free list 头部读取 nextFree（存储在 _items 索引位置，以 Generation 低24位存储）
-                _freeHead = (int)(_generations[idx] & 0xFFFFFF);
+                _freeHead = _freeLinks[idx];
                 _items[idx] = item;
+                // 复用槽时 generation 已由 Remove 递增，直接返回当前值
                 return new Token { Id = (uint)idx, Generation = _generations[idx] };
             }
 
             int newIdx = _items.Length;
+            if (newIdx == int.MaxValue) throw new InvalidOperationException("TokenList capacity overflow.");
             Array.Resize(ref _items, newIdx + 1);
             Array.Resize(ref _generations, newIdx + 1);
+            Array.Resize(ref _freeLinks, newIdx + 1);
             _items[newIdx] = item;
+            _generations[newIdx] = 1; // 首个槽 generation 从 1 起（0 保留为无效）
+            _freeLinks[newIdx] = -1;
+            _count++;
             return new Token { Id = (uint)newIdx, Generation = _generations[newIdx] };
         }
 
@@ -449,7 +467,11 @@ namespace YamaEngine.Core
             if (_generations[idx] != token.Generation) return false;
 
             _items[idx] = null;
-            _generations[idx] = ((_generations[idx] + 1) & 0xFFFFFF) | (uint)_freeHead << 24;
+            // generation 递增并防止溢出到 0（0 表示永久无效/ABA 防护）
+            uint nextGen = (_generations[idx] + 1) & GenerationMask;
+            if (nextGen == 0) nextGen = 1;
+            _generations[idx] = nextGen;
+            _freeLinks[idx] = _freeHead;
             _freeHead = idx;
             _count--;
             return true;
@@ -458,6 +480,7 @@ namespace YamaEngine.Core
         public void Clear()
         {
             Array.Clear(_items);
+            Array.Clear(_generations);
             _freeHead = -1;
             _count = 0;
         }

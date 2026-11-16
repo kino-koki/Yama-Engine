@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>诚实的问答 — Yama Engine</title>
+<meta name="description" content="是游戏引擎还是建模工具？为什么选 C#？现在能跑起来吗？能用于商业项目吗？关于 Yama 最常被问到的十个问题。">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="faq.html">
+<link rel="alternate" hreflang="en" href="faq-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<meta property="og:title" content="诚实的问答 — Yama Engine">
+<meta property="og:description" content="是游戏引擎还是建模工具？为什么选 C#？现在能跑起来吗？能用于商业项目吗？关于 Yama 最常被问到的十个问题。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html" data-nav="why">为什么</a>
+      <a href="capabilities.html" data-nav="capabilities">能力</a>
+      <a href="scenarios.html" data-nav="scenarios">场景</a>
+      <a href="architecture.html" data-nav="architecture">架构</a>
+      <a href="compare.html">对比</a>
+      <a href="get-started.html" data-nav="get-started">快速上手</a>
+      <a href="status.html" data-nav="status">真实状态</a>
+      <a href="faq.html" data-nav="faq" aria-current="page">FAQ</a>
+      <a href="poem.html" data-nav="poem">诗</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+<!-- ══════════ PAGE HERO ══════════ -->
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">06 / FAQ</div>
+    <h1>一些<em>诚实</em>的回答。</h1>
+    <p class="lede">
+      关于 Yama 最常被问到的十个问题。我们不回避尖锐的问题 — 包括"现在到底能不能跑"和"能不能用于商业项目"这两个最直接的问题。
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="faq">
+  <div class="wrap">
+    <div class="faq-list" style="margin-top:56px">
+      <details class="faq-item">
+        <summary>Yama 是游戏引擎还是建模工具？</summary>
+        <div class="faq-body">
+          <p>两者都是。Yama 的定位是"游戏与建模一体化引擎" — 像 Unreal 一样运行游戏，也像 Blender 一样做资产编辑。WinUI 3 编辑器里有五种工作模式：场景、地形、建模、代码、测试。建模模式直接编辑网格几何体，不需要跳出去用 Blender。</p>
+          <p>当然，DCC 桥接也存在 — 如果你更喜欢 Blender / Maya 的建模体验，LiveLink 能把资产实时同步进来。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>为什么选 C# 而不是 C++？</summary>
+        <div class="faq-body">
+          <p>因为 C# 让我们写得更快、更安全、更容易读。<code>.NET 10</code> 的 JIT 已经能生成接近 C++ 的机器码，特别是配合 <code>Span&lt;T&gt;</code>、<code>unsafe</code> 和 SIMD intrinsics。物理引擎的 GJK / EPA 全部手写 C#，性能在可接受范围内。</p>
+          <p>更重要的是：C# 的开发迭代速度是 C++ 的 3-5 倍。一个人维护的项目，速度就是一切。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Vulkan 1.4 是什么？为什么只有一个后端？</summary>
+        <div class="faq-body">
+          <p>Vulkan 1.4 是 Khronos 最新的图形 API 标准（2024 发布），包含动态渲染、Mesh Shader、Ray Tracing 等现代特性。我们只维护一个后端是因为 D3D12 后端已经被废弃并从工程中移除 — 维护两个后端会拖慢整体进度。</p>
+          <p>Linux / macOS 支持通过 Vulkan 移植层（如 MoltenVK）理论上可行，但目前 Yama 只在 Windows 上运行，因为 WinUI 3 编辑器依赖 Windows。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>现在能跑起来吗？</summary>
+        <div class="faq-body">
+          <p>取决于"跑起来"的定义。引擎能编译、能启动编辑器、能加载资产、能在视口里看到 Vulkan 渲染的三角形 — 这些都工作了。</p>
+          <p>但完整的 PBR 场景渲染 + 物理模拟 + 动画 + 音频的端到端流程，目前在部分独显机器上还有 Vulkan 运行时崩溃需要解决（详见"真实状态"）。我们正在 Phase 1 集中攻克这个问题。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>能用于商业项目吗？</summary>
+        <div class="faq-body">
+          <p>Yama 使用 MIT 许可，商业使用没有法律障碍。但坦率地说，当前成熟度不适合生产环境 — 渲染管线的高级特性尚未在真实 GPU 上稳定，编辑器也未经过长时间使用的稳定性测试。</p>
+          <p>如果你想做原型实验、学习引擎架构、或者贡献代码 — 现在就是好时机。如果你想做一个要发布的游戏 — 再等等。</p>
+        </div>
+      </details>
+
+      <details class="faq-item" id="contribute">
+        <summary>怎么参与贡献？</summary>
+        <div class="faq-body">
+          <p>Clone 仓库，用 Visual Studio 2026 或 JetBrains Rider 打开 <code>YamaEngine.sln</code>，F5 编译。从 <code>YamaVulkanSandbox</code> 项目开始读，那里有最精简的引擎使用示例。</p>
+          <p>当前最需要帮助的方向：GPU 端到端调试、Vulkan 验证层问题定位、CI/CD 搭建、文档撰写。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>物理引擎是封装的 PhysX 吗？</summary>
+        <div class="faq-body">
+          <p>不是。Yama 的物理引擎零第三方依赖，GJK / EPA / SAT 碰撞检测、9 种关节约束、自定义向量与四元数库全部从数学公式开始手写。这是"代码即文档"原则最直接的体现 — 你读到的每一行都是自己的。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>渲染管线到哪一步了？</summary>
+        <div class="faq-body">
+          <p>PBR 材质、级联阴影、骨骼蒙皮、时间抗锯齿（TSR）已接入 SceneRendererReal 主管线。ReSTIR 全局光照、SVGF、路径追踪、MicroCluster 已写出完整算法代码，但尚未接入主管线并在真实 GPU 上跑通 — 这是 Phase 2 的内容。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>和 Godot 有什么区别？</summary>
+        <div class="faq-body">
+          <p>Godot 是一个成熟、社区庞大、跨平台的开源引擎。Yama 不打算替代它 — Yama 的定位不同：单一 Vulkan 后端 + 手写核心系统 + WinUI 3 一体化编辑器，更像一个"可读性的 UE5 级桌面引擎"。</p>
+          <p>如果你想马上做一个 2D 游戏，用 Godot。如果你想研究一个现代渲染管线怎么从零搭起来，来读 Yama。</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>为什么首页放一首唐诗？</summary>
+        <div class="faq-body">
+          <p>因为"山雨欲来风满楼"正好是引擎当前状态的诗意写照 — 编译已经清零（山雨将至），但真正的 GPU 端到端验证还没跑通（风还没满楼）。</p>
+          <p>《咸阳城东楼》八句被完整艺术字化排进 <a href="poem.html" style="color:var(--orange);text-decoration:underline">独立诗页</a>，竖排、大字、六段日落色阶，可以慢慢读。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+<!-- ══════════ FOOTER (Mistral 1:1) ══════════ -->
+
+<!-- ══════════ 《盘铭》引言带（借鉴 SenseNova）══════════ -->
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+      <div class="foot-social">
+        <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+      </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="scenarios.html">使用场景</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="get-started.html">快速上手</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="status.html">成熟度评估</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

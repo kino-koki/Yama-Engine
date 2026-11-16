@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -57,11 +57,7 @@
 
     <!-- ====== RHI 抽象层 ====== -->
     <Compile Include="RHI\**\*.cs" />
-    <!-- D3D12 后端已废弃，排除所有 D3D12 实现文件 -->
-    <!-- 注意：实际 D3D12 实现文件位于 RHI\ 根（D3D12*Real.cs），而非 RHI\D3D12\ 子目录，
-         因此需同时用两个 Remove 才能覆盖；这些文件依赖未引用的 Vortice.Direct3D12 包。 -->
-    <Compile Remove="RHI\D3D12\**\*.cs" />
-    <Compile Remove="RHI\D3D12*Real.cs" />
+    <!-- D3D12 后端已废弃，源文件已整体删除（2026-11-14 生产级清理） -->
 
     <!-- ====== Vulkan 后端（唯一图形后端） ====== -->
     <Compile Include="Vulkan\**\*.cs" />
@@ -119,6 +115,8 @@
 
     <!-- 根目录入口 -->
     <Compile Include="EngineApplication.cs" />
+    <!-- 程序集属性（InternalsVisibleTo，授予测试工程白盒访问权限） -->
+    <Compile Include="AssemblyAttributes.cs" />
     <!-- 兼容类型补全层（缺失的基础类型：Camera / BodyDescriptor / PhysicsRenderTarget 等） -->
     <Compile Include="EngineCompatTypes.cs" />
     <!-- 编译脚手架层（已写好但未接入的占位类型：SwapChain / MaterialLibrary / PhysicsSystem 等） -->
@@ -127,6 +125,31 @@
     <!-- ====== 排除重复或已废弃文件 ====== -->
     <!-- SparseShadowAtlases: 开发中，暂不编译 -->
     <Compile Remove="Rendering\**\*SparseShadowAtlases*.cs" />
+    <!-- ====== 移除与 YamaEngine.Tests 重复的测试文件（修复 CS0436 类型冲突）======
+         仅排除与测试工程同名类型的纯测试文件；保留 Testing\EngineTestFramework.cs /
+         AdvancedAutomationAndBenchmarking.cs 等测试基础设施（YamaEngine.Testing 命名空间被测试工程引用）。 -->
+    <Compile Remove="Testing\SceneTests.cs" />
+    <Compile Remove="Testing\MaterialTests.cs" />
+    <Compile Remove="Testing\AnimationTests.cs" />
+    <Compile Remove="Testing\BuildTests.cs" />
+    <Compile Remove="Testing\DiagnosticsTests.cs" />
+    <Compile Remove="Testing\RenderTests.cs" />
+    <Compile Remove="Testing\EditorTests.cs" />
+    <Compile Remove="Testing\RuntimeTests.cs" />
+    <Compile Remove="Testing\GameplayTests.cs" />
+    <!-- 引擎库遗留的 MockEngine 模拟测试类：使用测试替身而非真实引擎，
+         已被测试工程中的真实实现测试（ECSTests / CoreTests 等）取代。
+         从生产程序集移除编译，生产 DLL 不含测试代码。 -->
+    <Compile Remove="Testing\EcsTests.cs" />
+    <Compile Remove="Testing\MathTests.cs" />
+    <Compile Remove="Testing\PhysicsTests.cs" />
+    <Compile Remove="Testing\ModelingTests.cs" />
+    <Compile Remove="Testing\AssetTests.cs" />
+    <!-- 其他仍编入引擎程序集的独立自跑测试类（静态 *Tests，非生产代码，无外部引用） -->
+    <Compile Remove="Audio\MetaSounds\MetaSoundTests.cs" />
+    <Compile Remove="Physics\Advanced\Tests.cs" />
+    <Compile Remove="Physics\Real\Tests.cs" />
+    <Compile Remove="Rendering\Water\Real\Tests.cs" />
     <!-- VisualScriptingSystem.cs 与 NodeScriptSystem.cs 类型重复 -->
     <Compile Remove="Scripting\VisualScriptingSystem.cs" />
     <!-- BuildPipeline.cs 是 BuildPipelineReal.cs 的早期简版，已被取代。

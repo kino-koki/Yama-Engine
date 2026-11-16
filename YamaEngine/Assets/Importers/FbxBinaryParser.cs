@@ -316,6 +316,8 @@ namespace YamaEngine.Assets.Importers
                         uint strLen = _reader.ReadUInt32();
                         if (strLen > 0 && strLen < 10 * 1024 * 1024) // 安全限制 10MB
                         {
+                            if ((long)strLen > _stream.Length - _stream.Position)
+                                throw new InvalidDataException($"字符串长度超出流范围: {strLen}");
                             byte[] strBytes = _reader.ReadBytes((int)strLen);
                             prop.ScalarValue = Encoding.UTF8.GetString(strBytes);
                         }
@@ -334,11 +336,18 @@ namespace YamaEngine.Assets.Importers
                         uint rawLen = _reader.ReadUInt32();
                         if (rawLen > 0 && rawLen < 100 * 1024 * 1024) // 100MB
                         {
+                            if ((long)rawLen > _stream.Length - _stream.Position)
+                                throw new InvalidDataException($"raw 数据长度超出流范围: {rawLen}");
                             prop.ScalarValue = _reader.ReadBytes((int)rawLen);
                         }
                         else if (rawLen == 0)
                         {
                             prop.ScalarValue = Array.Empty<byte>();
+                        }
+                        else
+                        {
+                            // 超过安全上限：视为损坏文件，不得静默丢弃
+                            throw new InvalidDataException($"raw 数据长度过大: {rawLen}");
                         }
                         break;
                     }
@@ -386,17 +395,31 @@ namespace YamaEngine.Assets.Importers
             uint encoding = _reader.ReadUInt32();    // 编码（0=原始, 1=LZMA, 2=ZSTD?）
             uint compressedLen = _reader.ReadUInt32(); // 压缩后的字节长度（0=未压缩）
 
+            int elemSize = GetElementSize(elementType);
+
+            // 防止损坏长度前缀导致的 OOM：
+            //  - 元素总数不能超过 int.MaxValue / elemSize（否则 (int)arrayLen * elemSize 溢出为负）
+            //  - 未压缩数据总字节数不能超过流剩余字节（否则会分配巨大缓冲然后静默截断）
+            if (arrayLen > int.MaxValue / (uint)Math.Max(elemSize, 1))
+                throw new InvalidDataException($"FBX 数组元素数量过大: {arrayLen}");
+
+            long expectedTotalBytes = (long)arrayLen * elemSize;
+            long streamRemaining = _stream.Length - _stream.Position;
+            if (expectedTotalBytes > streamRemaining)
+                throw new InvalidDataException($"FBX 数组数据超出流范围: 需要 {expectedTotalBytes}B, 剩余 {streamRemaining}B");
+
             byte[] rawData;
             if (encoding == 0 || compressedLen == 0)
             {
                 // 未压缩：直接读取
-                int elemSize = GetElementSize(elementType);
-                int totalBytes = (int)arrayLen * elemSize;
+                int totalBytes = (int)expectedTotalBytes;
                 rawData = _reader.ReadBytes(totalBytes);
             }
             else
             {
                 // 压缩：读取压缩数据后解压
+                if (compressedLen > int.MaxValue || (long)compressedLen > streamRemaining)
+                    throw new InvalidDataException($"FBX 压缩数据长度非法: {compressedLen}");
                 byte[] compressed = _reader.ReadBytes((int)compressedLen);
                 try
                 {
@@ -429,6 +452,15 @@ namespace YamaEngine.Assets.Importers
         /// <summary>将解压后的字节数组反序列化为类型化数组。</summary>
         private static Array DeserializeArray(byte[] data, char elementType, int length)
         {
+            if (length < 0)
+                throw new InvalidDataException($"FBX 数组长度为负: {length}");
+
+            int elemSize = GetElementSize(elementType);
+            // 防止 length * elemSize 溢出以及 length 超出 data 实际长度导致的
+            // 静默截断/越界读取（读循环会抛 EndOfStream，被顶层 catch 吞掉）。
+            if ((long)length * elemSize > data.Length)
+                throw new InvalidDataException($"FBX 数组数据不足: 声明 {length} 元素 × {elemSize}B, 实际 {data.Length}B");
+
             using var ms = new MemoryStream(data);
             using var br = new BinaryReader(ms, Encoding.UTF8);
 
@@ -535,6 +567,11 @@ namespace YamaEngine.Assets.Importers
             if (decompressedSize == 0)
                 decompressedSize = uncompressedSize;
 
+            // 工业级防御: decompressedSize 来自文件头, 可伪造负数/巨值 → new byte[decompressedSize] OOM 向量。
+            // 上限 1GB 防止 OOM (FBX 网格数据合理上限), 且须能容纳于 int。
+            if (decompressedSize < 0 || decompressedSize > 1024 * 1024 * 1024)
+                throw new InvalidDataException($"LZMA 未压缩大小非法: {decompressedSize}");
+
             // 压缩数据起始偏移
             int compressedOffset = 9;
             int compressedLen = compressed.Length - compressedOffset;
@@ -551,7 +588,8 @@ namespace YamaEngine.Assets.Importers
                 using var compressedStream = new MemoryStream(compressed, compressedOffset, compressedLen);
                 using var xzStream = new XzStream(compressedStream);
                 int read = xzStream.Read(result, 0, decompressedSize);
-                if (read > 0)
+                // 工业级防御: 必须读满 decompressedSize, 否则为静默截断/损坏数据 (不返回部分解压结果)。
+                if (read == decompressedSize)
                     return result;
             }
             catch
@@ -684,7 +722,7 @@ namespace YamaEngine.Assets.Importers
         {
             using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             byte[] magic = new byte[27];
-            fs.Read(magic, 0, 27);
+            fs.ReadExactly(magic, 0, 27);
             return BitConverter.ToInt32(magic, 23);
         }
 

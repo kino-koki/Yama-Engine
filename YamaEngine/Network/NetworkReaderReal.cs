@@ -1,6 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -197,10 +198,8 @@ namespace YamaEngine.Network
             int length = ReadInt32();
             if (length <= 0) return string.Empty;
             if (length > Remaining)
-            {
-                _position = _length;
-                return string.Empty;
-            }
+                throw new InvalidDataException(
+                    $"Network data corrupt: declared string length {length} exceeds remaining {Remaining} bytes.");
             string value = Encoding.UTF8.GetString(_buffer, _position, length);
             _position += length;
             return value;
@@ -211,34 +210,46 @@ namespace YamaEngine.Network
         {
             int length = ReadInt32();
             if (length <= 0) return Array.Empty<byte>();
+            if (length > Remaining)
+                throw new InvalidDataException(
+                    $"Network data corrupt: declared bytes length {length} exceeds remaining {Remaining} bytes.");
             return ReadBytesRaw(length);
         }
 
-        /// <summary>读取指定长度的原始字节 (无长度前缀)。</summary>
+        /// <summary>
+        /// 读取指定长度的原始字节 (无长度前缀)。
+        /// 长度不足时抛异常而非静默返回短数组 —— 静默截断会让下游解码出错乱数据。
+        /// </summary>
         public byte[] ReadBytesRaw(int count)
         {
             if (count <= 0) return Array.Empty<byte>();
-            int actualLen = Math.Min(count, Remaining);
-            byte[] result = new byte[actualLen];
-            if (actualLen > 0)
-            {
-                Array.Copy(_buffer, _position, result, 0, actualLen);
-                _position += actualLen;
-            }
+            // 工业级防御: count 来自未受信网络字节。
+            // 静默截断 (Math.Min) 会返回短数据导致下游解码错乱, 应抛异常明示损坏。
+            if (count > Remaining)
+                throw new InvalidDataException(
+                    $"Network data corrupt: declared raw byte count {count} exceeds remaining {Remaining} bytes.");
+            byte[] result = new byte[count];
+            Array.Copy(_buffer, _position, result, 0, count);
+            _position += count;
             return result;
         }
 
-        /// <summary>读取原始字节到目标数组。</summary>
+        /// <summary>读取原始字节到目标数组 (不足时抛异常, 不静默短读)。</summary>
         public int ReadRawBytes(byte[] destination, int offset, int count)
         {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
-            int actualLen = Math.Min(count, Remaining);
-            if (actualLen > 0)
+            if (offset < 0 || count < 0 || offset + count > destination.Length)
+                throw new ArgumentOutOfRangeException(nameof(count),
+                    $"Invalid destination range: offset {offset}, count {count}, destination length {destination.Length}.");
+            if (count > Remaining)
+                throw new InvalidDataException(
+                    $"Network data corrupt: declared raw byte count {count} exceeds remaining {Remaining} bytes.");
+            if (count > 0)
             {
-                Array.Copy(_buffer, _position, destination, offset, actualLen);
-                _position += actualLen;
+                Array.Copy(_buffer, _position, destination, offset, count);
+                _position += count;
             }
-            return actualLen;
+            return count;
         }
 
         // ──────────────────────────────────────────────────────────
@@ -354,13 +365,23 @@ namespace YamaEngine.Network
             while (true)
             {
                 uint chunk = ReadBits(7);
+
+                // 最后一组 (第 5 组, shift=28) 时 uint 仅剩 4 位可容纳。
+                // 若 chunk 高位非零, 编码超过 32 位, 属损坏/恶意数据, 拒绝而非静默截断。
+                if (shift == 28 && (chunk & 0x70) != 0)
+                    throw new InvalidDataException(
+                        "Network data corrupt: VarInt exceeds 32 bits.");
+
                 result |= (chunk << shift);
 
                 bool hasMore = ReadBit();
                 if (!hasMore) break;
 
                 shift += 7;
-                if (shift >= 35) break; // 防止无限循环 (最多 5 组 = 35 位)
+                // 5 组 = 35 位, 已超出 uint 容量。若对端仍标记 hasMore, 属损坏数据。
+                if (shift >= 35)
+                    throw new InvalidDataException(
+                        "Network data corrupt: VarInt continuation exceeds 5 groups.");
             }
 
             return result;
@@ -497,11 +518,23 @@ namespace YamaEngine.Network
         // 5. 集合读取
         // ──────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 集合长度前缀的安全上限：count 不得超过剩余字节数（每个元素至少占 1 字节），
+        /// 否则对端可发送伪造的巨值 count 触发 OOM。
+        /// </summary>
+        private int ReadCollectionCount()
+        {
+            int count = ReadInt32();
+            if (count < 0) return 0;
+            // 每个元素至少 1 字节；count 超过剩余字节即视为损坏数据。
+            return Math.Min(count, Remaining);
+        }
+
         /// <summary>读取数组 (4 字节长度前缀 + 逐元素反序列化)。</summary>
         public T[] ReadArray<T>(Func<T> readFunc)
         {
             if (readFunc == null) throw new ArgumentNullException(nameof(readFunc));
-            int count = ReadInt32();
+            int count = ReadCollectionCount();
             if (count <= 0) return Array.Empty<T>();
             T[] result = new T[count];
             for (int i = 0; i < count; i++)
@@ -513,7 +546,7 @@ namespace YamaEngine.Network
         public List<T> ReadList<T>(Func<T> readFunc)
         {
             if (readFunc == null) throw new ArgumentNullException(nameof(readFunc));
-            int count = ReadInt32();
+            int count = ReadCollectionCount();
             List<T> result = new List<T>(Math.Max(0, count));
             for (int i = 0; i < count; i++)
                 result.Add(readFunc());
@@ -525,7 +558,7 @@ namespace YamaEngine.Network
         {
             if (readKey == null) throw new ArgumentNullException(nameof(readKey));
             if (readValue == null) throw new ArgumentNullException(nameof(readValue));
-            int count = ReadInt32();
+            int count = ReadCollectionCount();
             Dictionary<K, V> result = new Dictionary<K, V>(Math.Max(0, count));
             for (int i = 0; i < count; i++)
             {

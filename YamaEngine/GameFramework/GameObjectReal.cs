@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using YamaEngine.Core;
 
 namespace YamaEngine.GameFramework
 {
@@ -477,8 +478,8 @@ namespace YamaEngine.GameFramework
             if (newParent == _parent)
                 return;
 
-            // 不能设置自己或自己的子节点为父
-            if (newParent != null && IsChildOf(newParent))
+            // 不能设置自己或自己的子节点为父；也不能把祖先挂到自己后代下（避免成环）
+            if (newParent != null && (newParent == this || IsChildOf(newParent) || newParent.IsChildOf(this)))
                 throw new InvalidOperationException("Cannot set a child or self as parent.");
 
             // 保存世界位置（如果需要保持）
@@ -519,6 +520,12 @@ namespace YamaEngine.GameFramework
                         _localRotation = Quaternion.Identity;
                     }
                 }
+            }
+            else if (worldPositionStays)
+            {
+                // 解除父化到根：世界位置/旋转就是本地位置/旋转
+                _localPosition = worldPos;
+                _localRotation = worldRot;
             }
 
             // 标记脏，触发矩阵重建
@@ -624,7 +631,26 @@ namespace YamaEngine.GameFramework
         public int Layer { get; set; } = 0;
 
         /// <summary>是否激活（影响Update和子对象）。</summary>
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; private set; } = true;
+
+        /// <summary>处理模式（对应 Godot 的 Node.process_mode）：控制暂停时是否参与 Update。</summary>
+        public NodeProcessMode ProcessMode { get; set; } = NodeProcessMode.Inherit;
+
+        /// <summary>
+        /// 设置对象激活状态。False 时调用所有启用组件的 OnDisable；重新激活时调用 OnEnable。
+        /// Godot 的 visible/process_mode 语义：非激活对象不参与 Update，但保留全部状态。
+        /// </summary>
+        public void SetActive(bool active)
+        {
+            if (IsActive == active) return;
+            IsActive = active;
+            foreach (var comp in _components)
+            {
+                if (!comp.Enabled) continue;
+                if (active) comp.OnEnable();
+                else comp.OnDisable();
+            }
+        }
 
         /// <summary>变换组件。</summary>
         public TransformReal Transform { get; }
@@ -637,6 +663,25 @@ namespace YamaEngine.GameFramework
 
         /// <summary>所属场景。</summary>
         public SceneReal Scene { get; internal set; }
+
+        // ====== 分组（对应 Godot 的 add_to_group / is_in_group） ======
+        private readonly HashSet<string> _groups = new();
+
+        /// <summary>将此对象加入一个分组。分组用于按标签批量查询。</summary>
+        public void AddToGroup(string group)
+        {
+            if (!string.IsNullOrEmpty(group))
+                _groups.Add(group);
+        }
+
+        /// <summary>将此对象移出一个分组。</summary>
+        public void RemoveFromGroup(string group) => _groups.Remove(group);
+
+        /// <summary>此对象是否属于指定分组。</summary>
+        public bool IsInGroup(string group) => _groups.Contains(group);
+
+        /// <summary>此对象所属的所有分组（只读）。</summary>
+        public IReadOnlyCollection<string> Groups => _groups;
 
         /// <summary>父对象。</summary>
         public GameObjectReal Parent => Transform.Parent?.GameObject;
@@ -664,6 +709,60 @@ namespace YamaEngine.GameFramework
 
         /// <summary>是否已启动。</summary>
         public bool IsStarted { get; private set; }
+
+        /// <summary>
+        /// 深拷贝此对象（含全部子层级），生成一个全新的 GameObject 树。
+        /// 新对象不复用任何 Transform/组件实例（组件通过相同具体类型重新构造）。
+        /// 不复制 Id/Scene；世界位置保持一致（作为根时）。对应 Godot 的 Node.Duplicate()。
+        /// </summary>
+        public GameObjectReal Instantiate()
+        {
+            var clone = CloneRecursive();
+            clone.Transform.SetParent(null, worldPositionStays: false);
+            // 根节点：直接拷贝本地变换，使世界变换与原对象（若为根）一致
+            clone.Transform.LocalPosition = Transform.LocalPosition;
+            clone.Transform.LocalRotation = Transform.LocalRotation;
+            clone.Transform.LocalScale = Transform.LocalScale;
+            return clone;
+        }
+
+        private GameObjectReal CloneRecursive()
+        {
+            var clone = new GameObjectReal(Name)
+            {
+                Tag = Tag,
+                Layer = Layer,
+            };
+            // 拷贝本地变换（保持层级内的相对位置/旋转/缩放）
+            clone.Transform.LocalPosition = Transform.LocalPosition;
+            clone.Transform.LocalRotation = Transform.LocalRotation;
+            clone.Transform.LocalScale = Transform.LocalScale;
+            clone.SetActive(IsActive);
+            foreach (var comp in _components)
+            {
+                // 通过具体类型浅拷贝组件（组件需可无参构造；不可构造类型跳过）
+                var cloneComp = CloneComponent(comp);
+                if (cloneComp != null)
+                    clone.AddComponent(cloneComp);
+            }
+            foreach (var child in Children)
+            {
+                var childClone = child.CloneRecursive();
+                childClone.SetParent(clone, worldPositionStays: false);
+            }
+            return clone;
+        }
+
+        private static ComponentReal CloneComponent(ComponentReal source)
+        {
+            var type = source.GetType();
+            if (type.GetConstructor(Type.EmptyTypes) == null)
+                return null;
+            var clone = (ComponentReal)Activator.CreateInstance(type)!;
+            clone.Tag = source.Tag;
+            clone.Enabled = source.Enabled;
+            return clone;
+        }
 
         public GameObjectReal(string name = "GameObject")
         {
@@ -854,16 +953,45 @@ namespace YamaEngine.GameFramework
 
         /// <summary>
         /// 更新对象：调用所有已启用组件的Update。
+        /// 受 IsActive（激活开关）和 ProcessMode（暂停语义）双重门控：
+        ///   - IsActive=false → 永不更新
+        ///   - ProcessMode=Disabled → 永不更新（即使激活）
+        ///   - ProcessMode=WhenPaused → 仅 IsGamePaused 时更新
+        ///   - ProcessMode=Pausable/Inherit → 仅非暂停时更新
+        ///   - ProcessMode=Always → 任何状态都更新
         /// </summary>
         internal void Update(float dt)
         {
             if (!IsActive) return;
+            if (!ShouldProcess(TimeManager.Instance.IsGamePaused)) return;
             foreach (var comp in _components)
             {
                 if (!comp.Enabled) continue;
                 comp.Update(dt);
             }
         }
+
+        /// <summary>
+        /// 根据处理模式和当前暂停状态，判断此对象本帧是否应参与 Update。
+        /// 对应 Godot 的 can_process()。
+        /// </summary>
+        public bool ShouldProcess(bool isGamePaused)
+        {
+            var mode = ResolveProcessMode();
+            return mode switch
+            {
+                NodeProcessMode.Always => true,
+                NodeProcessMode.Disabled => false,
+                NodeProcessMode.WhenPaused => isGamePaused,
+                NodeProcessMode.Pausable => !isGamePaused,
+                NodeProcessMode.Inherit => !isGamePaused, // 无父级时退化为 Pausable
+                _ => !isGamePaused,
+            };
+        }
+
+        /// <summary>解析有效处理模式（Inherit 无父级时退化为 Pausable）。</summary>
+        private NodeProcessMode ResolveProcessMode()
+            => ProcessMode == NodeProcessMode.Inherit ? NodeProcessMode.Pausable : ProcessMode;
 
         /// <summary>
         /// 销毁对象：调用所有组件的OnDestroy。

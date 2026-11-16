@@ -56,7 +56,7 @@ namespace YamaEngine.DataSystem
         public void WriteULong(ulong value) => _writer.Write(value);
         public void WriteFloat(float value) => _writer.Write(value);
         public void WriteDouble(double value) => _writer.Write(value);
-        public void WriteString(string value)
+        public void WriteString(string? value)
         {
             if (value == null)
             {
@@ -67,7 +67,7 @@ namespace YamaEngine.DataSystem
             _writer.Write(bytes.Length);
             _writer.Write(bytes);
         }
-        public void WriteBytes(byte[] value)
+        public void WriteBytes(byte[]? value)
         {
             if (value == null)
             {
@@ -157,17 +157,31 @@ namespace YamaEngine.DataSystem
         public ulong ReadULong() => _reader.ReadUInt64();
         public float ReadFloat() => _reader.ReadSingle();
         public double ReadDouble() => _reader.ReadDouble();
-        public string ReadString()
+        public string? ReadString()
         {
             int len = _reader.ReadInt32();
             if (len < 0) return null;
-            return Encoding.UTF8.GetString(_reader.ReadBytes(len));
+            ReadBytesOfLength(len, out var bytes); // 校验长度不越过剩余字节，防 OOM/截断
+            return Encoding.UTF8.GetString(bytes);
         }
-        public byte[] ReadBytes()
+        public byte[]? ReadBytes()
         {
             int len = _reader.ReadInt32();
             if (len < 0) return null;
-            return _reader.ReadBytes(len);
+            ReadBytesOfLength(len, out var bytes);
+            return bytes;
+        }
+
+        /// <summary>
+        /// 读取指定长度字节，并校验长度不越过当前剩余字节。
+        /// 防止损坏/恶意流通过伪造超大长度前缀导致 OOM 或静默截断（BinaryReader.ReadBytes 在流耗尽时不抛异常）。
+        /// </summary>
+        private void ReadBytesOfLength(int len, out byte[] bytes)
+        {
+            if (len > RemainingBytes)
+                throw new InvalidDataException(
+                    $"Serialization data corrupt: declared length {len} exceeds remaining {RemainingBytes} bytes.");
+            bytes = _reader.ReadBytes(len);
         }
 
         public Vector2 ReadVector2() => new Vector2(ReadFloat(), ReadFloat());
@@ -182,20 +196,26 @@ namespace YamaEngine.DataSystem
                 ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat(),
                 ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
         }
-        public Guid ReadGuid() => new Guid(_reader.ReadBytes(16));
+        public Guid ReadGuid()
+        {
+            if (RemainingBytes < 16)
+                throw new InvalidDataException(
+                    $"Serialization data corrupt: Guid requires 16 bytes, only {RemainingBytes} remaining.");
+            return new Guid(_reader.ReadBytes(16));
+        }
 
         /// <summary>读取null标记。</summary>
         public bool ReadNullMarker() => _reader.ReadByte() == 0x00;
 
         /// <summary>读取字段标签。</summary>
-        public void ReadFieldTag(out string fieldName, out int typeIndex)
+        public void ReadFieldTag(out string? fieldName, out int typeIndex)
         {
             fieldName = ReadString();
             typeIndex = ReadInt();
         }
 
         /// <summary>读取类型信息。</summary>
-        public void ReadTypeInfo(out string typeName, out long typeHash)
+        public void ReadTypeInfo(out string? typeName, out long typeHash)
         {
             typeName = ReadString();
             typeHash = ReadLong();
@@ -203,6 +223,19 @@ namespace YamaEngine.DataSystem
 
         /// <summary>剩余字节数。</summary>
         public int RemainingBytes => (int)(_stream.Length - _stream.Position);
+
+        /// <summary>
+        /// 校验容器元素计数不越过剩余可读字节（每个元素至少占 1 字节 null 标记），
+        /// 防止损坏/恶意流伪造超大 count 导致 OOM（Array.CreateInstance / List 预分配 / Dictionary 预分配）。
+        /// </summary>
+        public void CheckCount(int count, string what)
+        {
+            if (count < 0)
+                throw new InvalidDataException($"Serialization data corrupt: negative {what} count {count}.");
+            if (count > RemainingBytes)
+                throw new InvalidDataException(
+                    $"Serialization data corrupt: declared {what} count {count} exceeds remaining {RemainingBytes} bytes.");
+        }
 
         public void Dispose()
         {
@@ -284,7 +317,7 @@ namespace YamaEngine.DataSystem
         /// <summary>
         /// 反序列化字节数组为对象。
         /// </summary>
-        public T DeserializeObject<T>(byte[] data) where T : class, new()
+        public T? DeserializeObject<T>(byte[] data) where T : class, new()
         {
             if (data == null || data.Length == 0) return null;
 
@@ -293,7 +326,10 @@ namespace YamaEngine.DataSystem
             if (!reader.ReadHeader(out int version, out long typeHash, out int fieldCount))
                 throw new InvalidDataException("Invalid binary format: magic number mismatch.");
 
-            reader.ReadTypeInfo(out string typeName, out _);
+            reader.ReadTypeInfo(out string? typeName, out _);
+
+            // 顶层字段数校验: 防止伪造 fieldCount 导致循环内反复读取超出流 (每次字段至少 1 字节 null 标记)。
+            reader.CheckCount(fieldCount, "field");
 
             var obj = new T();
             var objType = typeof(T);
@@ -312,18 +348,18 @@ namespace YamaEngine.DataSystem
 
             for (int i = 0; i < fieldCount; i++)
             {
-                reader.ReadFieldTag(out string fieldName, out int typeCode);
+                reader.ReadFieldTag(out string? fieldName, out int typeCode);
 
                 if (setters.TryGetValue(fieldName, out var setter))
                 {
                     var fieldInfo = fieldMap.TryGetValue(fieldName, out var fi) ? fi : null;
                     var propInfo = propMap.TryGetValue(fieldName, out var pi) ? pi : null;
-                    Type fieldType = fieldInfo?.FieldType ?? propInfo?.PropertyType;
+                    Type? fieldType = fieldInfo?.FieldType ?? propInfo?.PropertyType;
 
                     if (fieldType != null)
                     {
                         var value = ReadValue(reader, typeCode, fieldType);
-                        setter(obj, value);
+                        setter(obj, value!);
                     }
                     else
                     {
@@ -348,7 +384,7 @@ namespace YamaEngine.DataSystem
         /// <summary>
         /// 写入值（类型分派）。
         /// </summary>
-        private void WriteValue(BinaryFormatWriter writer, object value, Type type)
+        private void WriteValue(BinaryFormatWriter writer, object? value, Type type)
         {
             if (value == null)
             {
@@ -415,7 +451,7 @@ namespace YamaEngine.DataSystem
                 // 数组 → 长度+逐元素
                 var arr = (Array)value;
                 writer.WriteInt(arr.Length);
-                Type elemType = type.GetElementType();
+                Type elemType = type.GetElementType()!;
                 for (int i = 0; i < arr.Length; i++)
                     WriteValue(writer, arr.GetValue(i), elemType);
             }
@@ -471,7 +507,7 @@ namespace YamaEngine.DataSystem
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>读取值（类型分派）。</summary>
-        private object ReadValue(BinaryFormatReader reader, int typeCode, Type type)
+        private object? ReadValue(BinaryFormatReader reader, int typeCode, Type type)
         {
             bool isNull = reader.ReadNullMarker();
             if (isNull) return null;
@@ -524,18 +560,20 @@ namespace YamaEngine.DataSystem
             if (type.IsArray)
             {
                 int len = reader.ReadInt();
-                Type elemType = type.GetElementType();
-                var arr = Array.CreateInstance(elemType, len);
+                reader.CheckCount(len, "array element");
+                Type? elemType = type.GetElementType();
+                var arr = Array.CreateInstance(elemType!, len);
                 for (int i = 0; i < len; i++)
-                    arr.SetValue(ReadValue(reader, GetTypeCode(elemType), elemType), i);
+                    arr.SetValue(ReadValue(reader, GetTypeCode(elemType!), elemType!), i);
                 return arr;
             }
 
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
             {
                 int count = reader.ReadInt();
+                reader.CheckCount(count, "list element");
                 Type elemType = type.GetGenericArguments()[0];
-                var list = (System.Collections.IList)Activator.CreateInstance(type);
+                var list = (System.Collections.IList)Activator.CreateInstance(type)!;
                 for (int i = 0; i < count; i++)
                     list.Add(ReadValue(reader, GetTypeCode(elemType), elemType));
                 return list;
@@ -544,14 +582,15 @@ namespace YamaEngine.DataSystem
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             {
                 int count = reader.ReadInt();
+                reader.CheckCount(count, "dictionary entry");
                 Type keyType = type.GetGenericArguments()[0];
                 Type valueType = type.GetGenericArguments()[1];
-                var dict = (System.Collections.IDictionary)Activator.CreateInstance(type);
+                var dict = (System.Collections.IDictionary)Activator.CreateInstance(type)!;
                 for (int i = 0; i < count; i++)
                 {
                     var key = ReadValue(reader, GetTypeCode(keyType), keyType);
                     var val = ReadValue(reader, GetTypeCode(valueType), valueType);
-                    dict[key] = val;
+                    dict[key!] = val;
                 }
                 return dict;
             }
@@ -559,15 +598,16 @@ namespace YamaEngine.DataSystem
             if (type.IsClass || (type.IsValueType && !type.IsPrimitive))
             {
                 // 嵌套对象：创建实例并递归填充
-                var nested = Activator.CreateInstance(type);
+                var nested = Activator.CreateInstance(type)!;
                 int fieldCount = reader.ReadInt();
+                reader.CheckCount(fieldCount, "nested field");
                 var nestedFieldMap = GetSerializableFields(type).ToDictionary(f => f.Name);
                 var nestedPropMap = GetSerializableProperties(type).Where(p => p.CanWrite).ToDictionary(p => p.Name);
 
                 for (int i = 0; i < fieldCount; i++)
                 {
-                    string name = reader.ReadString();
-                    if (nestedFieldMap.TryGetValue(name, out var fi))
+                    string? name = reader.ReadString();
+                    if (nestedFieldMap.TryGetValue(name!, out var fi))
                     {
                         var val = ReadValue(reader, GetTypeCode(fi.FieldType), fi.FieldType);
                         fi.SetValue(nested, val);
@@ -586,7 +626,7 @@ namespace YamaEngine.DataSystem
                 return nested;
             }
 
-            return reader.ReadString(); // fallback
+            return reader.ReadString()!; // fallback
         }
 
         /// <summary>跳过指定类型的值（版本tolerant支持）。</summary>
@@ -720,7 +760,7 @@ namespace YamaEngine.DataSystem
         /// <summary>
         /// 从JSON字符串反序列化为对象。
         /// </summary>
-        public T DeserializeFromJson<T>(string json) where T : class, new()
+        public T? DeserializeFromJson<T>(string json) where T : class, new()
         {
             if (string.IsNullOrEmpty(json) || json == "null")
                 return null;
@@ -829,7 +869,7 @@ namespace YamaEngine.DataSystem
                 {
                     if (i > 0) sb.Append(',');
                     if (_formatted && arr.Length > 1) sb.Append(childPad);
-                    WriteValue(sb, arr.GetValue(i), indent + 1);
+                    WriteValue(sb, arr.GetValue(i)!, indent + 1);
                 }
                 if (_formatted && arr.Length > 0) sb.Append(pad);
                 sb.Append(']');
@@ -842,7 +882,7 @@ namespace YamaEngine.DataSystem
                 {
                     if (i > 0) sb.Append(',');
                     if (_formatted && list.Count > 1) sb.Append(childPad);
-                    WriteValue(sb, list[i], indent + 1);
+                    WriteValue(sb, list[i]!, indent + 1);
                 }
                 if (_formatted && list.Count > 0) sb.Append(pad);
                 sb.Append(']');
@@ -857,7 +897,7 @@ namespace YamaEngine.DataSystem
                     if (!first) sb.Append(',');
                     first = false;
                     if (_formatted) sb.Append(childPad);
-                    sb.Append(EscapeJsonString(entry.Key.ToString()));
+                    sb.Append(EscapeJsonString(entry.Key.ToString()!));
                     sb.Append(':');
                     WriteValue(sb, entry.Value, indent + 1);
                 }
@@ -879,14 +919,14 @@ namespace YamaEngine.DataSystem
                     if (!first) { sb.Append(','); if (_formatted) sb.Append(childPad); }
                     first = false;
                     sb.Append('"').Append(field.Name).Append('"').Append(':');
-                    WriteValue(sb, field.GetValue(value), indent + 1);
+                    WriteValue(sb, field.GetValue(value)!, indent + 1);
                 }
                 foreach (var prop in props)
                 {
                     if (!first) { sb.Append(','); if (_formatted) sb.Append(childPad); }
                     first = false;
                     sb.Append('"').Append(prop.Name).Append('"').Append(':');
-                    WriteValue(sb, prop.GetValue(value), indent + 1);
+                    WriteValue(sb, prop.GetValue(value)!, indent + 1);
                 }
                 if (_formatted) sb.Append(pad);
                 sb.Append('}');
@@ -901,7 +941,7 @@ namespace YamaEngine.DataSystem
         // JSON读取（简化解析）
         // ═══════════════════════════════════════════════════════════════════
 
-        private object ParseJsonValue(string json, ref int pos)
+        private object? ParseJsonValue(string json, ref int pos)
         {
             pos = SkipWhitespace(json, pos);
             if (pos >= json.Length) return null;
@@ -928,6 +968,9 @@ namespace YamaEngine.DataSystem
             while (pos < json.Length && json[pos] != '}')
             {
                 pos = SkipWhitespace(json, pos);
+                // SkipWhitespace 后 pos 可能到达末尾（畸形 JSON 如 `{ "k":1, `），
+                // 必须重新检查边界再访问 json[pos]
+                if (pos >= json.Length) break;
                 if (json[pos] == ',') { pos++; continue; }
 
                 string key = ParseJsonString(json, ref pos) as string;
@@ -955,6 +998,9 @@ namespace YamaEngine.DataSystem
             while (pos < json.Length && json[pos] != ']')
             {
                 pos = SkipWhitespace(json, pos);
+                // SkipWhitespace 后 pos 可能到达末尾（畸形 JSON 如 "[  "），
+                // 必须重新检查边界再访问 json[pos]
+                if (pos >= json.Length) break;
                 if (json[pos] == ',') { pos++; continue; }
 
                 list.Add(ParseJsonValue(json, ref pos));
@@ -965,7 +1011,7 @@ namespace YamaEngine.DataSystem
             return list;
         }
 
-        private string ParseJsonString(string json, ref int pos)
+        private string? ParseJsonString(string json, ref int pos)
         {
             if (json[pos] != '"') return null;
             pos++;
@@ -976,13 +1022,14 @@ namespace YamaEngine.DataSystem
                 if (json[pos] == '"') { pos++; return json.Substring(start, pos - start - 1); }
                 pos++;
             }
+            // 未闭合的字符串（畸形 JSON 如 `{"k":"abc`）：返回剩余部分而非抛异常
             return json.Substring(start);
         }
 
         private object ParseJsonNumber(string json, ref int pos)
         {
             int start = pos;
-            if (json[pos] == '-') pos++;
+            if (pos < json.Length && json[pos] == '-') pos++;
             while (pos < json.Length && (char.IsDigit(json[pos]) || json[pos] == '.' || json[pos] == 'e' || json[pos] == 'E' || json[pos] == '+' || json[pos] == '-'))
                 pos++;
 
@@ -1019,7 +1066,7 @@ namespace YamaEngine.DataSystem
             return false;
         }
 
-        private object ParseJsonNull(string json, ref int pos)
+        private object? ParseJsonNull(string json, ref int pos)
         {
             if (json.Substring(pos).StartsWith("null", StringComparison.Ordinal))
             {
@@ -1052,7 +1099,7 @@ namespace YamaEngine.DataSystem
             }
         }
 
-        private object ConvertValue(object value, Type targetType)
+        private object? ConvertValue(object? value, Type targetType)
         {
             if (value == null) return null;
             if (value.GetType() == targetType) return value;

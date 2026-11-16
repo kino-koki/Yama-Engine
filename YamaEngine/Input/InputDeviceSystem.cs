@@ -65,19 +65,19 @@ namespace YamaEngine.Input.Enhanced
     public abstract class InputDevice
     {
         /// <summary>设备名称</summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>设备类型</summary>
         public InputDeviceType DeviceType { get; set; } = InputDeviceType.Unknown;
 
         /// <summary>设备唯一标识 (GUID 或系统分配的 ID)</summary>
-        public string DeviceId { get; set; }
+        public string DeviceId { get; set; } = string.Empty;
 
         /// <summary>供应商/制造商</summary>
-        public string Vendor { get; set; }
+        public string Vendor { get; set; } = string.Empty;
 
         /// <summary>产品名称</summary>
-        public string ProductName { get; set; }
+        public string ProductName { get; set; } = string.Empty;
 
         /// <summary>设备能力标志</summary>
         public InputDeviceCapabilities Capabilities { get; set; } = new InputDeviceCapabilities();
@@ -98,13 +98,13 @@ namespace YamaEngine.Input.Enhanced
 
         // ========== 事件 ==========
         /// <summary>设备已连接</summary>
-        public event Action<InputDevice> OnConnected;
+        public event Action<InputDevice>? OnConnected;
         /// <summary>设备已断开</summary>
-        public event Action<InputDevice> OnDisconnected;
+        public event Action<InputDevice>? OnDisconnected;
         /// <summary>设备获取焦点</summary>
-        public event Action<InputDevice> OnFocusGained;
+        public event Action<InputDevice>? OnFocusGained;
         /// <summary>设备失去焦点</summary>
-        public event Action<InputDevice> OnFocusLost;
+        public event Action<InputDevice>? OnFocusLost;
 
         // ========== 使用统计 ==========
         /// <summary>总输入事件数</summary>
@@ -114,7 +114,7 @@ namespace YamaEngine.Input.Enhanced
         [System.Text.Json.Serialization.JsonIgnore]
         public float TotalUsageTime { get; protected set; }
 
-        protected InputDevice(string name, InputDeviceType type, string deviceId = null)
+        protected InputDevice(string name, InputDeviceType type, string? deviceId = null)
         {
             Name = name;
             DeviceType = type;
@@ -763,11 +763,11 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>获取触摸点</summary>
-        public TouchPoint GetTouch(int id) =>
+        public TouchPoint? GetTouch(int id) =>
             ActiveTouches.TryGetValue(id, out var t) ? t : null;
 
         /// <summary>获取第一个触摸点</summary>
-        public TouchPoint PrimaryTouch =>
+        public TouchPoint? PrimaryTouch =>
             ActiveTouches.Count > 0 ? ActiveTouches.Values.GetEnumerator().Current : null;
 
         public override void Update(float deltaTime)
@@ -927,9 +927,9 @@ namespace YamaEngine.Input.Enhanced
     public class DualSenseDevice : GamepadDevice
     {
         /// <summary>左自适应扳机效果</summary>
-        public TriggerEffect LeftTriggerEffect { get; set; }
+        public TriggerEffect? LeftTriggerEffect { get; set; }
         /// <summary>右自适应扳机效果</summary>
-        public TriggerEffect RightTriggerEffect { get; set; }
+        public TriggerEffect? RightTriggerEffect { get; set; }
 
         /// <summary>触摸板 (双指支持)</summary>
         public Vector2 Touchpad1Position { get; set; }
@@ -1007,7 +1007,7 @@ namespace YamaEngine.Input.Enhanced
         /// <summary>分段数量</summary>
         public int SectionCount { get; set; } = 1;
         /// <summary>分段力度列表</summary>
-        public float[] SectionStrengths { get; set; }
+        public float[] SectionStrengths { get; set; } = [];
     }
 
     #endregion
@@ -1019,7 +1019,7 @@ namespace YamaEngine.Input.Enhanced
     /// </summary>
     public class InputDeviceManager
     {
-        private static InputDeviceManager _instance;
+        private static InputDeviceManager? _instance;
         /// <summary>全局单例</summary>
         public static InputDeviceManager Instance
         {
@@ -1039,14 +1039,14 @@ namespace YamaEngine.Input.Enhanced
         /// <summary>默认设备</summary>
         public KeyboardDevice Keyboard { get; private set; }
         public MouseDevice Mouse { get; private set; }
-        public GamepadDevice PrimaryGamepad { get; private set; }
+        public GamepadDevice? PrimaryGamepad { get; private set; }
         public TouchDevice Touch { get; private set; }
 
         // ========== 事件 ==========
         /// <summary>设备连接</summary>
-        public event Action<InputDevice> OnDeviceConnected;
+        public event Action<InputDevice>? OnDeviceConnected;
         /// <summary>设备断开</summary>
-        public event Action<InputDevice> OnDeviceDisconnected;
+        public event Action<InputDevice>? OnDeviceDisconnected;
 
         public InputDeviceManager()
         {
@@ -1122,7 +1122,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>按 ID 查找设备</summary>
-        public InputDevice FindDevice(string deviceId)
+        public InputDevice? FindDevice(string deviceId)
         {
             foreach (var device in _devices)
             {
@@ -1132,7 +1132,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>按名称查找设备</summary>
-        public InputDevice FindDeviceByName(string name)
+        public InputDevice? FindDeviceByName(string name)
         {
             foreach (var device in _devices)
             {

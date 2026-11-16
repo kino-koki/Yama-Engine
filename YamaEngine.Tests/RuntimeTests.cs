@@ -139,6 +139,72 @@ namespace YamaEngine.Tests
             AssertTrue(MathF.Abs(obj.Position.X - 0.6f) < 0.0001f, "Runtime fixed steps should mutate object transform deterministically.");
         }
 
+        // ── Spiral-of-death guard: 巨型 delta 不让累积器失控 ──
+        public static void TestRuntimeGameLoopDropsExcessAccumulatedTime()
+        {
+            var obj = new SceneObject { Name = "SpiralCube", Position = Vector3.Zero };
+            var mover = new RuntimeCounterComponent(Vector3.Zero);
+            obj.Components.Add(mover);
+            var world = new RuntimeWorld
+            {
+                SceneName = "Spiral",
+                Objects = new List<SceneObject> { obj },
+                RenderScene = RenderSceneBuilder.FromObjects(new List<SceneObject> { obj }, "Spiral")
+            };
+            var loop = new RuntimeGameLoop(world, new NullRenderDevice(), new RuntimeLoopOptions
+            {
+                UseFixedStep = true,
+                FixedDeltaTime = 1f / 60f,   // 0.01667
+                MaxFixedStepsPerTick = 4,
+                DropExcessAccumulatedTime = true  // 开启螺旋死亡保护
+            });
+
+            // 一次塞入 1 秒 delta（远超 4 步 × 1/60 ≈ 0.067）
+            var tick = loop.Tick(1.0f);
+
+            // 只跑 maxSteps=4，且累积器被钳制到 remainder（< fixedDelta）
+            AssertEqual(4, tick.FixedStepCount, "Spiral guard must cap steps at MaxFixedStepsPerTick.");
+            AssertEqual(4, mover.UpdateCount, "Spiral guard must run exactly MaxFixedStepsPerTick updates.");
+            AssertTrue(tick.AccumulatorSeconds < 1f / 60f,
+                $"Spiral guard must clamp accumulator below one fixed step, got {tick.AccumulatorSeconds:F4}.");
+        }
+
+        // ── 多帧推进：FixedStep 模式下 TotalTime 累加、帧号递增、位置确定 ──
+        public static void TestRuntimeGameLoopAdvancesTotalTimeAcrossFrames()
+        {
+            var obj = new SceneObject { Name = "TimeCube", Position = Vector3.Zero };
+            var mover = new RuntimeCounterComponent(new Vector3(1, 0, 0)); // 1 unit/sec
+            obj.Components.Add(mover);
+            var world = new RuntimeWorld
+            {
+                SceneName = "TimeScene",
+                Objects = new List<SceneObject> { obj },
+                RenderScene = RenderSceneBuilder.FromObjects(new List<SceneObject> { obj }, "TimeScene")
+            };
+            var loop = new RuntimeGameLoop(world, new NullRenderDevice(), new RuntimeLoopOptions
+            {
+                UseFixedStep = true,
+                FixedDeltaTime = 1f / 60f,
+                MaxFixedStepsPerTick = 4
+            });
+
+            // 三个 1/30 秒 tick，每 tick 应跑 2 个固定步（1/30 ≈ 2 × 1/60）
+            float totalSteps = 0;
+            int frames = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                var t = loop.Tick(1f / 30f);
+                totalSteps += t.FixedStepCount;
+                frames = t.FrameIndex;
+            }
+
+            AssertEqual(3, frames, "Three ticks must advance frame index to 3.");
+            AssertEqual(6f, totalSteps, "3 ticks × 1/30s each should run 2 fixed steps = 6 total.");
+            // 总位移 = 总步数 × fixedDelta × velocity = 6 × (1/60) × 1 = 0.1
+            AssertTrue(MathF.Abs(obj.Position.X - 0.1f) < 0.001f,
+                $"Object must advance deterministically across frames, got X={obj.Position.X:F4}.");
+        }
+
         public static void TestRuntimeGameLoopSamplesInputBeforeComponents()
         {
             var input = new InputSystem();

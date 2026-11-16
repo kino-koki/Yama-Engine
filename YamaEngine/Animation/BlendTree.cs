@@ -152,7 +152,11 @@ namespace YamaEngine.Animation
                     ComputeWeights1D(ParameterValueX);
                     break;
                 case BlendTreeType.SimpleDirectional2D:
+                    ComputeWeightsSimpleDirectional(new Vector2(ParameterValueX, ParameterValueY));
+                    break;
                 case BlendTreeType.FreeformDirectional2D:
+                    ComputeWeightsFreeformDirectional(new Vector2(ParameterValueX, ParameterValueY));
+                    break;
                 case BlendTreeType.FreeformCartesian2D:
                     ComputeWeights2D(new Vector2(ParameterValueX, ParameterValueY));
                     break;
@@ -252,6 +256,74 @@ namespace YamaEngine.Animation
             }
             Children[bestA].Weight = 1f - bestU;
             Children[bestB].Weight = bestU;
+        }
+
+        /// <summary>
+        /// Unity SimpleDirectional2D：按角度找到最近邻方向扇区做插值，
+        /// 再把整体权重按输入向量的<b>幅值</b>缩放（零向量→无运动）。
+        /// </summary>
+        private void ComputeWeightsSimpleDirectional(Vector2 p)
+        {
+            var n = Children.Count;
+            if (n == 0) return;
+            float magnitude = MathF.Sqrt(p.LengthSquared());
+            if (n == 1)
+            {
+                Children[0].Weight = Math.Clamp(magnitude, 0f, 1f);
+                return;
+            }
+            var angleWeights = ComputeDirectionalWeights(p);
+            float scale = Math.Clamp(magnitude, 0f, 1f);
+            for (var i = 0; i < n; i++)
+                Children[i].Weight = angleWeights[i] * scale;
+        }
+
+        /// <summary>
+        /// Unity FreeformDirectional2D：只按<b>角度</b>分配权重（与输入半径无关），
+        /// 适用于方向混合（如角色朝向），速度不参与缩放。
+        /// </summary>
+        private void ComputeWeightsFreeformDirectional(Vector2 p)
+        {
+            var angleWeights = ComputeDirectionalWeights(p);
+            for (var i = 0; i < Children.Count; i++)
+                Children[i].Weight = angleWeights[i];
+        }
+
+        /// <summary>
+        /// 按角度在相邻方向之间做扇区插值：把子节点按 Position2D 的极角排序，
+        /// 找到输入方向落入的扇区并线性插值两侧方向权重。
+        /// 零输入向量返回全 0。
+        /// </summary>
+        private float[] ComputeDirectionalWeights(Vector2 p)
+        {
+            var n = Children.Count;
+            var weights = new float[n];
+            if (p.LengthSquared() <= 1e-8f) return weights;
+
+            float inputAngle = MathF.Atan2(p.Y, p.X);
+            var order = new int[n];
+            for (var i = 0; i < n; i++) order[i] = i;
+            var angles = new float[n];
+            for (var i = 0; i < n; i++)
+                angles[i] = MathF.Atan2(Children[i].Position2D.Y, Children[i].Position2D.X);
+            Array.Sort(order, (a, b) => angles[a].CompareTo(angles[b]));
+
+            for (var k = 0; k < n; k++)
+            {
+                int a = order[k];
+                int b = order[(k + 1) % n];
+                float ta = angles[a];
+                float tb = (k == n - 1) ? angles[b] + MathF.Tau : angles[b];
+                if (inputAngle >= ta && inputAngle <= tb)
+                {
+                    float span = tb - ta;
+                    float w = span <= 1e-8f ? 0f : (inputAngle - ta) / span;
+                    weights[a] = 1f - w;
+                    weights[b] = w;
+                    return weights;
+                }
+            }
+            return weights;
         }
 
         private void ProjectOntoSegment(int a, int b, Vector2 p)

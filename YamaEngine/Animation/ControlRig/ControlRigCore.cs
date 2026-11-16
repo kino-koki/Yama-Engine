@@ -211,6 +211,8 @@ public sealed class ControlRigAsset
     public List<RigCurve> Curves = new();
     public List<RigNodeData> Nodes = new();
     public string EntryNodeId = "";
+    /// <summary>约束系统（Parent / Aim / IK / Transform），按元素顺序应用。</summary>
+    public List<RigConstraint> Constraints = new();
 
     public ControlRigControl? FindControl(string name)
     {

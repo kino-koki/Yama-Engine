@@ -289,7 +289,7 @@ namespace YamaEngine.Editor.LevelEditor
         private readonly Stack<IEditorCommand> _redoStack = new();
 
         /// <summary>当前事务 (复合命令)。</summary>
-        private CompositeEditorCommand _currentTransaction;
+        private CompositeEditorCommand? _currentTransaction;
         private int _transactionDepth;
         private const int MaxUndoLevels = 200;
 
@@ -309,7 +309,7 @@ namespace YamaEngine.Editor.LevelEditor
         public bool IsInTransaction => _transactionDepth > 0;
 
         /// <summary>撤销/重做状态变更事件。</summary>
-        public event Action OnStateChanged;
+        public event Action? OnStateChanged;
 
         /// <summary>执行命令 (进撤销栈)。</summary>
         public void Execute(IEditorCommand command)
@@ -463,7 +463,7 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>工具是否处于激活状态。</summary>
         public bool IsActive { get; private set; }
         /// <summary>关联的快捷键 (可空)。</summary>
-        public virtual string ShortcutKey => null;
+        public virtual string? ShortcutKey => null;
         /// <summary>工具提示。</summary>
         public virtual string Tooltip => string.Empty;
         /// <summary>工具图标名称 (用于工具栏图标)。</summary>
@@ -497,9 +497,9 @@ namespace YamaEngine.Editor.LevelEditor
         public bool IsDragging { get; private set; }
         public float BrushRadius { get; set; } = 30f;
 
-        public event Action<List<Guid>, bool> OnSelectionChanged;
-        public event Action<string> OnSelectByType;
-        public event Action OnInvertSelection;
+        public event Action<List<Guid>, bool>? OnSelectionChanged;
+        public event Action<string>? OnSelectByType;
+        public event Action? OnInvertSelection;
 
         private bool _hasDragged;
 
@@ -607,9 +607,9 @@ namespace YamaEngine.Editor.LevelEditor
         public float SnapValue { get; set; } = 1f;
         public bool UseSnapping { get; set; }
 
-        public event Action<TransformSubType, Vector3, Quaternion, Vector3> OnApplyTransform;
-        public event Action OnTransformBegin;
-        public event Action OnTransformEnd;
+        public event Action<TransformSubType, Vector3, Quaternion, Vector3>? OnApplyTransform;
+        public event Action? OnTransformBegin;
+        public event Action? OnTransformEnd;
 
         public LevelEditorMode GetActualMode() => SubType switch
         {
@@ -747,8 +747,8 @@ namespace YamaEngine.Editor.LevelEditor
         public float SnapToGridSize { get; set; } = 1f;
         public bool SnapEnabled { get; set; }
 
-        public event Action<string, Vector3, Quaternion, Vector3> OnPlaceRequest;
-        public event Action<string, Vector3, float, float, float, float> OnScatterRequest;
+        public event Action<string, Vector3, Quaternion, Vector3>? OnPlaceRequest;
+        public event Action<string, Vector3, float, float, float, float>? OnScatterRequest;
 
         private readonly Random _rng = new();
 
@@ -828,7 +828,7 @@ namespace YamaEngine.Editor.LevelEditor
         public float NoiseStrength { get; set; } = 1f;
         public int NoiseOctaves { get; set; } = 4;
 
-        public event Action<LandscapeBrushOp, Vector3, float, float, float, BrushShape> OnBrushApply;
+        public event Action<LandscapeBrushOp, Vector3, float, float, float, BrushShape>? OnBrushApply;
 
         public override void OnMouseEvent(EditorMouseEvent e)
         {
@@ -860,8 +860,8 @@ namespace YamaEngine.Editor.LevelEditor
         public readonly List<string> FoliageTypes = new();
         public int SelectedTypeIndex { get; set; }
 
-        public event Action<string, Vector3, float, float, float, float, bool, float> OnFoliagePaint;
-        public event Action<Vector3, float> OnFoliageErase;
+        public event Action<string, Vector3, float, float, float, float, bool, float>? OnFoliagePaint;
+        public event Action<Vector3, float>? OnFoliageErase;
 
         private readonly Random _rng = new();
 
@@ -903,7 +903,7 @@ namespace YamaEngine.Editor.LevelEditor
         public float PolygonHeight { get; set; } = 5f;
         public string NameTemplate { get; set; } = "Trigger";
 
-        public event Action<TriggerShape, Vector3, Vector3, float, float, float, List<Vector2>, float, string> OnTriggerCreate;
+        public event Action<TriggerShape, Vector3, Vector3, float, float, float, List<Vector2>, float, string>? OnTriggerCreate;
 
         public override void OnMouseEvent(EditorMouseEvent e)
         {
@@ -930,7 +930,7 @@ namespace YamaEngine.Editor.LevelEditor
         public float SphereRadius { get; set; } = 10f;
         public float Priority { get; set; }
 
-        public event Action<VolumeType, Vector3, Vector3, bool, float, float> OnVolumeCreate;
+        public event Action<VolumeType, Vector3, Vector3, bool, float, float>? OnVolumeCreate;
 
         public override void OnMouseEvent(EditorMouseEvent e)
         {
@@ -968,8 +968,8 @@ namespace YamaEngine.Editor.LevelEditor
         public bool ShowNormals { get; set; }
         public int SelectedPointIndex { get; set; } = -1;
 
-        public event Action<List<PathPoint>, bool, int> OnPathChanged;
-        public event Action<int> OnPointSelected;
+        public event Action<List<PathPoint>, bool, int>? OnPathChanged;
+        public event Action<int>? OnPointSelected;
 
         public override void OnMouseEvent(EditorMouseEvent e)
         {
@@ -1015,9 +1015,9 @@ namespace YamaEngine.Editor.LevelEditor
     public sealed class HierarchyNode
     {
         /// <summary>关联的场景对象。</summary>
-        public SceneObject SceneObject;
+        public SceneObject? SceneObject;
         /// <summary>父节点。</summary>
-        public HierarchyNode Parent;
+        public HierarchyNode? Parent;
         /// <summary>子节点列表。</summary>
         public readonly List<HierarchyNode> Children = new();
         /// <summary>展开状态。</summary>
@@ -1064,7 +1064,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>递归查找节点 (按名称, 忽略大小写)。</summary>
-        public HierarchyNode FindByName(string name, bool ignoreCase = true)
+        public HierarchyNode? FindByName(string name, bool ignoreCase = true)
         {
             if (SceneObject != null)
             {
@@ -1082,7 +1082,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>递归查找节点 (按 GUID)。</summary>
-        public HierarchyNode FindById(Guid id)
+        public HierarchyNode? FindById(Guid id)
         {
             if (Id == id) return this;
             foreach (var c in Children)
@@ -1113,13 +1113,13 @@ namespace YamaEngine.Editor.LevelEditor
         public bool ShowHiddenObjects { get; set; } = true;
 
         /// <summary>树结构变更事件。</summary>
-        public event Action OnTreeChanged;
+        public event Action? OnTreeChanged;
         /// <summary>选择请求事件 (从层级树发起)。</summary>
-        public event Action<List<Guid>, bool> OnSelectionRequest;
+        public event Action<List<Guid>, bool>? OnSelectionRequest;
         /// <summary>重命名请求事件。</summary>
-        public event Action<Guid, string> OnRenameRequest;
+        public event Action<Guid, string>? OnRenameRequest;
         /// <summary>展开/折叠事件。</summary>
-        public event Action<Guid, bool> OnNodeExpandChanged;
+        public event Action<Guid, bool>? OnNodeExpandChanged;
 
         public IReadOnlyList<HierarchyNode> Roots => _roots;
 
@@ -1329,7 +1329,7 @@ namespace YamaEngine.Editor.LevelEditor
             return false;
         }
 
-        private HierarchyNode FindNodeByIdRecursive(List<HierarchyNode> nodes, Guid id)
+        private HierarchyNode? FindNodeByIdRecursive(List<HierarchyNode> nodes, Guid id)
         {
             foreach (var n in nodes)
             {
@@ -1385,19 +1385,19 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>是否正在拖拽。</summary>
         public bool IsDragging { get; private set; }
         /// <summary>当前拖拽的资产路径。</summary>
-        public string CurrentDragAssetPath { get; private set; }
+        public string? CurrentDragAssetPath { get; private set; }
         /// <summary>当前拖拽的资产类型。</summary>
-        public string CurrentDragAssetType { get; private set; }
+        public string? CurrentDragAssetType { get; private set; }
         /// <summary>放置偏移 (每次粘贴递增)。</summary>
         private Vector3 _pasteOffset = new(0, 0, 0);
         private int _pasteCount;
 
         /// <summary>拖拽开始事件。</summary>
-        public event Action<string, string> OnDragBegin;
+        public event Action<string, string>? OnDragBegin;
         /// <summary>拖拽结束事件。</summary>
-        public event Action OnDragEnd;
+        public event Action? OnDragEnd;
         /// <summary>资产放置事件。</summary>
-        public event Action<string, Vector3, Quaternion, Vector3> OnAssetDropped;
+        public event Action<string, Vector3, Quaternion, Vector3>? OnAssetDropped;
 
         /// <summary>拖拽悬停位置 (世界坐标)。</summary>
         public Vector3 HoverWorldPosition { get; set; }
@@ -1435,7 +1435,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>处理放置。</summary>
-        public bool HandleDrop(Vector3 worldPosition, Func<string, Vector3, Vector2, Ray> screenToWorldRay = null)
+        public bool HandleDrop(Vector3 worldPosition, Func<string, Vector3, Vector2, Ray>? screenToWorldRay = null)
         {
             if (!IsDragging || string.IsNullOrWhiteSpace(CurrentDragAssetPath)) return false;
 
@@ -1458,7 +1458,7 @@ namespace YamaEngine.Editor.LevelEditor
 
             var obj = _assets.CreateObject(
                 Path.GetFileNameWithoutExtension(CurrentDragAssetPath),
-                CurrentDragAssetType,
+                CurrentDragAssetType ?? "unknown",
                 placePos);
 
             OnAssetDropped?.Invoke(CurrentDragAssetPath, placePos,
@@ -1493,9 +1493,9 @@ namespace YamaEngine.Editor.LevelEditor
     public sealed class LevelEditorPieStateMachine
     {
         public PieState State { get; private set; } = PieState.Editing;
-        public event Action<PieState, PieState> OnStateChanged;
+        public event Action<PieState, PieState>? OnStateChanged;
 
-        private string _snapshot;
+        private string? _snapshot;
         private readonly AssetDatabase _assets;
         private readonly EntityComponentSystem _ecs;
 
@@ -1598,12 +1598,12 @@ namespace YamaEngine.Editor.LevelEditor
         private sealed class SnapshotDto
         {
             public Guid Id { get; set; }
-            public string Name { get; set; }
-            public float[] Pos { get; set; }
-            public float[] Rot { get; set; }
-            public float[] Scl { get; set; }
-            public string MeshAssetPath { get; set; }
-            public float[] BaseColor { get; set; }
+            public string? Name { get; set; }
+            public float[]? Pos { get; set; }
+            public float[]? Rot { get; set; }
+            public float[]? Scl { get; set; }
+            public string? MeshAssetPath { get; set; }
+            public float[]? BaseColor { get; set; }
             public float Metallic { get; set; }
             public float Roughness { get; set; }
             public int Layer { get; set; }
@@ -1630,7 +1630,7 @@ namespace YamaEngine.Editor.LevelEditor
                                 ? new Quaternion(d.Rot[0], d.Rot[1], d.Rot[2], d.Rot[3])
                                 : Quaternion.Identity,
                             Scale = FromArray(d.Scl, Vector3.One),
-                            MeshAssetPath = d.MeshAssetPath,
+                            MeshAssetPath = d.MeshAssetPath ?? string.Empty,
                             BaseColor = FromArray(d.BaseColor, Vector3.One),
                             Metallic = d.Metallic,
                             Roughness = d.Roughness,
@@ -1649,7 +1649,7 @@ namespace YamaEngine.Editor.LevelEditor
             _snapshot = null;
         }
 
-        private static Vector3 FromArray(float[] arr, Vector3 fallback) =>
+        private static Vector3 FromArray(float[]? arr, Vector3 fallback) =>
             arr != null && arr.Length >= 3 ? new Vector3(arr[0], arr[1], arr[2]) : fallback;
     }
 
@@ -1728,7 +1728,7 @@ namespace YamaEngine.Editor.LevelEditor
         public string PreferencesFilePath { get; set; } = "EditorPreferences.json";
 
         /// <summary>偏好设置变更事件。</summary>
-        public event Action OnPreferencesChanged;
+        public event Action? OnPreferencesChanged;
 
         /// <summary>应用快捷键绑定到命令注册表。</summary>
         public void ApplyKeyBindings(CommandRegistry registry, EditorContext ctx)
@@ -1737,7 +1737,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>保存到 JSON 文件。</summary>
-        public bool SaveToFile(string path = null)
+        public bool SaveToFile(string? path = null)
         {
             try
             {
@@ -1755,7 +1755,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>从 JSON 文件加载。</summary>
-        public bool LoadFromFile(string path = null)
+        public bool LoadFromFile(string? path = null)
         {
             try
             {
@@ -1829,7 +1829,7 @@ namespace YamaEngine.Editor.LevelEditor
         public int Count => _clipboard.Count;
 
         /// <summary>剪贴板变更事件。</summary>
-        public event Action OnClipboardChanged;
+        public event Action? OnClipboardChanged;
 
         public LevelEditorClipboard(AssetDatabase assets, LevelEditorUndoSystem undo)
         {
@@ -1934,10 +1934,10 @@ namespace YamaEngine.Editor.LevelEditor
         private readonly Dictionary<LevelEditorMode, LevelEditorTool> _tools = new();
         private readonly Dictionary<string, LevelEditorMode> _shortcutMap = new();
 
-        public LevelEditorTool CurrentTool { get; private set; }
+        public LevelEditorTool? CurrentTool { get; private set; }
         public LevelEditorMode CurrentMode { get; private set; } = LevelEditorMode.Select;
 
-        public event Action<LevelEditorMode, LevelEditorMode> OnToolChanged;
+        public event Action<LevelEditorMode, LevelEditorMode>? OnToolChanged;
 
         public void RegisterTool(LevelEditorTool tool)
         {
@@ -1993,7 +1993,7 @@ namespace YamaEngine.Editor.LevelEditor
             CurrentTool?.OnRenderOverlay(ctx);
         }
 
-        public T GetTool<T>(LevelEditorMode mode) where T : LevelEditorTool
+        public T? GetTool<T>(LevelEditorMode mode) where T : LevelEditorTool
         {
             if (_tools.TryGetValue(mode, out var tool) && tool is T typed)
                 return typed;
@@ -2042,7 +2042,7 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>当前编辑器模式。</summary>
         public LevelEditorMode CurrentMode => Toolbar.CurrentMode;
         /// <summary>当前活动工具。</summary>
-        public LevelEditorTool CurrentTool => Toolbar.CurrentTool;
+        public LevelEditorTool? CurrentTool => Toolbar.CurrentTool;
 
         /// <summary>当前场景名称。</summary>
         public string CurrentSceneName { get; set; } = "Untitled";
@@ -2052,11 +2052,11 @@ namespace YamaEngine.Editor.LevelEditor
         public bool IsDirty { get; private set; }
 
         /// <summary>模式变更事件。</summary>
-        public event Action<LevelEditorMode, LevelEditorMode> OnModeChanged;
+        public event Action<LevelEditorMode, LevelEditorMode>? OnModeChanged;
         /// <summary>场景脏标记变更事件。</summary>
-        public event Action<bool> OnDirtyChanged;
+        public event Action<bool>? OnDirtyChanged;
         /// <summary>PIE 状态变更事件。</summary>
-        public event Action<PieState, PieState> OnPieStateChanged;
+        public event Action<PieState, PieState>? OnPieStateChanged;
 
         private bool _disposed;
 
@@ -2345,7 +2345,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>创建对象。</summary>
-        public SceneObject CreateObject(string name, string meshType, Vector3 position)
+        public SceneObject? CreateObject(string name, string meshType, Vector3 position)
         {
             var cmd = new CreateObjectCommand(_assets, name, meshType, position);
             UndoSystem.Execute(cmd);

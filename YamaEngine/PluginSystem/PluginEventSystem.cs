@@ -65,7 +65,7 @@ namespace YamaEngine.PluginSystem
         public DateTime Timestamp { get; } = DateTime.Now;
 
         /// <summary>事件来源插件ID。</summary>
-        public string SourcePluginId { get; set; }
+        public string? SourcePluginId { get; set; }
 
         public override string ToString() => $"{EventName} @{Timestamp:HH:mm:ss.fff}{(_cancelled ? " [Cancelled]" : "")}";
     }
@@ -79,8 +79,8 @@ namespace YamaEngine.PluginSystem
     /// <summary>引擎初始化事件。</summary>
     public sealed class EngineInitEvent : PluginEvent
     {
-        public SemanticVersion EngineVersion { get; set; }
-        public string CommandLine { get; set; }
+        public SemanticVersion? EngineVersion { get; set; }
+        public string? CommandLine { get; set; }
     }
 
     /// <summary>引擎关闭事件。</summary>
@@ -92,14 +92,14 @@ namespace YamaEngine.PluginSystem
     /// <summary>世界加载事件。</summary>
     public sealed class WorldLoadEvent : PluginEvent
     {
-        public string WorldName { get; set; }
-        public string WorldPath { get; set; }
+        public string? WorldName { get; set; }
+        public string? WorldPath { get; set; }
     }
 
     /// <summary>世界卸载事件。</summary>
     public sealed class WorldUnloadEvent : PluginEvent
     {
-        public string WorldName { get; set; }
+        public string? WorldName { get; set; }
     }
 
     #endregion
@@ -109,36 +109,36 @@ namespace YamaEngine.PluginSystem
     /// <summary>游戏开始事件。</summary>
     public sealed class GameStartEvent : PluginEvent
     {
-        public string GameMode { get; set; }
-        public string MapName { get; set; }
+        public string? GameMode { get; set; }
+        public string? MapName { get; set; }
     }
 
     /// <summary>游戏结束事件。</summary>
     public sealed class GameEndEvent : PluginEvent
     {
-        public string Result { get; set; }
+        public string? Result { get; set; }
         public TimeSpan Duration { get; set; }
     }
 
     /// <summary>玩家加入事件。</summary>
     public sealed class PlayerJoinEvent : PluginEvent
     {
-        public string PlayerName { get; set; }
+        public string? PlayerName { get; set; }
         public ulong PlayerId { get; set; }
     }
 
     /// <summary>玩家离开事件。</summary>
     public sealed class PlayerLeaveEvent : PluginEvent
     {
-        public string PlayerName { get; set; }
+        public string? PlayerName { get; set; }
         public ulong PlayerId { get; set; }
-        public string Reason { get; set; }
+        public string? Reason { get; set; }
     }
 
     /// <summary>Actor 生成事件。</summary>
     public sealed class ActorSpawnEvent : PluginEvent
     {
-        public string ActorType { get; set; }
+        public string? ActorType { get; set; }
         public Vector3 Position { get; set; }
         public Vector3 Rotation { get; set; }
         public ulong ActorId { get; set; }
@@ -148,7 +148,7 @@ namespace YamaEngine.PluginSystem
     public sealed class ActorDestroyEvent : PluginEvent
     {
         public ulong ActorId { get; set; }
-        public string ActorType { get; set; }
+        public string? ActorType { get; set; }
     }
 
     #endregion
@@ -205,7 +205,7 @@ namespace YamaEngine.PluginSystem
     /// <summary>动作触发事件。</summary>
     public sealed class ActionTriggeredEvent : PluginEvent
     {
-        public string ActionName { get; set; }
+        public string? ActionName { get; set; }
         public float Value { get; set; }
     }
 
@@ -216,23 +216,23 @@ namespace YamaEngine.PluginSystem
     /// <summary>资产加载事件。</summary>
     public sealed class AssetLoadedEvent : PluginEvent
     {
-        public string AssetPath { get; set; }
-        public string AssetType { get; set; }
-        public string PluginId { get; set; }
+        public string? AssetPath { get; set; }
+        public string? AssetType { get; set; }
+        public string? PluginId { get; set; }
     }
 
     /// <summary>资产卸载事件。</summary>
     public sealed class AssetUnloadedEvent : PluginEvent
     {
-        public string AssetPath { get; set; }
+        public string? AssetPath { get; set; }
     }
 
     /// <summary>资产重载事件。</summary>
     public sealed class AssetReloadedEvent : PluginEvent
     {
-        public string AssetPath { get; set; }
-        public string OldVersion { get; set; }
-        public string NewVersion { get; set; }
+        public string? AssetPath { get; set; }
+        public string? OldVersion { get; set; }
+        public string? NewVersion { get; set; }
     }
 
     #endregion
@@ -242,15 +242,15 @@ namespace YamaEngine.PluginSystem
     /// <summary>通用自定义事件。</summary>
     public sealed class CustomEvent : PluginEvent
     {
-        public new string EventName { get; set; }
-        public Dictionary<string, object> Data { get; } = new Dictionary<string, object>();
+        public new string? EventName { get; set; }
+        public Dictionary<string, object?> Data { get; } = new Dictionary<string, object?>();
 
-        public T GetData<T>(string key)
+        public T? GetData<T>(string key)
         {
             if (Data.TryGetValue(key, out var val))
             {
                 if (val is T typed) return typed;
-                try { return (T)Convert.ChangeType(val, typeof(T)); } catch { }
+                try { return (T?)Convert.ChangeType(val, typeof(T)); } catch { }
             }
             return default;
         }
@@ -261,9 +261,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>消息事件 (插件间消息传递)。</summary>
     public sealed class MessageEvent : PluginEvent
     {
-        public string TargetPluginId { get; set; }
-        public string Message { get; set; }
-        public object Payload { get; set; }
+        public string? TargetPluginId { get; set; }
+        public string? Message { get; set; }
+        public object? Payload { get; set; }
     }
 
     #endregion
@@ -275,15 +275,15 @@ namespace YamaEngine.PluginSystem
     /// <summary>事件处理器注册信息。</summary>
     internal sealed class EventHandlerRegistration
     {
-        public Delegate Handler { get; set; }
-        public string PluginId { get; set; }
+        public Delegate Handler { get; set; } = null!;
+        public string? PluginId { get; set; }
         public EventPriority Priority { get; set; }
-        public Func<PluginEvent, bool> Filter { get; set; }
+        public Func<PluginEvent, bool>? Filter { get; set; }
         public bool IsAsync { get; set; }
         public DateTime RegisteredTime { get; } = DateTime.Now;
         public long InvokeCount { get; set; }
         public TimeSpan TotalInvokeTime { get; set; }
-        public Exception LastException { get; set; }
+        public Exception? LastException { get; set; }
     }
 
     #endregion
@@ -293,9 +293,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>事件历史记录。</summary>
     public sealed class EventHistoryEntry
     {
-        public string EventName { get; set; }
+        public string? EventName { get; set; }
         public DateTime Timestamp { get; set; }
-        public string SourcePluginId { get; set; }
+        public string? SourcePluginId { get; set; }
         public bool WasCancelled { get; set; }
         public int HandlerCount { get; set; }
         public TimeSpan TotalHandleTime { get; set; }
@@ -326,7 +326,7 @@ namespace YamaEngine.PluginSystem
         // 异步事件队列
         private readonly ConcurrentQueue<PluginEvent> _asyncQueue = new ConcurrentQueue<PluginEvent>();
         private readonly CancellationTokenSource _asyncCts = new CancellationTokenSource();
-        private Task _asyncProcessor;
+        private Task? _asyncProcessor;
 
         // 日志
         private readonly PluginLogger _logger = new PluginLogger("EventBus");
@@ -338,22 +338,22 @@ namespace YamaEngine.PluginSystem
         public bool IsAsyncProcessing { get; private set; }
 
         // 事件
-        public event Action<PluginEvent> OnEventPublished;
-        public event Action<PluginEvent, Exception> OnHandlerException;
+        public event Action<PluginEvent>? OnEventPublished;
+        public event Action<PluginEvent, Exception>? OnHandlerException;
 
         private PluginEventBus() { }
 
         #region 注册
 
         /// <summary>注册事件处理器。</summary>
-        public void Subscribe<T>(Action<T> handler, string pluginId = null, EventPriority priority = EventPriority.Normal)
+        public void Subscribe<T>(Action<T> handler, string? pluginId = null, EventPriority priority = EventPriority.Normal)
             where T : PluginEvent
         {
             Subscribe<T>(handler, pluginId, priority, null);
         }
 
         /// <summary>注册带过滤器的事件处理器。</summary>
-        public void Subscribe<T>(Action<T> handler, string pluginId, EventPriority priority, Func<T, bool> filter)
+        public void Subscribe<T>(Action<T> handler, string? pluginId, EventPriority priority, Func<T, bool>? filter)
             where T : PluginEvent
         {
             var type = typeof(T);
@@ -381,7 +381,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>注册异步事件处理器。</summary>
-        public void SubscribeAsync<T>(Func<T, Task> handler, string pluginId = null, EventPriority priority = EventPriority.Normal)
+        public void SubscribeAsync<T>(Func<T, Task> handler, string? pluginId = null, EventPriority priority = EventPriority.Normal)
             where T : PluginEvent
         {
             var type = typeof(T);
@@ -421,7 +421,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>注销特定事件的所有处理器。</summary>
-        public void Unsubscribe<T>(string pluginId = null) where T : PluginEvent
+        public void Unsubscribe<T>(string? pluginId = null) where T : PluginEvent
         {
             var type = typeof(T);
             lock (_handlerLock)
@@ -471,12 +471,12 @@ namespace YamaEngine.PluginSystem
             List<EventHandlerRegistration> handlers;
             lock (_handlerLock)
             {
-                if (!_handlers.TryGetValue(type, out handlers) || handlers.Count == 0)
+                if (!_handlers.TryGetValue(type, out var existing) || existing.Count == 0)
                 {
                     if (EnableHistory) RecordHistory(history);
                     return;
                 }
-                handlers = handlers.ToList(); // 快照
+                handlers = existing.ToList(); // 快照
             }
 
             var sw = EnableProfiling ? Stopwatch.StartNew() : null;
@@ -492,7 +492,7 @@ namespace YamaEngine.PluginSystem
 
                 history.HandlerCount++;
                 if (!string.IsNullOrEmpty(reg.PluginId))
-                    history.HandlerPluginIds.Add(reg.PluginId);
+                    history.HandlerPluginIds.Add(reg.PluginId!);
 
                 try
                 {
@@ -561,9 +561,9 @@ namespace YamaEngine.PluginSystem
             List<EventHandlerRegistration> handlers;
             lock (_handlerLock)
             {
-                if (!_handlers.TryGetValue(type, out handlers) || handlers.Count == 0)
+                if (!_handlers.TryGetValue(type, out var existing) || existing.Count == 0)
                     return;
-                handlers = handlers.Where(h => h.PluginId == targetPluginId).ToList();
+                handlers = existing.Where(h => h.PluginId == targetPluginId).ToList();
             }
 
             foreach (var reg in handlers)
@@ -588,7 +588,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>发送消息给指定插件。</summary>
-        public void SendMessage(string targetPluginId, string message, object payload = null, string sourcePluginId = null)
+        public void SendMessage(string targetPluginId, string message, object? payload = null, string? sourcePluginId = null)
         {
             var msg = new MessageEvent
             {
@@ -661,18 +661,18 @@ namespace YamaEngine.PluginSystem
             var stats = new Dictionary<string, (int Count, TimeSpan TotalTime)>();
             foreach (var entry in _history)
             {
-                if (!stats.ContainsKey(entry.EventName))
-                    stats[entry.EventName] = (0, TimeSpan.Zero);
-                var s = stats[entry.EventName];
-                stats[entry.EventName] = (s.Count + 1, s.TotalTime + entry.TotalHandleTime);
+                if (!stats.ContainsKey(entry.EventName!))
+                    stats[entry.EventName!] = (0, TimeSpan.Zero);
+                var s = stats[entry.EventName!];
+                stats[entry.EventName!] = (s.Count + 1, s.TotalTime + entry.TotalHandleTime);
             }
             return stats;
         }
 
         /// <summary>获取处理器统计。</summary>
-        public Dictionary<string, (long InvokeCount, TimeSpan TotalTime, Exception LastException)> GetHandlerStats()
+        public Dictionary<string, (long InvokeCount, TimeSpan TotalTime, Exception? LastException)> GetHandlerStats()
         {
-            var stats = new Dictionary<string, (long, TimeSpan, Exception)>();
+            var stats = new Dictionary<string, (long, TimeSpan, Exception?)>();
             lock (_handlerLock)
             {
                 foreach (var kv in _handlers)

@@ -230,9 +230,14 @@ namespace YamaEngine.Network
 
             uint receivedCRC = ReadUInt32LE(data, pos); // pos += 4;
 
+            // 帧头声明的负载长度不得超出实际收到的字节数。
+            // 超出即说明帧不完整或被截断 (半到达的 UDP/TCP 包)，静默截断会把半个负载当合法帧使用。
+            if ((long)payloadSize > length - NetworkFrameHeader.HeaderSize)
+                return null;
+
             // 计算期望的 CRC (帧头[0:30] + 负载)
             uint expectedCRC = CRC32Utility.ComputeCRC32(data, 0, 30);
-            int actualPayloadLen = Math.Min(payloadSize, length - NetworkFrameHeader.HeaderSize);
+            int actualPayloadLen = payloadSize;
             if (actualPayloadLen > 0)
             {
                 expectedCRC = CRC32Utility.ComputeCRC32Incremental(
@@ -1139,6 +1144,7 @@ namespace YamaEngine.Network
         private const int FragmentHeaderSize = 10; // 分片头: 2(msgId) + 2(total) + 2(index) + 4(crc)
         private const int DefaultTimeoutMs = 10000;  // 重组超时 10秒
         private const int MaxPendingReassembly = 64;  // 最大同时重组数
+        private const ushort MaxFragmentsPerMessage = 4096; // 单消息最大分片数 (防止伪造巨值 totalFrags 分配巨量缓冲)
 
         private int _mtu = DefaultMTU;
         private int _timeoutMs = DefaultTimeoutMs;
@@ -1263,6 +1269,14 @@ namespace YamaEngine.Network
                     // 清理最旧的重组缓冲区
                     CleanupTimeouts(currentTicks);
                 }
+
+                // 清理后仍超上限则丢弃, 防止对端无限制造重组任务耗尽内存。
+                if (_reassembly.Count >= MaxPendingReassembly)
+                    return null;
+
+                // 分片总数来自未受信帧头 (ushort, 最大 65535), 需限制以防巨量缓冲数组。
+                if (totalFrags == 0 || totalFrags > MaxFragmentsPerMessage)
+                    return null;
 
                 buffer = new ReassemblyBuffer
                 {

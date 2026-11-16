@@ -62,17 +62,17 @@ namespace YamaEngine.PluginSystem
     /// <summary>服务描述符。</summary>
     public sealed class ServiceDescriptor
     {
-        public Type ServiceType { get; set; }
-        public Type ImplementationType { get; set; }
-        public object Instance { get; set; }
-        public Func<IServiceProvider, object> Factory { get; set; }
+        public Type ServiceType { get; set; } = null!;
+        public Type? ImplementationType { get; set; }
+        public object? Instance { get; set; }
+        public Func<IServiceProvider, object>? Factory { get; set; }
         public ServiceLifetime Lifetime { get; set; } = ServiceLifetime.Singleton;
-        public string PluginId { get; set; }
+        public string? PluginId { get; set; }
         public int Priority { get; set; } = 100;
         public bool IsInitialized { get; set; }
 
         public override string ToString() =>
-            $"{ServiceType?.Name} → {ImplementationType?.Name} [{Lifetime}] P:{Priority} [{PluginId}]";
+            $"{ServiceType.Name} → {ImplementationType?.Name} [{Lifetime}] P:{Priority} [{PluginId}]";
     }
 
     #endregion
@@ -82,9 +82,9 @@ namespace YamaEngine.PluginSystem
     /// <summary>服务覆盖记录。</summary>
     public sealed class ServiceOverrideRecord
     {
-        public Type ServiceType { get; set; }
-        public string OriginalPluginId { get; set; }
-        public string OverridePluginId { get; set; }
+        public Type ServiceType { get; set; } = null!;
+        public string? OriginalPluginId { get; set; }
+        public string? OverridePluginId { get; set; }
         public DateTime OverrideTime { get; set; } = DateTime.Now;
 
         public override string ToString() =>
@@ -98,13 +98,13 @@ namespace YamaEngine.PluginSystem
     /// <summary>日志服务接口。</summary>
     public interface ILogService : IService
     {
-        void Log(PluginLogLevel level, string message, string pluginId = null);
+        void Log(PluginLogLevel level, string message, string? pluginId = null);
     }
 
     /// <summary>配置服务接口。</summary>
     public interface IConfigService : IService
     {
-        T GetConfig<T>(string pluginId, string key, T defaultValue = default);
+        T GetConfig<T>(string pluginId, string key, T defaultValue = default!);
         void SetConfig<T>(string pluginId, string key, T value);
         void SaveConfig(string pluginId);
     }
@@ -113,7 +113,7 @@ namespace YamaEngine.PluginSystem
     public interface IEventService : IService
     {
         void Publish<T>(T evt) where T : PluginEvent;
-        void Subscribe<T>(Action<T> handler, string pluginId = null, EventPriority priority = EventPriority.Normal) where T : PluginEvent;
+        void Subscribe<T>(Action<T> handler, string? pluginId = null, EventPriority priority = EventPriority.Normal) where T : PluginEvent;
     }
 
     /// <summary>资产服务接口。</summary>
@@ -152,7 +152,7 @@ namespace YamaEngine.PluginSystem
         public void Initialize() { }
         public void Shutdown() { }
 
-        public void Log(PluginLogLevel level, string message, string pluginId = null)
+        public void Log(PluginLogLevel level, string message, string? pluginId = null)
         {
             var logger = new PluginLogger(pluginId ?? "Engine");
             logger.Write(level, message);
@@ -168,7 +168,7 @@ namespace YamaEngine.PluginSystem
         public void Initialize() { }
         public void Shutdown() { }
 
-        public T GetConfig<T>(string pluginId, string key, T defaultValue = default)
+        public T GetConfig<T>(string pluginId, string key, T defaultValue = default!)
         {
             if (_configs.TryGetValue(pluginId, out var config))
                 return config.Get(key, defaultValue);
@@ -199,7 +199,7 @@ namespace YamaEngine.PluginSystem
         public void Publish<T>(T evt) where T : PluginEvent
             => PluginEventBus.Instance.Publish(evt);
 
-        public void Subscribe<T>(Action<T> handler, string pluginId = null, EventPriority priority = EventPriority.Normal) where T : PluginEvent
+        public void Subscribe<T>(Action<T> handler, string? pluginId = null, EventPriority priority = EventPriority.Normal) where T : PluginEvent
             => PluginEventBus.Instance.Subscribe(handler, pluginId, priority);
     }
 
@@ -245,9 +245,9 @@ namespace YamaEngine.PluginSystem
         private readonly PluginLogger _logger = new PluginLogger("ServiceRegistry");
 
         // 事件
-        public event Action<ServiceDescriptor> OnServiceRegistered;
-        public event Action<ServiceDescriptor> OnServiceUnregistered;
-        public event Action<ServiceOverrideRecord> OnServiceOverridden;
+        public event Action<ServiceDescriptor>? OnServiceRegistered;
+        public event Action<ServiceDescriptor>? OnServiceUnregistered;
+        public event Action<ServiceOverrideRecord>? OnServiceOverridden;
 
         // 配置
         public bool EnablePropertyInjection { get; set; } = true;
@@ -273,14 +273,14 @@ namespace YamaEngine.PluginSystem
         #region 注册
 
         /// <summary>注册服务 (接口→实现)。</summary>
-        public void Register<TInterface, TImplementation>(TImplementation instance = null)
+        public void Register<TInterface, TImplementation>(TImplementation? instance = null)
             where TImplementation : class, TInterface, new()
         {
             Register<TInterface, TImplementation>(ServiceLifetime.Singleton, null, 100, instance);
         }
 
         /// <summary>注册服务 (带生命周期)。</summary>
-        public void Register<TInterface, TImplementation>(ServiceLifetime lifetime, string pluginId, int priority, TImplementation instance = null)
+        public void Register<TInterface, TImplementation>(ServiceLifetime lifetime, string pluginId, int priority, TImplementation? instance = null)
             where TImplementation : class, TInterface, new()
         {
             var descriptor = new ServiceDescriptor
@@ -297,7 +297,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>注册服务 (带工厂)。</summary>
-        public void Register<TService>(Func<IServiceProvider, TService> factory, ServiceLifetime lifetime = ServiceLifetime.Singleton, string pluginId = null, int priority = 100)
+        public void Register<TService>(Func<IServiceProvider, TService> factory, ServiceLifetime lifetime = ServiceLifetime.Singleton, string? pluginId = null, int priority = 100)
             where TService : class
         {
             var descriptor = new ServiceDescriptor
@@ -313,7 +313,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>注册服务实例 (单例)。</summary>
-        public void RegisterInstance<TService>(TService instance, string pluginId = null, int priority = 100)
+        public void RegisterInstance<TService>(TService instance, string? pluginId = null, int priority = 100)
             where TService : class
         {
             var descriptor = new ServiceDescriptor
@@ -392,7 +392,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>注销特定服务。</summary>
-        public bool Unregister<TService>(string pluginId = null) where TService : class
+        public bool Unregister<TService>(string? pluginId = null) where TService : class
         {
             var type = typeof(TService);
             lock (_lock)
@@ -431,9 +431,9 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>获取服务。</summary>
-        public object GetService(Type serviceType)
+        public object? GetService(Type serviceType)
         {
-            ServiceDescriptor descriptor = GetTopDescriptor(serviceType);
+            ServiceDescriptor? descriptor = GetTopDescriptor(serviceType);
             if (descriptor == null) return null;
 
             return ResolveService(descriptor);
@@ -453,17 +453,17 @@ namespace YamaEngine.PluginSystem
         {
             var type = typeof(T);
             if (!_services.TryGetValue(type, out var list)) return Enumerable.Empty<T>();
-            return list.Select(d => ResolveService(d) as T).Where(s => s != null);
+            return list.Select(d => (ResolveService(d) as T)!).Where(s => s != null);
         }
 
-        private ServiceDescriptor GetTopDescriptor(Type serviceType)
+        private ServiceDescriptor? GetTopDescriptor(Type serviceType)
         {
             if (!_services.TryGetValue(serviceType, out var list) || list.Count == 0)
                 return null;
             return list[0]; // 最高优先级
         }
 
-        private object ResolveService(ServiceDescriptor descriptor)
+        private object? ResolveService(ServiceDescriptor descriptor)
         {
             if (descriptor.Lifetime == ServiceLifetime.Singleton)
             {
@@ -499,7 +499,7 @@ namespace YamaEngine.PluginSystem
             return scopedInstance;
         }
 
-        private object CreateInstance(ServiceDescriptor descriptor)
+        private object? CreateInstance(ServiceDescriptor descriptor)
         {
             object instance;
 
@@ -539,7 +539,7 @@ namespace YamaEngine.PluginSystem
         #region 依赖注入
 
         /// <summary>构造函数注入。</summary>
-        private object CreateWithConstructorInjection(Type implementationType)
+        private object? CreateWithConstructorInjection(Type implementationType)
         {
             var constructors = implementationType.GetConstructors()
                 .OrderByDescending(c => c.GetParameters().Length)
@@ -560,7 +560,7 @@ namespace YamaEngine.PluginSystem
                         canResolve = false;
                         break;
                     }
-                    args[i] = paramValue ?? parameters[i].DefaultValue;
+                    args[i] = paramValue ?? parameters[i].DefaultValue!;
                 }
 
                 if (canResolve)
@@ -813,7 +813,7 @@ namespace YamaEngine.PluginSystem
         public IReadOnlyList<ServiceOverrideRecord> GetOverrideRecords() => _overrides.AsReadOnly();
 
         /// <summary>获取服务的提供者插件。</summary>
-        public string GetServiceProvider(Type serviceType)
+        public string? GetServiceProvider(Type serviceType)
         {
             var desc = GetTopDescriptor(serviceType);
             return desc?.PluginId;

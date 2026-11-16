@@ -384,6 +384,32 @@ namespace YamaEngine.Assets.Importers
         /// <summary>解析产出的统一场景格式。</summary>
         public InterchangeScene? Scene { get; private set; }
 
+        /// <summary>
+        /// 解析 USD 文件引用的相对路径并确保不逃逸资产目录。
+        /// USD References/Payloads 路径来自未受信文件, 可含 ../ 或绝对路径, 直接 Combine 会读到资产目录之外的任意文件。
+        /// </summary>
+        private static string ResolveSafePath(string baseDir, string relative)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("USD 引用路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"USD 引用路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"USD 引用路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
+        }
+
         /// <summary>构造 USD 增强导入器。</summary>
         public USDImporterAdvanced(string filePath)
         {
@@ -762,7 +788,9 @@ namespace YamaEngine.Assets.Importers
 
                 // 尝试加载引用的 Layer
                 string baseDir = Path.GetDirectoryName(_filePath) ?? string.Empty;
-                string refFullPath = Path.Combine(baseDir, refPath);
+                // 工业级防御: refPath 来自 USD 文件, 可含 ../ 逃逸资产目录。
+                // 直接 Combine + File.Exists 会读到/递归导入资产目录之外的任意文件。
+                string refFullPath = ResolveSafePath(baseDir, refPath);
                 if (File.Exists(refFullPath))
                 {
                     // 递归解析引用的 USD 文件
@@ -809,7 +837,7 @@ namespace YamaEngine.Assets.Importers
 
                     // Payload 加载逻辑与引用类似
                     string baseDir = Path.GetDirectoryName(_filePath) ?? string.Empty;
-                    string payloadFullPath = Path.Combine(baseDir, payloadPath);
+                    string payloadFullPath = ResolveSafePath(baseDir, payloadPath);
                     if (File.Exists(payloadFullPath))
                     {
                         try

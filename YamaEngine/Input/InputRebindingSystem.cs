@@ -30,7 +30,7 @@ namespace YamaEngine.Input.Enhanced
         /// <summary>是否为默认方案</summary>
         public bool IsDefault { get; set; }
 
-        public ControlScheme(string name, string displayName = null)
+        public ControlScheme(string name, string? displayName = null)
         {
             Name = name;
             DisplayName = displayName ?? name;
@@ -55,7 +55,7 @@ namespace YamaEngine.Input.Enhanced
         public bool RemoveBindingOverride(BindingOverride bindingOverride) => BindingOverrides.Remove(bindingOverride);
 
         /// <summary>查找指定动作的覆盖绑定</summary>
-        public BindingOverride FindOverride(string actionMap, string actionName)
+        public BindingOverride? FindOverride(string actionMap, string actionName)
         {
             foreach (var o in BindingOverrides)
             {
@@ -76,19 +76,19 @@ namespace YamaEngine.Input.Enhanced
     public class InputRebinding
     {
         /// <summary>目标动作</summary>
-        public EnhancedInputAction Action { get; set; }
+        public EnhancedInputAction? Action { get; set; }
 
         /// <summary>目标绑定索引</summary>
         public int BindingIndex { get; set; }
 
         /// <summary>新绑定路径</summary>
-        public string NewBindingPath { get; set; }
+        public string? NewBindingPath { get; set; }
 
         /// <summary>旧绑定路径 (备份)</summary>
-        public string OldBindingPath { get; set; }
+        public string? OldBindingPath { get; set; }
 
         /// <summary>适用的控制方案 (null = 全局)</summary>
-        public string ControlScheme { get; set; }
+        public string? ControlScheme { get; set; }
 
         /// <summary>重绑定是否已完成</summary>
         public bool IsComplete { get; private set; }
@@ -97,9 +97,9 @@ namespace YamaEngine.Input.Enhanced
         public float CompleteTime { get; private set; }
 
         /// <summary>完成回调</summary>
-        public event Action<InputRebinding> OnComplete;
+        public event Action<InputRebinding>? OnComplete;
 
-        public InputRebinding(EnhancedInputAction action, int bindingIndex, string newBindingPath, string controlScheme = null)
+        public InputRebinding(EnhancedInputAction action, int bindingIndex, string newBindingPath, string? controlScheme = null)
         {
             Action = action;
             BindingIndex = bindingIndex;
@@ -113,8 +113,8 @@ namespace YamaEngine.Input.Enhanced
             if (Action != null && Action.Bindings.Count > BindingIndex)
             {
                 var binding = Action.Bindings[BindingIndex];
-                OldBindingPath = binding.Path;
-                binding.Path = NewBindingPath;
+                OldBindingPath = binding.Path!;
+                binding.Path = NewBindingPath!;
                 IsComplete = true;
                 OnComplete?.Invoke(this);
             }
@@ -160,7 +160,7 @@ namespace YamaEngine.Input.Enhanced
         public RebindingState State { get; private set; } = RebindingState.Idle;
 
         /// <summary>目标动作</summary>
-        public EnhancedInputAction TargetAction { get; private set; }
+        public EnhancedInputAction? TargetAction { get; private set; }
 
         /// <summary>目标绑定索引 (-1 = 自动选择)</summary>
         public int TargetBindingIndex { get; private set; } = -1;
@@ -179,16 +179,16 @@ namespace YamaEngine.Input.Enhanced
         public List<string> ExcludedPaths { get; set; } = new List<string>();
 
         /// <summary>适用的控制方案</summary>
-        public string ControlScheme { get; set; }
+        public string? ControlScheme { get; set; }
 
         /// <summary>重绑定完成时的回调</summary>
-        public event Action<InputRebinding, string> OnRebound;
+        public event Action<InputRebinding, string>? OnRebound;
         /// <summary>重绑定取消时的回调</summary>
-        public event Action OnCanceled;
+        public event Action? OnCanceled;
         /// <summary>重绑定超时时的回调</summary>
-        public event Action OnTimedOut;
+        public event Action? OnTimedOut;
 
-        private InputRebinding _currentRebinding;
+        private InputRebinding? _currentRebinding;
 
         /// <summary>开始重绑定操作</summary>
         public void Start(EnhancedInputAction action, int bindingIndex = -1)
@@ -204,7 +204,7 @@ namespace YamaEngine.Input.Enhanced
         {
             if (State != RebindingState.WaitingForInput) return;
 
-            _currentRebinding = new InputRebinding(TargetAction, TargetBindingIndex, newBindingPath, ControlScheme);
+            _currentRebinding = new InputRebinding(TargetAction!, TargetBindingIndex, newBindingPath, ControlScheme);
             _currentRebinding.Apply();
             State = RebindingState.Completed;
             OnRebound?.Invoke(_currentRebinding, newBindingPath);
@@ -234,7 +234,7 @@ namespace YamaEngine.Input.Enhanced
         }
 
         /// <summary>获取当前重绑定操作</summary>
-        public InputRebinding GetCurrentRebinding() => _currentRebinding;
+        public InputRebinding? GetCurrentRebinding() => _currentRebinding;
     }
 
     #endregion
@@ -308,7 +308,7 @@ namespace YamaEngine.Input.Enhanced
     /// </summary>
     public class InputRebindingManager
     {
-        private static InputRebindingManager _instance;
+        private static InputRebindingManager? _instance;
         /// <summary>全局单例</summary>
         public static InputRebindingManager Instance
         {
@@ -323,21 +323,21 @@ namespace YamaEngine.Input.Enhanced
         public Dictionary<string, ControlScheme> ControlSchemes { get; } = new Dictionary<string, ControlScheme>();
 
         /// <summary>当前活动方案名称</summary>
-        public string ActiveScheme { get; private set; }
+        public string? ActiveScheme { get; private set; }
 
         /// <summary>所有重绑定历史 (用于撤销)</summary>
         private readonly List<InputRebinding> _rebindingHistory = new List<InputRebinding>();
 
         /// <summary>当前重绑定上下文</summary>
-        public InputRebindingContext CurrentContext { get; private set; }
+        public InputRebindingContext? CurrentContext { get; private set; }
 
         /// <summary>重绑定 UI</summary>
-        public IRebindingUI UI { get; set; } = new DefaultRebindingUI();
+        public IRebindingUI? UI { get; set; } = new DefaultRebindingUI();
 
         /// <summary>方案切换事件</summary>
-        public event Action<string, string> OnSchemeChanged;
+        public event Action<string, string>? OnSchemeChanged;
         /// <summary>重绑定完成事件</summary>
-        public event Action<InputRebinding> OnRebindingCompleted;
+        public event Action<InputRebinding>? OnRebindingCompleted;
 
         public InputRebindingManager() { }
 
@@ -356,9 +356,9 @@ namespace YamaEngine.Input.Enhanced
             if (!ControlSchemes.ContainsKey(schemeName))
                 throw new ArgumentException($"控制方案 '{schemeName}' 不存在");
 
-            string oldScheme = ActiveScheme;
+            string? oldScheme = ActiveScheme;
             ActiveScheme = schemeName;
-            OnSchemeChanged?.Invoke(oldScheme, schemeName);
+            OnSchemeChanged?.Invoke(oldScheme!, schemeName);
 
             // 应用方案的绑定覆盖
             ApplySchemeOverrides(schemeName);
@@ -439,13 +439,13 @@ namespace YamaEngine.Input.Enhanced
         public IEnumerable<string> GetSchemeNames() => ControlSchemes.Keys;
 
         /// <summary>获取当前活动方案</summary>
-        public ControlScheme GetActiveScheme()
+        public ControlScheme? GetActiveScheme()
         {
-            return string.IsNullOrEmpty(ActiveScheme) ? null : ControlSchemes.TryGetValue(ActiveScheme, out var s) ? s : null;
+            return string.IsNullOrEmpty(ActiveScheme) ? null : ControlSchemes.TryGetValue(ActiveScheme!, out var s) ? s : null;
         }
 
         /// <summary>获取默认方案</summary>
-        public ControlScheme GetDefaultScheme()
+        public ControlScheme? GetDefaultScheme()
         {
             foreach (var scheme in ControlSchemes.Values)
             {

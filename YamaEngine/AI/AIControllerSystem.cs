@@ -63,11 +63,11 @@ namespace YamaEngine.AI
         public float ElapsedTime { get; private set; }
 
         /// <summary>进入状态回调。</summary>
-        public Action<AIController> OnEnter { get; set; }
+        public Action<AIController>? OnEnter { get; set; }
         /// <summary>更新状态回调（返回false表示继续，true表示自动退出）。</summary>
-        public Func<AIController, float, bool> OnUpdate { get; set; }
+        public Func<AIController, float, bool>? OnUpdate { get; set; }
         /// <summary>退出状态回调。</summary>
-        public Action<AIController> OnExit { get; set; }
+        public Action<AIController>? OnExit { get; set; }
 
         private float _duration = 0f;
 
@@ -106,7 +106,7 @@ namespace YamaEngine.AI
         /// <summary>目标状态。</summary>
         public AIStateType ToState { get; set; }
         /// <summary>转换条件。</summary>
-        public Func<AIController, bool> Condition { get; set; }
+        public Func<AIController, bool>? Condition { get; set; }
         /// <summary>优先级（数值越小优先级越高）。</summary>
         public int Priority { get; set; } = 0;
         /// <summary>是否一次性（触发后自动删除）。</summary>
@@ -115,11 +115,11 @@ namespace YamaEngine.AI
         internal bool _triggered = false;
 
         /// <summary>转换回调。</summary>
-        public Action<AIController> OnTransition { get; set; }
+        public Action<AIController>? OnTransition { get; set; }
 
         public AIStateTransition() { }
 
-        public AIStateTransition(AIStateType from, AIStateType to, Func<AIController, bool> condition,
+        public AIStateTransition(AIStateType from, AIStateType to, Func<AIController, bool>? condition,
             int priority = 0)
         {
             FromState = from;
@@ -539,13 +539,13 @@ namespace YamaEngine.AI
     public sealed class AIDecisionMaker
     {
         private readonly List<AIAction> _availableActions = new List<AIAction>();
-        private AIAction _currentAction;
+        private AIAction? _currentAction;
 
         /// <summary>当前执行的行动。</summary>
-        public AIAction CurrentAction => _currentAction;
+        public AIAction? CurrentAction => _currentAction;
 
         /// <summary>行动变更回调。</summary>
-        public Action<AIAction, AIAction> OnActionChanged { get; set; }
+        public Action<AIAction, AIAction>? OnActionChanged { get; set; }
 
         /// <summary>注册可用行动。</summary>
         public void RegisterAction(AIAction action)
@@ -568,9 +568,9 @@ namespace YamaEngine.AI
         }
 
         /// <summary>评估并选择最佳行动。</summary>
-        public AIAction DecideBestAction(AIController controller)
+        public AIAction? DecideBestAction(AIController controller)
         {
-            AIAction bestAction = null;
+            AIAction? bestAction = null;
             float bestScore = float.MinValue;
 
             foreach (var action in _availableActions)
@@ -597,7 +597,8 @@ namespace YamaEngine.AI
                 _currentAction?.Abort(controller);
                 _currentAction = bestAction;
                 _currentAction?.Execute(controller);
-                OnActionChanged?.Invoke(oldAction, _currentAction);
+                if (_currentAction != null)
+                    OnActionChanged?.Invoke(oldAction!, _currentAction);
             }
         }
 
@@ -617,7 +618,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>强制切换到指定行动。</summary>
-        public void ForceAction(AIAction action, AIController controller)
+        public void ForceAction(AIAction? action, AIController controller)
         {
             if (action == null) return;
             _currentAction?.Abort(controller);
@@ -647,7 +648,7 @@ namespace YamaEngine.AI
 
         private sealed class MemoryEntry
         {
-            public YamaEngine.GameFramework.Actor Actor;
+            public YamaEngine.GameFramework.Actor? Actor;
             public Vector3 LastKnownPosition;
             public float LastSeenTime;
             public float ThreatLevel;
@@ -655,8 +656,8 @@ namespace YamaEngine.AI
         }
 
         /// <summary>记忆更新回调。</summary>
-        public Action<YamaEngine.GameFramework.Actor, float> OnThreatChanged { get; set; }
-        public Action<YamaEngine.GameFramework.Actor> OnTargetForgotten { get; set; }
+        public Action<YamaEngine.GameFramework.Actor, float>? OnThreatChanged { get; set; }
+        public Action<YamaEngine.GameFramework.Actor>? OnTargetForgotten { get; set; }
 
         /// <summary>更新目标信息。</summary>
         public void UpdateTarget(YamaEngine.GameFramework.Actor target, Vector3 position, float threatLevel = 0.5f)
@@ -710,9 +711,9 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取最近的目标。</summary>
-        public YamaEngine.GameFramework.Actor GetClosestTarget(Vector3 fromPosition)
+        public YamaEngine.GameFramework.Actor? GetClosestTarget(Vector3 fromPosition)
         {
-            YamaEngine.GameFramework.Actor closest = null;
+            YamaEngine.GameFramework.Actor? closest = null;
             float minDist = float.MaxValue;
             foreach (var kv in _memories)
             {
@@ -728,9 +729,9 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取最高威胁目标。</summary>
-        public YamaEngine.GameFramework.Actor GetHighestThreatTarget()
+        public YamaEngine.GameFramework.Actor? GetHighestThreatTarget()
         {
-            YamaEngine.GameFramework.Actor threat = null;
+            YamaEngine.GameFramework.Actor? threat = null;
             float maxThreat = float.MinValue;
             foreach (var kv in _memories)
             {
@@ -802,8 +803,8 @@ namespace YamaEngine.AI
         public sealed class AIMessage
         {
             public MessageType Type { get; set; }
-            public YamaEngine.GameFramework.Actor Sender { get; set; }
-            public YamaEngine.GameFramework.Actor Target { get; set; }
+            public YamaEngine.GameFramework.Actor? Sender { get; set; }
+            public YamaEngine.GameFramework.Actor? Target { get; set; }
             public Vector3 Position { get; set; }
             public float Timestamp { get; set; }
             public Dictionary<string, object> Data { get; } = new Dictionary<string, object>();
@@ -816,7 +817,7 @@ namespace YamaEngine.AI
             new List<(AIMessage, AITeamId)>();
 
         /// <summary>消息处理回调。</summary>
-        public Action<AIController, AIMessage> OnMessageReceived { get; set; }
+        public Action<AIController, AIMessage>? OnMessageReceived { get; set; }
 
         public float MessageLifespan { get; set; } = 5f;
 
@@ -917,16 +918,16 @@ namespace YamaEngine.AI
 
         private readonly Dictionary<AIStateType, AIState> _states = new Dictionary<AIStateType, AIState>();
         private readonly List<AIStateTransition> _transitions = new List<AIStateTransition>();
-        private AIState _currentState;
+        private AIState? _currentState;
         public AIStateType CurrentStateType => _currentState?.StateType ?? AIStateType.Idle;
 
         /// <summary>状态变更回调。</summary>
-        public Action<AIStateType, AIStateType> OnStateChanged { get; set; }
+        public Action<AIStateType, AIStateType>? OnStateChanged { get; set; }
 
         // ── 行为树集成 ────────────────────────────────────────────
 
-        public BehaviorTree CurrentBehaviorTree { get; set; }
-        public BehaviorTreeInstance BehaviorTreeInstance { get; set; }
+        public BehaviorTree? CurrentBehaviorTree { get; set; }
+        public BehaviorTreeInstance? BehaviorTreeInstance { get; set; }
 
         // ── 感知系统 ────────────────────────────────────────────
 
@@ -934,7 +935,7 @@ namespace YamaEngine.AI
 
         // ── 导航代理 ────────────────────────────────────────────
 
-        public NavAgent NavAgent { get; set; }
+        public NavAgent? NavAgent { get; set; }
 
         // ── 决策器 ──────────────────────────────────────────────
 
@@ -1048,6 +1049,16 @@ namespace YamaEngine.AI
 
         // ── 每帧更新 ────────────────────────────────────────────
 
+        /// <summary>
+        /// 由 GameFramework 生命周期 (GameplayWorld 对 GameFramework.Actor 的
+        /// TickActor 派发) 逐帧驱动, 调用 TickAI 完成感知/记忆/状态机/决策/行为树闭环。
+        /// </summary>
+        protected override void OnTick(float deltaTime)
+        {
+            base.OnTick(deltaTime);
+            TickAI(deltaTime);
+        }
+
         /// <summary>AI 控制器每帧 Tick。</summary>
         public void TickAI(float deltaTime)
         {
@@ -1088,7 +1099,10 @@ namespace YamaEngine.AI
                 var prevState = _currentState?.StateType ?? AIStateType.Idle;
                 _currentState?.Exit(this);
                 bestTransition.OnTransition?.Invoke(this);
-                _currentState = _states.GetValueOrDefault(bestTransition.ToState);
+                if (_states.TryGetValue(bestTransition.ToState, out var nextState))
+                    _currentState = nextState;
+                else
+                    _currentState = null;
                 _currentState?.Enter(this);
                 OnStateChanged?.Invoke(prevState, _currentState?.StateType ?? AIStateType.Idle);
                 return;
@@ -1109,9 +1123,9 @@ namespace YamaEngine.AI
             }
         }
 
-        private AIStateTransition FindBestTransition()
+        private AIStateTransition? FindBestTransition()
         {
-            AIStateTransition best = null;
+            AIStateTransition? best = null;
             int bestPriority = int.MaxValue;
 
             foreach (var transition in _transitions)
@@ -1198,6 +1212,33 @@ namespace YamaEngine.AI
         public void StopMovement()
         {
             NavAgent?.Stop();
+        }
+
+        // ── EQS (环境查询系统) 集成 ────────────────────────────
+
+        /// <summary>EQS 查询模板 (运行时用于查询最佳位置/目标)。</summary>
+        public EQSQuery? EQSQuery { get; set; }
+
+        /// <summary>
+        /// 以本控制器为查询者执行 EQS 查询。
+        /// 自动构建上下文 (查询者位置/前向/世界 Actor), 执行模板查询并返回结果。
+        /// 未设置模板时返回空结果。使用 result.BestItem/GetTopItems 取最佳项。
+        /// </summary>
+        public EQSResult RunEQSQuery()
+        {
+            if (EQSQuery == null) return new EQSResult();
+
+            var ctx = new EQSContext();
+            ctx.SetQuerier(this);
+
+            // 收集已注册进世界的 Actor (供 ActorsInRadius 等生成器使用)
+            if (World != null)
+            {
+                foreach (var a in World.Actors)
+                    if (a is YamaEngine.GameFramework.Actor gf) ctx.WorldActors.Add(gf);
+            }
+
+            return EQSQuery.Execute(ctx);
         }
     }
 }

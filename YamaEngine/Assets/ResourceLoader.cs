@@ -520,12 +520,32 @@ namespace YamaEngine.Assets
             int width = image.Width;
             int height = image.Height;
 
+            // 工业级防御: 尺寸非法/像素总数溢出 → 防 OOM/负分配/越界读。
+            // width*height*4 可溢出 int (如 60000x60000 → 负), 或合法但极大 → OOM。
+            long pixelCountL = (long)width * height;
+            const long MaxTextureBytes = 512L * 1024 * 1024; // 512MB RGBA
+            if (width <= 0 || height <= 0 || pixelCountL > MaxTextureBytes / 4)
+                throw new InvalidDataException($"纹理尺寸非法或像素过多: {width}x{height}");
+            int pixelBytes = (int)(pixelCountL * 4);
+
             // 提取像素数据
-            var pixelData = new byte[width * height * 4];
+            var pixelData = new byte[pixelBytes];
             image.CopyPixelDataTo(pixelData);
 
             // 计算 Mipmap 层数
             int mipLevels = CalculateMipLevels(width, height);
+
+            // 工业级防御: mip 总字节数 (缓存估算) 不溢出。
+            long mipTotalBytes = 0;
+            {
+                int mw = width, mh = height;
+                for (int m = 0; m < mipLevels; m++)
+                {
+                    mipTotalBytes += (long)mw * mh * 4;
+                    mw = Math.Max(1, mw >> 1);
+                    mh = Math.Max(1, mh >> 1);
+                }
+            }
 
             // 创建 RHI 纹理
             var texDesc = new RHITextureDesc
@@ -567,7 +587,7 @@ namespace YamaEngine.Assets
             var result = new LoadedTexture(gpuTexture, width, height, mipLevels,
                 RHIFormat.R8G8B8A8_UNorm, pixelData, path);
 
-            _cache.Add(path, result, (ulong)(width * height * 4 * mipLevels));
+            _cache.Add(path, result, (ulong)mipTotalBytes);
             return result;
         }
 
@@ -888,6 +908,10 @@ namespace YamaEngine.Assets
             {
                 string chunkId = System.Text.Encoding.ASCII.GetString(data, offset, 4);
                 int chunkSize = BitConverter.ToInt32(data, offset + 4);
+
+                // 工业级防御: chunkSize 为负会使 offset 回退→死循环/越界; 超出文件则截断。
+                if (chunkSize < 0 || offset + 8 + chunkSize > data.Length)
+                    throw new InvalidDataException($"无效的WAV文件: 块 '{chunkId}' 大小非法 ({chunkSize})");
 
                 if (chunkId == "fmt ")
                 {

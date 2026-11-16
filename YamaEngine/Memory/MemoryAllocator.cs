@@ -194,12 +194,17 @@ namespace YamaEngine.Memory
             if (size < 0) throw new ArgumentOutOfRangeException(nameof(size));
 
             int alignedSize = AlignmentHelper.AlignUp(size, _alignment);
+            if (alignedSize < 0 || _offset > int.MaxValue - alignedSize)
+                throw new OutOfMemoryException("Arena allocation size overflow.");
             int newOffset = _offset + alignedSize;
 
             if (newOffset > _capacity)
             {
                 // 尝试扩展（分配新块并替换，旧块暂由GC回收——实际生产中应更精细管理）
-                int newCapacity = Math.Max(_capacity * 2, newOffset);
+                long newCapacityLong = Math.Max((long)_capacity * 2, newOffset);
+                if (newCapacityLong > int.MaxValue)
+                    throw new OutOfMemoryException("Arena capacity exceeds addressable range.");
+                int newCapacity = (int)newCapacityLong;
                 IntPtr newBase = Marshal.AllocHGlobal(newCapacity);
                 unsafe
                 {
@@ -218,12 +223,14 @@ namespace YamaEngine.Memory
         }
 
         /// <summary>
-        /// 分配并零初始化
+        /// 分配并零初始化。
+        /// 若分配失败（抛 OutOfMemoryException）不会产生泄漏；零初始化前先检查 size 与分配结果。
         /// </summary>
         public IntPtr AllocateZeroed(int size)
         {
+            if (size < 0) throw new ArgumentOutOfRangeException(nameof(size));
             IntPtr ptr = Allocate(size);
-            unsafe { Buffer.MemoryCopy(null, (void*)ptr, size, size); }
+            unsafe { new Span<byte>((void*)ptr, size).Clear(); }
             return ptr;
         }
 
@@ -372,6 +379,8 @@ namespace YamaEngine.Memory
         // 每个 bucket 的空闲链表头（使用 int 索引，-1 表示空）
         private readonly int[] _freeListHeads;
         private readonly object[] _bucketLocks;
+        // 每个 bucket 的块占用位图（true=已分配），用于双释放检测（受 _bucketLocks 保护）
+        private readonly bool[][] _inUse;
         // 在每个块的头部嵌入 next 索引（4字节 int），所以实际用户可用 = blockSize - 4
         internal const int HeaderSize = sizeof(int);
 
@@ -390,19 +399,37 @@ namespace YamaEngine.Memory
         /// <summary>
         /// 创建池分配器
         /// </summary>
-        /// <param name="bucketSizes">各桶块大小</param>
-        /// <param name="blocksPerBucket">每个桶的块数</param>
+        /// <param name="bucketSizes">各桶块大小（须 >= HeaderSize，递增）。</param>
+        /// <param name="blocksPerBucket">每个桶的块数（须 > 0）。</param>
         public PoolAllocator(int[]? bucketSizes = null, int blocksPerBucket = 1024)
         {
             bucketSizes ??= DefaultBucketSizes;
+            if (blocksPerBucket <= 0)
+                throw new ArgumentOutOfRangeException(nameof(blocksPerBucket));
+            if (bucketSizes.Length == 0)
+                throw new ArgumentException("At least one bucket size is required.", nameof(bucketSizes));
+
             _buckets = new Bucket[bucketSizes.Length];
             _freeListHeads = new int[bucketSizes.Length];
             _bucketLocks = new object[bucketSizes.Length];
+            _inUse = new bool[bucketSizes.Length][];
 
+            int prevBlockSize = 0;
             for (int i = 0; i < bucketSizes.Length; i++)
             {
                 int blockFullSize = bucketSizes[i]; // 包含 header
-                int totalBytes = blockFullSize * blocksPerBucket;
+                if (blockFullSize < HeaderSize)
+                    throw new ArgumentOutOfRangeException(nameof(bucketSizes),
+                        $"Bucket size {blockFullSize} must be at least HeaderSize ({HeaderSize}).");
+                if (i > 0 && blockFullSize <= prevBlockSize)
+                    throw new ArgumentException("Bucket sizes must be strictly increasing.", nameof(bucketSizes));
+                prevBlockSize = blockFullSize;
+
+                long totalBytesLong = (long)blockFullSize * blocksPerBucket;
+                if (totalBytesLong > int.MaxValue)
+                    throw new ArgumentOutOfRangeException(nameof(blocksPerBucket),
+                        $"Bucket {blockFullSize} x {blocksPerBucket} exceeds addressable range.");
+                int totalBytes = (int)totalBytesLong;
                 IntPtr basePtr = Marshal.AllocHGlobal(totalBytes);
 
                 // 初始化空闲链表：每块头写入下一块索引
@@ -418,6 +445,7 @@ namespace YamaEngine.Memory
 
                 _freeListHeads[i] = 0;
                 _bucketLocks[i] = new object();
+                _inUse[i] = new bool[blocksPerBucket];
                 _buckets[i] = new Bucket(blockFullSize, blocksPerBucket, basePtr);
             }
         }
@@ -447,6 +475,8 @@ namespace YamaEngine.Memory
                     head = *(int*)blockPtr;
                 }
 
+                _inUse[bucketIndex][blockIndex] = true;
+
                 Interlocked.Increment(ref _totalAllocations);
 
                 // 返回跳过 header 的用户区域
@@ -469,14 +499,21 @@ namespace YamaEngine.Memory
             {
                 IntPtr userPtr = ptr;
                 IntPtr blockPtr = userPtr - HeaderSize;
+                int blockIndex =
+                    (int)((blockPtr - _buckets[bucketIndex].BasePtr) / _buckets[bucketIndex].BlockSize);
+
+                // 双释放防护：块必须处于"已分配"状态才能释放。
+                if (!_inUse[bucketIndex][blockIndex])
+                    throw new InvalidOperationException(
+                        $"Double-free detected for block {blockIndex} in bucket {_buckets[bucketIndex].BlockSize}.");
+                _inUse[bucketIndex][blockIndex] = false;
 
                 unsafe
                 {
                     *(int*)blockPtr = _freeListHeads[bucketIndex];
                 }
 
-                _freeListHeads[bucketIndex] =
-                    (int)((blockPtr - _buckets[bucketIndex].BasePtr) / _buckets[bucketIndex].BlockSize);
+                _freeListHeads[bucketIndex] = blockIndex;
 
                 Interlocked.Increment(ref _totalFrees);
             }
@@ -592,8 +629,7 @@ namespace YamaEngine.Memory
         {
             if (size < 0) throw new ArgumentOutOfRangeException(nameof(size));
             int aligned = AlignmentHelper.AlignUp(size, _alignment);
-
-            if (_offset + aligned > _capacity)
+            if (aligned < 0 || _offset > _capacity - aligned)
                 throw new OutOfMemoryException("Scratch allocator overflow.");
 
             IntPtr result = _basePtr + _offset;
@@ -684,8 +720,7 @@ namespace YamaEngine.Memory
         {
             if (size < 0) throw new ArgumentOutOfRangeException(nameof(size));
             int aligned = AlignmentHelper.AlignUp(size, _alignment);
-
-            if (_offset + aligned > _capacity)
+            if (aligned < 0 || _offset > _capacity - aligned)
                 throw new OutOfMemoryException("Stack allocator overflow.");
 
             IntPtr result = _basePtr + _offset;
@@ -801,6 +836,7 @@ namespace YamaEngine.Memory
         /// </summary>
         public void RecordAlloc(long size, MemoryCategory category = MemoryCategory.General)
         {
+            if (size < 0) return; // 防御：负分配量非法，忽略避免污染统计
             Interlocked.Add(ref _totalAllocated, size);
             Interlocked.Increment(ref _allocationCount);
 
@@ -814,6 +850,8 @@ namespace YamaEngine.Memory
             }
 
             int catIdx = (int)category;
+            if (catIdx < 0 || catIdx >= _categoryAllocated.Length)
+                catIdx = (int)MemoryCategory.General;
             lock (_lock)
             {
                 _categoryAllocated[catIdx] += size;
@@ -828,10 +866,13 @@ namespace YamaEngine.Memory
         /// </summary>
         public void RecordFree(long size, MemoryCategory category = MemoryCategory.General)
         {
+            if (size < 0) return; // 防御：负释放量非法，忽略避免污染统计
             Interlocked.Add(ref _totalFreed, size);
             Interlocked.Increment(ref _freeCount);
 
             int catIdx = (int)category;
+            if (catIdx < 0 || catIdx >= _categoryFreed.Length)
+                catIdx = (int)MemoryCategory.General;
             lock (_lock)
             {
                 _categoryFreed[catIdx] += size;
@@ -1068,11 +1109,18 @@ namespace YamaEngine.Memory
         {
             if (blockSize <= 0) throw new ArgumentOutOfRangeException(nameof(blockSize));
             if (blockCount <= 0) throw new ArgumentOutOfRangeException(nameof(blockCount));
+            if (blockSize > int.MaxValue - PoolAllocator.HeaderSize)
+                throw new ArgumentOutOfRangeException(nameof(blockSize));
 
             _blockSize = blockSize;
             _blockFullSize = blockSize + PoolAllocator.HeaderSize;
             _blockCount = blockCount;
-            _basePtr = Marshal.AllocHGlobal(_blockFullSize * blockCount);
+
+            long totalBytesLong = (long)_blockFullSize * blockCount;
+            if (totalBytesLong > int.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(blockCount),
+                    $"Block {_blockFullSize} x {blockCount} exceeds addressable range.");
+            _basePtr = Marshal.AllocHGlobal((int)totalBytesLong);
             _freeStack = new LockFreeStack();
 
             // 所有块压入无锁栈

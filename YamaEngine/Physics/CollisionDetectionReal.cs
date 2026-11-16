@@ -19,6 +19,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -1147,72 +1148,48 @@ namespace YamaEngine.Physics
             return finalDist;
         }
 
-        /// <summary>GJK射线检测。</summary>
+        /// <summary>GJK射线检测：沿射线步进，用点-到-凸体GJK求Q到B最近点，距离归零即命中。</summary>
         public static bool Raycast(
             GJKSupportFunction supportA, GJKSupportFunction supportB,
             PhysicsVector3 origin, PhysicsVector3 direction, float maxDistance,
             out float hitDistance)
         {
             hitDistance = 0;
+            PhysicsVector3 d = direction.Normalized();
 
-            PhysicsVector3 normalizedDir = direction.Normalized();
-            PhysicsVector3 d = normalizedDir;
-            PhysicsVector3 p = origin;
-            float lambda = 0;
-            float lastLambda = 0;
-            GJKSimplex simplex = default;
-            simplex.Clear();
-
-            PhysicsVector3 sA = supportA(-d);
-            PhysicsVector3 sB = supportB(d);
-            PhysicsVector3 v = sA - sB - p;
-
-            if (v.Dot(d) > 0)
+            // supportA 表示射线点（局部原点），实际世界位置 Q = origin + t*d。
+            // 用 GJK 求点到 B 的距离 dist(t)：dist<tol → 内部（命中）；dist 单调随 t 变化。
+            // 策略：固定步推进找到"内部"区间端点，再在 [上次外部, 内部] 间二分夹逼到表面。
+            GJKSupportFunction supPoint = _ => PhysicsVector3.Zero;
+            float Sdf(float t)
             {
-                hitDistance = maxDistance;
-                return false;
+                PhysicsVector3 Q = origin + d * t;
+                GJKSupportFunction supBrel = n => supportB(n) - Q;
+                return Distance(supPoint, supBrel, out _, out _);
             }
 
-            simplex.AddVertex(v);
-
-            for (int iter = 0; iter < MAX_ITERATIONS; iter++)
+            const int MARCH_STEPS = 64;
+            const float STEP = 0.05f;
+            float tOutside = 0;
+            for (int i = 0; i < MARCH_STEPS; i++)
             {
-                PhysicsVector3 closest;
-                PhysicsVector3 searchDir;
-                simplex.ClosestToOrigin(out closest, out searchDir);
-
-                if (closest.LengthSquared() < TOLERANCE * TOLERANCE)
+                float t = i * STEP;
+                if (t > maxDistance) break;
+                float dist = Sdf(t);
+                if (dist < TOLERANCE)
                 {
-                    hitDistance = lambda;
+                    // 区间 [tOutside, t]：tOutside 外部、t 内部，二分夹逼表面
+                    float lo = tOutside, hi = t;
+                    for (int b = 0; b < 24; b++)
+                    {
+                        float mid = 0.5f * (lo + hi);
+                        if (Sdf(mid) < TOLERANCE) hi = mid;
+                        else lo = mid;
+                    }
+                    hitDistance = hi;
                     return true;
                 }
-
-                PhysicsVector3 w = closest;
-                float dotWd = w.Dot(d);
-                if (dotWd > 0)
-                {
-                    float lambdaNew = lambda + (w.Length() / dotWd) * (-w.Length() - closest.Length());
-                    if (lambdaNew < 0) lambdaNew = 0;
-                    if (lambdaNew > maxDistance) break;
-                    if (lambdaNew - lastLambda < TOLERANCE) break;
-                    lastLambda = lambdaNew;
-                    lambda = lambdaNew;
-                }
-
-                PhysicsVector3 newSA = supportA(-searchDir);
-                PhysicsVector3 newSB = supportB(searchDir);
-                PhysicsVector3 newV = newSA - newSB;
-                newV = newV - p - lambda * normalizedDir;
-
-                if (simplex.Count >= 4) simplex.Count = 3;
-
-                if ((newV - w).Dot(searchDir) <= 0)
-                {
-                    hitDistance = maxDistance;
-                    return false;
-                }
-
-                simplex.AddVertex(newV);
+                tOutside = t;
             }
 
             hitDistance = maxDistance;
@@ -1259,6 +1236,13 @@ namespace YamaEngine.Physics
 
         public int AddTriangle(int a, int b, int c)
         {
+            // 工业级防御: 顶点索引越界 (损坏EPA网格/索引损坏) 会抛 IndexOutOfRangeException,
+            // 统一为 InvalidDataException 语义 (损坏数据防御)。
+            if (a < 0 || a >= Vertices.Count ||
+                b < 0 || b >= Vertices.Count ||
+                c < 0 || c >= Vertices.Count)
+                throw new InvalidDataException($"EPA AddTriangle 顶点索引越界: ({a},{b},{c}) 顶点数 {Vertices.Count}");
+
             PhysicsVector3 va = Vertices[a], vb = Vertices[b], vc = Vertices[c];
             PhysicsVector3 ab = vb - va, ac = vc - va;
             PhysicsVector3 normal = ab.Cross(ac).Normalized();
@@ -1452,11 +1436,9 @@ namespace YamaEngine.Physics
             return result;
         }
 
-        /// <summary>从GJK单纯形顶点构建初始EPA四面体。</summary>
+        /// <summary>从GJK单纯形顶点构建初始EPA四面体（顶点+4个面）。</summary>
         private static void BuildInitialTetrahedron(EPAMesh mesh, ref GJKSimplex simplex)
         {
-            if (simplex.Count == 4) return;
-
             PhysicsVector3 a = simplex.A;
             PhysicsVector3 b = simplex.Count > 1 ? simplex.B : a + new PhysicsVector3(1, 0, 0);
             PhysicsVector3 c = simplex.Count > 2 ? simplex.C : a + new PhysicsVector3(0, 1, 0);
@@ -1483,6 +1465,11 @@ namespace YamaEngine.Physics
             mesh.AddVertex(b);
             mesh.AddVertex(c);
             mesh.AddVertex(d);
+            // 创建四面体 4 个面（绕序由 Expand 外层法线朝外修正循环处理）
+            mesh.AddTriangle(0, 1, 2); // ABC
+            mesh.AddTriangle(0, 1, 3); // ABD
+            mesh.AddTriangle(0, 2, 3); // ACD
+            mesh.AddTriangle(1, 2, 3); // BCD
         }
     }
 

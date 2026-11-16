@@ -143,19 +143,19 @@ namespace YamaEngine.Testing
 
     public class TestResult
     {
-        public string TestName { get; set; }
-        public string ClassName { get; set; }
+        public string TestName { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
         public bool Passed { get; set; }
         public TimeSpan Duration { get; set; }
-        public string ErrorMessage { get; set; }
-        public string StackTrace { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string StackTrace { get; set; } = string.Empty;
         public bool IsIgnored { get; set; }
-        public string IgnoreReason { get; set; }
+        public string IgnoreReason { get; set; } = string.Empty;
     }
 
     public class TestClassResult
     {
-        public string ClassName { get; set; }
+        public string ClassName { get; set; } = string.Empty;
         public List<TestResult> Tests { get; set; } = new List<TestResult>();
         public TimeSpan Duration { get; set; }
         public int PassedCount => Tests.Count(t => t.Passed);
@@ -167,14 +167,14 @@ namespace YamaEngine.Testing
 
     public class TestMethodInfo
     {
-        public Type ClassType { get; set; }
-        public MethodInfo Method { get; set; }
+        public Type ClassType { get; set; } = null!;
+        public MethodInfo Method { get; set; } = null!;
         public string DisplayName => $"{ClassType.Name}.{Method.Name}";
         public int? TimeoutMs { get; set; }
         public bool IsIgnored { get; set; }
-        public string IgnoreReason { get; set; }
-        public MethodInfo SetupMethod { get; set; }
-        public MethodInfo TeardownMethod { get; set; }
+        public string IgnoreReason { get; set; } = string.Empty;
+        public MethodInfo? SetupMethod { get; set; }
+        public MethodInfo? TeardownMethod { get; set; }
     }
 
     public class TestDiscovery
@@ -280,7 +280,7 @@ namespace YamaEngine.Testing
                 return result;
             }
 
-            object instance = null;
+            object? instance = null;
             try
             {
                 instance = Activator.CreateInstance(test.ClassType);
@@ -289,7 +289,7 @@ namespace YamaEngine.Testing
             {
                 result.Passed = false;
                 result.ErrorMessage = $"Failed to create test class instance: {ex.Message}";
-                result.StackTrace = ex.StackTrace;
+                result.StackTrace = ex.StackTrace ?? string.Empty;
                 sw.Stop();
                 result.Duration = sw.Elapsed;
                 return result;
@@ -322,7 +322,7 @@ namespace YamaEngine.Testing
                 result.Passed = false;
                 var inner = ex is AggregateException ae ? ae.InnerException ?? ae : ex;
                 result.ErrorMessage = inner.Message;
-                result.StackTrace = inner.StackTrace;
+                result.StackTrace = inner.StackTrace ?? string.Empty;
                 try { test.TeardownMethod?.Invoke(instance, null); } catch { /* swallow */ }
             }
 
@@ -482,7 +482,7 @@ namespace YamaEngine.Testing
 
     public abstract class EngineTestFixture : IDisposable
     {
-        public string TempDirectory { get; private set; }
+        public string? TempDirectory { get; private set; }
 
         [Setup]
         public virtual void Setup()
@@ -592,18 +592,18 @@ namespace YamaEngine.Testing
             public int Id { get; }
             private readonly Dictionary<Type, object> _components = new Dictionary<Type, object>();
             public Entity(int id) => Id = id;
-            public void AddComponent<T>(T component) => _components[typeof(T)] = component;
-            public T GetComponent<T>() => _components.TryGetValue(typeof(T), out var c) ? (T)c : default;
+            public void AddComponent<T>(T component) => _components[typeof(T)] = component!;
+            public T GetComponent<T>() => _components.TryGetValue(typeof(T), out var c) ? (T)c : default!;
             public bool HasComponent<T>() => _components.ContainsKey(typeof(T));
             public IEnumerable<object> GetAllComponents() => _components.Values;
         }
 
         public class ComponentA { public int Value { get; set; } }
-        public class ComponentB { public string Name { get; set; } }
+        public class ComponentB { public string Name { get; set; } = string.Empty; }
 
         public class Scene
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
             public List<Entity> Entities { get; set; } = new List<Entity>();
         }
 

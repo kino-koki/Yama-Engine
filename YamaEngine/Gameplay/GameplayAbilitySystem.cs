@@ -236,7 +236,7 @@ namespace YamaEngine.Gameplay
         public bool Has(string name) => !string.IsNullOrEmpty(name) && _attrs.ContainsKey(name);
 
         /// <summary>获取属性结构 (不存在返回默认)。</summary>
-        public GameplayAttribute Get(string name)
+        public GameplayAttribute? Get(string name)
             => _attrs.TryGetValue(name ?? string.Empty, out var a) ? a : default;
 
         /// <summary>获取当前值。</summary>
@@ -250,9 +250,10 @@ namespace YamaEngine.Gameplay
         /// <summary>直接设置基础值 (用于即时 Add 效果或初始化)。</summary>
         public void SetBaseValue(string name, float value)
         {
-            if (!_attrs.TryGetValue(name ?? string.Empty, out var a)) return;
+            string key = name ?? string.Empty;
+            if (!_attrs.TryGetValue(key, out var a)) return;
             a.BaseValue = value;
-            _attrs[name] = a;
+            _attrs[key] = a;
         }
 
         /// <summary>
@@ -260,16 +261,17 @@ namespace YamaEngine.Gameplay
         /// </summary>
         public void SetCurrentValue(string name, float value, int entityId = 0)
         {
-            if (!_attrs.TryGetValue(name ?? string.Empty, out var a))
+            string key = name ?? string.Empty;
+            if (!_attrs.TryGetValue(key, out var a))
             {
-                FireChanged(entityId, name, 0f, value, 0f);
+                FireChanged(entityId, key, 0f, value, 0f);
                 return;
             }
             float old = a.CurrentValue;
             if (MathF.Abs(old - value) < 1e-7f) return;
             a.CurrentValue = value;
-            _attrs[name] = a;
-            FireChanged(entityId, name, old, value, a.BaseValue);
+            _attrs[key] = a;
+            FireChanged(entityId, key, old, value, a.BaseValue);
         }
 
         private void FireChanged(int entityId, string name, float old, float neu, float baseVal)
@@ -657,7 +659,7 @@ namespace YamaEngine.Gameplay
 
         protected override void OnActivate()
         {
-            var bridge = OwnerASC.AnimationBridge;
+            var bridge = OwnerASC?.AnimationBridge;
             if (bridge == null) { Finish(); return; }
             _montageLength = bridge.PlayMontage(_montageName, _playRate, _blendIn);
             _playedDuration = 0f;
@@ -673,7 +675,7 @@ namespace YamaEngine.Gameplay
 
         protected override void OnCancel()
         {
-            OwnerASC.AnimationBridge?.StopMontage(0.2f);
+            OwnerASC?.AnimationBridge?.StopMontage(0.2f);
         }
     }
 
@@ -698,23 +700,24 @@ namespace YamaEngine.Gameplay
 
         public new void Tick(float dt)
         {
-            if (!IsActive || OwnerASC.ECS == null) return;
-            int eid = OwnerASC.EntityId;
-            if (!OwnerASC.ECS.HasComponent<TransformComponent>(eid)) { Finish(); return; }
-            var tf = OwnerASC.ECS.GetComponent<TransformComponent>(eid);
+            var ecs = OwnerASC?.ECS;
+            if (!IsActive || ecs == null) return;
+            int eid = OwnerASC!.EntityId;
+            if (!ecs.HasComponent<TransformComponent>(eid)) { Finish(); return; }
+            var tf = ecs.GetComponent<TransformComponent>(eid);
             Vector3 to = _destination - tf.Position;
             float dist = to.Length();
             if (dist <= _acceptance)
             {
                 tf.Position = _destination;
-                OwnerASC.ECS.SetComponent(eid, tf);
+                ecs.SetComponent(eid, tf);
                 Finish();
                 return;
             }
             Vector3 step = Vector3.Normalize(to) * _speed * dt;
             if (step.Length() >= dist) tf.Position = _destination;
             else tf.Position = tf.Position + step;
-            OwnerASC.ECS.SetComponent(eid, tf);
+            ecs.SetComponent(eid, tf);
         }
     }
 
@@ -1146,11 +1149,11 @@ namespace YamaEngine.Gameplay
                 switch (effect.StackingPolicy)
                 {
                     case EStackingPolicy.AggregateByTarget:
-                        existing.Spec.StackCount = Math.Min(existing.Spec.StackCount + 1, effect.MaxStacks);
+                        existing.Spec!.StackCount = Math.Min(existing.Spec!.StackCount + 1, effect.MaxStacks);
                         RecomputeAttributesForEffect(existing);
                         return existing.Handle;
                     case EStackingPolicy.RefreshDuration:
-                        existing.Spec.DurationRemaining = effect.Duration;
+                        existing.Spec!.DurationRemaining = effect.Duration;
                         return existing.Handle;
                     case EStackingPolicy.NoStack:
                     default:
@@ -1159,7 +1162,7 @@ namespace YamaEngine.Gameplay
             }
 
             var ae = new ActiveEffect(_nextEffectHandle++, spec);
-            ae.Spec.NextPeriodTime = _time + effect.Period;
+            ae.Spec!.NextPeriodTime = _time + effect.Period;
             _activeEffects.Add(ae);
             AddGrantedTags(effect.Tags.Granted, ae);
             RecomputeAttributesForEffect(ae);
@@ -1174,7 +1177,7 @@ namespace YamaEngine.Gameplay
             if (effect.StackingPolicy == EStackingPolicy.NoStack) return null;
             foreach (var ae in _activeEffects)
             {
-                if (ae.Spec.Def != effect) continue;
+                if (ae.Spec!.Def != effect) continue;
                 if (effect.StackingTag.IsValid && !ae.GrantedTags.HasTagExact(effect.StackingTag.ToString())) continue;
                 return ae;
             }
@@ -1211,7 +1214,7 @@ namespace YamaEngine.Gameplay
         private void RecomputeAttributesForEffect(ActiveEffect ae)
         {
             var affected = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var m in ae.Spec.Def.Modifiers) affected.Add(m.AttributeName);
+            foreach (var m in ae.Spec!.Def!.Modifiers) affected.Add(m.AttributeName);
             foreach (var name in affected) RecomputeAttribute(name);
         }
 
@@ -1228,8 +1231,8 @@ namespace YamaEngine.Gameplay
 
             foreach (var ae in _activeEffects)
             {
-                if (!ae.Spec.IsValid) continue;
-                foreach (var m in ae.Spec.Def.Modifiers)
+                if (!ae.Spec!.IsValid) continue;
+                foreach (var m in ae.Spec.Def!.Modifiers)
                 {
                     if (m.AttributeName != name) continue;
                     float mag = ae.Spec.CalcMagnitude(m) * ae.Spec.StackCount;
@@ -1266,7 +1269,7 @@ namespace YamaEngine.Gameplay
             {
                 if (_activeEffects[i].Handle != handle) continue;
                 var ae = _activeEffects[i];
-                ae.Spec.IsValid = false;
+                ae.Spec!.IsValid = false;
                 RemoveGrantedTags(ae);
                 _activeEffects.RemoveAt(i);
                 RecomputeAttributesForEffect(ae);
@@ -1283,7 +1286,7 @@ namespace YamaEngine.Gameplay
             for (int i = _activeEffects.Count - 1; i >= 0; i--)
             {
                 var ae = _activeEffects[i];
-                if (ae.GrantedTags.HasMatchingTag(tag) || ae.Spec.Def.Tags.Granted.HasMatchingTag(tag))
+                if (ae.GrantedTags.HasMatchingTag(tag) || ae.Spec!.Def!.Tags.Granted.HasMatchingTag(tag))
                 {
                     ae.Spec.IsValid = false;
                     RemoveGrantedTags(ae);
@@ -1332,7 +1335,7 @@ namespace YamaEngine.Gameplay
                 return false;
             }
             bool ok = spec.TryActivate(this, context);
-            if (ok) OnAbilityActivated?.Invoke(spec.Def);
+            if (ok) OnAbilityActivated?.Invoke(spec.Def!);
             return ok;
         }
 
@@ -1420,7 +1423,7 @@ namespace YamaEngine.Gameplay
             // 简化: 遍历所有能力, 若其 Ability 标签匹配事件标签或能力实现了事件触发, 则激活
             foreach (var spec in _abilities.Values)
             {
-                if (!spec.Def.Tags.Ability.HasMatchingTag(eventTag)) continue;
+                if (!spec.Def!.Tags.Ability.HasMatchingTag(eventTag)) continue;
                 if (spec.Def.CanActivateAbility(this, data.Instigator != null
                         ? EffectContext.Create(data.Instigator, spec.Def) : null))
                 {
@@ -1440,10 +1443,10 @@ namespace YamaEngine.Gameplay
             for (int i = _activeEffects.Count - 1; i >= 0; i--)
             {
                 var ae = _activeEffects[i];
-                if (!ae.Spec.IsValid) continue;
+                if (!ae.Spec!.IsValid) continue;
 
                 // Ongoing 标签检查: 失去必需标签则移除
-                if (ae.Spec.Def.Tags.OngoingRequired.Count > 0 &&
+                if (ae.Spec.Def!.Tags.OngoingRequired.Count > 0 &&
                     !BuildTagContainer().HasAll(ae.Spec.Def.Tags.OngoingRequired))
                 {
                     RemoveActiveEffect(ae.Handle);
@@ -1455,7 +1458,7 @@ namespace YamaEngine.Gameplay
                 {
                     while (_time >= ae.Spec.NextPeriodTime)
                     {
-                        ae.Spec.NextPeriodTime += ae.Spec.Def.Period;
+                        ae.Spec.NextPeriodTime += ae.Spec.Def!.Period;
                         // 周期触发: 以即时方式施加一次修改器 (作用于当前值, 不改基础值)
                         ApplyPeriodicTick(ae);
                     }
@@ -1477,7 +1480,7 @@ namespace YamaEngine.Gameplay
             {
                 spec.TickTasks(dt);
                 // 冷却恢复: 若状态为 Cooldown 且冷却结束, 回到 Idle
-                if (spec.State == EAbilityState.Cooldown && !spec.Def.IsOnCooldown(this))
+                if (spec.State == EAbilityState.Cooldown && !spec.Def!.IsOnCooldown(this))
                     spec.State = EAbilityState.Idle;
                 if (spec.State == EAbilityState.Ended)
                     spec.State = spec.Def.IsOnCooldown(this) ? EAbilityState.Cooldown : EAbilityState.Idle;
@@ -1497,7 +1500,7 @@ namespace YamaEngine.Gameplay
         private void ApplyPeriodicTick(ActiveEffect ae)
         {
             var affected = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var m in ae.Spec.Def.Modifiers)
+            foreach (var m in ae.Spec!.Def!.Modifiers)
             {
                 var set = FindSet(m.AttributeName);
                 if (set == null) continue;

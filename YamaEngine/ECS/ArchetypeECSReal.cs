@@ -380,6 +380,10 @@ namespace YamaEngine.ECS
         /// </summary>
         internal int CopyEntityFrom(ArchetypeChunk sourceChunk, int sourceLocalIndex, EntityReal newEntity)
         {
+            if (sourceChunk == null) throw new ArgumentNullException(nameof(sourceChunk));
+            if (sourceLocalIndex < 0 || sourceLocalIndex >= sourceChunk.EntityCount)
+                throw new ArgumentOutOfRangeException(nameof(sourceLocalIndex));
+
             int destLocalIndex = AddEntity(newEntity);
 
             for (int i = 0; i < Archetype.ComponentTypes.Count; i++)

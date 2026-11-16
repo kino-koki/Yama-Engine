@@ -88,9 +88,9 @@ namespace YamaEngine.PluginSystem
     public sealed class CompileDiagnostic
     {
         public DiagnosticSeverity Severity { get; set; }
-        public string Id { get; set; }
-        public string Message { get; set; }
-        public string FilePath { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
         public int Line { get; set; }
         public int Column { get; set; }
         public int StartPosition { get; set; }
@@ -107,11 +107,11 @@ namespace YamaEngine.PluginSystem
     public sealed class CompileResult
     {
         public bool Success { get; set; }
-        public byte[] AssemblyData { get; set; }
-        public byte[] PdbData { get; set; }
+        public byte[]? AssemblyData { get; set; }
+        public byte[]? PdbData { get; set; }
         public List<CompileDiagnostic> Diagnostics { get; } = new List<CompileDiagnostic>();
         public TimeSpan CompileTime { get; set; }
-        public string AssemblyName { get; set; }
+        public string AssemblyName { get; set; } = string.Empty;
         public List<string> SourceFiles { get; set; } = new List<string>();
 
         public IEnumerable<CompileDiagnostic> Errors => Diagnostics.Where(d => d.IsError);
@@ -132,10 +132,10 @@ namespace YamaEngine.PluginSystem
     /// <summary>文件变更信息。</summary>
     public sealed class FileChangeInfo
     {
-        public string FilePath { get; set; }
+        public string FilePath { get; set; } = string.Empty;
         public WatcherChangeTypes ChangeType { get; set; }
         public DateTime Timestamp { get; set; }
-        public string OldPath { get; set; }
+        public string? OldPath { get; set; }
 
         public override string ToString() => $"[{ChangeType}] {FilePath}";
     }
@@ -147,11 +147,11 @@ namespace YamaEngine.PluginSystem
     /// <summary>字段映射信息。</summary>
     public sealed class FieldMapping
     {
-        public string OldFieldName { get; set; }
-        public string NewFieldName { get; set; }
-        public Type OldType { get; set; }
-        public Type NewType { get; set; }
-        public Func<object, object> Converter { get; set; }
+        public string OldFieldName { get; set; } = string.Empty;
+        public string NewFieldName { get; set; } = string.Empty;
+        public Type? OldType { get; set; }
+        public Type? NewType { get; set; }
+        public Func<object, object>? Converter { get; set; }
     }
 
     /// <summary>状态迁移器 (旧对象→新对象状态迁移)。</summary>
@@ -182,7 +182,8 @@ namespace YamaEngine.PluginSystem
 
             Type oldType = oldInstance.GetType();
             Type newType = newInstance.GetType();
-            string typeName = newType.FullName;
+            string? typeName = newType.FullName;
+            if (typeName == null) return;
 
             _logger.Debug($"迁移状态: {oldType.Name} → {newType.Name}");
 
@@ -218,8 +219,8 @@ namespace YamaEngine.PluginSystem
                         {
                             try
                             {
-                                object value = oldField.GetValue(oldInstance);
-                                if (mapping.Converter != null)
+                                object? value = oldField.GetValue(oldInstance);
+                                if (mapping.Converter != null && value != null)
                                     value = mapping.Converter(value);
                                 newField.SetValue(newInstance, value);
                                 continue;
@@ -258,8 +259,11 @@ namespace YamaEngine.PluginSystem
         {
             for (int i = 0; i < oldInstances.Count; i++)
             {
+                var oldInstance = oldInstances[i];
+                if (oldInstance == null) continue;
                 var newInstance = newInstanceFactory();
-                MigrateState(oldInstances[i], newInstance);
+                if (newInstance == null) continue;
+                MigrateState(oldInstance, newInstance);
                 oldInstances[i] = newInstance;
             }
         }
@@ -279,7 +283,7 @@ namespace YamaEngine.PluginSystem
     /// <summary>热重载前事件参数。</summary>
     public sealed class BeforeReloadEventArgs : EventArgs
     {
-        public List<string> ChangedFiles { get; set; }
+        public List<string> ChangedFiles { get; set; } = new List<string>();
         public HotReloadStrategy Strategy { get; set; }
         public bool Cancel { get; set; }
     }
@@ -287,26 +291,26 @@ namespace YamaEngine.PluginSystem
     /// <summary>热重载后事件参数。</summary>
     public sealed class AfterReloadEventArgs : EventArgs
     {
-        public List<string> ChangedFiles { get; set; }
+        public List<string> ChangedFiles { get; set; } = new List<string>();
         public HotReloadStrategy Strategy { get; set; }
         public bool Success { get; set; }
         public TimeSpan ReloadTime { get; set; }
-        public string ErrorMessage { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 
     /// <summary>热重载失败事件参数。</summary>
     public sealed class ReloadFailedEventArgs : EventArgs
     {
-        public List<string> ChangedFiles { get; set; }
-        public string ErrorMessage { get; set; }
-        public CompileResult CompileResult { get; set; }
+        public List<string> ChangedFiles { get; set; } = new List<string>();
+        public string? ErrorMessage { get; set; }
+        public CompileResult? CompileResult { get; set; }
     }
 
     /// <summary>热重载跳过事件参数。</summary>
     public sealed class ReloadSkippedEventArgs : EventArgs
     {
-        public List<string> ChangedFiles { get; set; }
-        public string Reason { get; set; }
+        public List<string> ChangedFiles { get; set; } = new List<string>();
+        public string? Reason { get; set; }
     }
 
     #endregion
@@ -327,7 +331,7 @@ namespace YamaEngine.PluginSystem
         // 文件监视
         private readonly List<FileSystemWatcher> _watchers = new List<FileSystemWatcher>();
         private readonly ConcurrentQueue<FileChangeInfo> _pendingChanges = new ConcurrentQueue<FileChangeInfo>();
-        private Timer _debounceTimer;
+        private Timer? _debounceTimer;
         private readonly object _lock = new object();
 
         // 编译相关
@@ -343,13 +347,13 @@ namespace YamaEngine.PluginSystem
         private readonly PluginLogger _logger = new PluginLogger("ScriptHotReloader");
 
         // 事件
-        public event EventHandler<BeforeReloadEventArgs> OnBeforeReload;
-        public event EventHandler<AfterReloadEventArgs> OnAfterReload;
-        public event EventHandler<ReloadFailedEventArgs> OnReloadFailed;
-        public event EventHandler<ReloadSkippedEventArgs> OnReloadSkipped;
-        public event Action<FileChangeInfo> OnFileChanged;
-        public event Action<HotReloadStatus> OnStatusChanged;
-        public event Action<CompileResult> OnCompileComplete;
+        public event EventHandler<BeforeReloadEventArgs>? OnBeforeReload;
+        public event EventHandler<AfterReloadEventArgs>? OnAfterReload;
+        public event EventHandler<ReloadFailedEventArgs>? OnReloadFailed;
+        public event EventHandler<ReloadSkippedEventArgs>? OnReloadSkipped;
+        public event Action<FileChangeInfo>? OnFileChanged;
+        public event Action<HotReloadStatus>? OnStatusChanged;
+        public event Action<CompileResult>? OnCompileComplete;
 
         // 统计
         public int TotalReloads { get; private set; }
@@ -476,15 +480,15 @@ namespace YamaEngine.PluginSystem
                 EnableRaisingEvents = true
             };
 
-            watcher.Changed += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, null);
-            watcher.Created += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, null);
-            watcher.Deleted += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, null);
+            watcher.Changed += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, null!);
+            watcher.Created += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, null!);
+            watcher.Deleted += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, null!);
             watcher.Renamed += (s, e) => OnFileEvent(e.ChangeType, e.FullPath, e.OldFullPath);
 
             _watchers.Add(watcher);
         }
 
-        private void OnFileEvent(WatcherChangeTypes changeType, string path, string oldPath)
+        private void OnFileEvent(WatcherChangeTypes changeType, string path, string? oldPath)
         {
             // 过滤扩展名
             string ext = Path.GetExtension(path);
@@ -535,7 +539,7 @@ namespace YamaEngine.PluginSystem
             return Path.GetFileName(path).Contains(fragment, StringComparison.OrdinalIgnoreCase);
         }
 
-        private void OnDebounceElapsed(object state)
+        private void OnDebounceElapsed(object? state)
         {
             _debounceTimer?.Dispose();
             _debounceTimer = null;
@@ -583,7 +587,7 @@ namespace YamaEngine.PluginSystem
         #region 编译
 
         /// <summary>编译源文件。</summary>
-        public CompileResult Compile(List<string> sourceFiles, string assemblyName = null)
+        public CompileResult Compile(List<string> sourceFiles, string? assemblyName = null)
         {
             var sw = Stopwatch.StartNew();
             Status = HotReloadStatus.Compiling;
@@ -710,7 +714,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>增量编译 (只编译变更的文件)。</summary>
-        public CompileResult IncrementalCompile(List<string> changedFiles, string assemblyName = null)
+        public CompileResult IncrementalCompile(List<string> changedFiles, string? assemblyName = null)
         {
             // 收集所有源文件 (包括未变更的，因为需要完整编译)
             var allFiles = new HashSet<string>();
@@ -834,7 +838,7 @@ namespace YamaEngine.PluginSystem
             OnStatusChanged?.Invoke(Status);
 
             bool reloadSuccess = false;
-            string errorMsg = null;
+            string? errorMsg = null;
 
             try
             {
@@ -1025,7 +1029,7 @@ namespace YamaEngine.PluginSystem
         #region 手动触发
 
         /// <summary>手动触发热重载。</summary>
-        public AfterReloadEventArgs TriggerReload(List<string> files = null)
+        public AfterReloadEventArgs TriggerReload(List<string>? files = null)
         {
             files ??= _sourceDirectories
                 .SelectMany(d => Directory.Exists(d) ? Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories) : Array.Empty<string>())
@@ -1057,7 +1061,7 @@ namespace YamaEngine.PluginSystem
         #region 查询
 
         /// <summary>获取已加载的程序集。</summary>
-        public Assembly GetLoadedAssembly(string name) =>
+        public Assembly? GetLoadedAssembly(string name) =>
             _loadedAssemblies.TryGetValue(name, out var asm) ? asm : null;
 
         /// <summary>获取所有监视目录。</summary>

@@ -1428,7 +1428,9 @@ namespace YamaEngine.Audio
         OpenAL,
         ALSoft,
         Dummy,
-        CoreAudio
+        CoreAudio,
+        /// <summary>软件/离线后端 (无原生依赖, 捕获 PCM 供无设备环境/测试)。</summary>
+        Software
     }
 
     /// <summary>音频后端接口（高级）。</summary>
@@ -1524,6 +1526,12 @@ namespace YamaEngine.Audio
         public int OutputBufferSize = 2048;
         /// <summary>最大同时播放实例数。</summary>
         public int MaxInstances = 256;
+
+        /// <summary>当前音频后端 (只读; 供编辑器/诊断检查)。</summary>
+        public IAudioBackendAdvanced? Backend => _backend;
+
+        /// <summary>当前后端是否已初始化。</summary>
+        public bool IsBackendInitialized => _backend?.IsInitialized == true;
 
         // ── 核心子系统 ──
         /// <summary>HRTF 双耳渲染数据。</summary>
@@ -1696,37 +1704,102 @@ namespace YamaEngine.Audio
 
         public bool InitializeBackend(AudioBackendType backendType = AudioBackendType.WASAPI)
         {
-            // 优先尝试 WASAPI 真实音频输出
-            if (backendType == AudioBackendType.WASAPI)
+            switch (backendType)
             {
-                try
-                {
-                    _wasapiOutput = new WasapiAudioOutput();
-                    _wasapiOutput.Initialize();
-                    _wasapiOutput.OnAudioCallback += OnWasapiAudioCallback;
-                    _wasapiOutput.Start();
-                    SampleRate = _wasapiOutput.SampleRate;
-                    Channels = _wasapiOutput.Channels;
-                    BusGraph.SetSampleRate(SampleRate);
-                    Log($"WASAPI 音频输出已初始化: {SampleRate}Hz, {Channels}ch");
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    Log($"WASAPI 初始化失败: {ex.Message}，回退到 CoreAudioBackend");
-                    _wasapiOutput?.Dispose();
-                    _wasapiOutput = null;
-                }
+                case AudioBackendType.Software:
+                    return InitializeSoftwareBackend();
+
+                case AudioBackendType.OpenAL:
+                case AudioBackendType.ALSoft:
+                    return InitializeOpenALBackend();
+
+                case AudioBackendType.WASAPI:
+                    if (TryInitializeWasapi()) return true;
+                    // WASAPI 失败 → 回退 waveOut
+                    break;
+
+                case AudioBackendType.Dummy:
+                    return InitializeDummyBackend();
             }
 
             // 回退到 CoreAudioBackend（waveOut）
+            return InitializeCoreAudioBackend();
+        }
+
+        private bool TryInitializeWasapi()
+        {
+            try
+            {
+                _wasapiOutput = new WasapiAudioOutput();
+                _wasapiOutput.Initialize();
+                _wasapiOutput.OnAudioCallback += OnWasapiAudioCallback;
+                _wasapiOutput.Start();
+                SampleRate = _wasapiOutput.SampleRate;
+                Channels = _wasapiOutput.Channels;
+                BusGraph.SetSampleRate(SampleRate);
+                Log($"WASAPI 音频输出已初始化: {SampleRate}Hz, {Channels}ch");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log($"WASAPI 初始化失败: {ex.Message}，回退到 CoreAudioBackend");
+                _wasapiOutput?.Dispose();
+                _wasapiOutput = null;
+                return false;
+            }
+        }
+
+        private bool InitializeSoftwareBackend()
+        {
+            _backend = new SoftwareAudioBackend();
+            bool ok = _backend.Initialize(SampleRate, Channels, OutputBufferSize);
+            if (ok)
+            {
+                BusGraph.SetSampleRate(SampleRate);
+                _backend.Start();
+                Log($"软件/离线音频后端已初始化: {SampleRate}Hz, {Channels}ch");
+            }
+            return ok;
+        }
+
+        private bool InitializeOpenALBackend()
+        {
+            _backend = new OpenALSoftBackend();
+            bool ok = _backend.Initialize(SampleRate, Channels, OutputBufferSize);
+            if (ok)
+            {
+                BusGraph.SetSampleRate(SampleRate);
+                _backend.Start();
+                Log($"OpenAL-soft 音频后端已初始化: {SampleRate}Hz, {Channels}ch");
+            }
+            else
+            {
+                Log("OpenAL 初始化失败 (原生库可能缺失)，回退到 DummyAudioBackend");
+                _backend = new DummyAudioBackend();
+                _backend.Initialize(SampleRate, Channels, OutputBufferSize);
+                _backend.Start();
+            }
+            return ok;
+        }
+
+        private bool InitializeDummyBackend()
+        {
+            _backend = new DummyAudioBackend();
+            _backend.Initialize(SampleRate, Channels, OutputBufferSize);
+            _backend.Start();
+            Log("Dummy 音频后端已初始化 (无输出)");
+            return true;
+        }
+
+        private bool InitializeCoreAudioBackend()
+        {
             _backend = new CoreAudioBackend();
             bool success = _backend.Initialize(SampleRate, Channels, OutputBufferSize);
             if (success)
             {
                 BusGraph.SetSampleRate(SampleRate);
                 _backend.Start();
-                Log($"音频后端已初始化: {backendType}, {SampleRate}Hz, {Channels}ch");
+                Log($"音频后端已初始化: {SampleRate}Hz, {Channels}ch");
             }
             else
             {

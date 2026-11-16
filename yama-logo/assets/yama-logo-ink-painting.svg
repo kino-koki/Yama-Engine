@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Rice paper background -->
+    <radialGradient id="paper" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0" stop-color="#F7F0DD"/>
+      <stop offset="1" stop-color="#EDE1C4"/>
+    </radialGradient>
+
+    <!-- Ink gradient (near-mountains) -->
+    <linearGradient id="inkFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6B7280" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#9CA3AF" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="inkMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#374151" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#6B7280" stop-opacity="0.45"/>
+    </linearGradient>
+    <linearGradient id="inkNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#111827" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#1F2937" stop-opacity="0.75"/>
+    </linearGradient>
+
+    <!-- Soft misty blur -->
+    <filter id="mistFar" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="mistMid" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <filter id="brushEdge" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+      <feDisplacementMap in="SourceGraphic" scale="3"/>
+    </filter>
+
+    <!-- Red seal gradient -->
+    <linearGradient id="seal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C0392B"/>
+      <stop offset="1" stop-color="#8E2318"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Paper -->
+  <rect width="1024" height="1024" rx="232" fill="url(#paper)"/>
+
+  <!-- Subtle paper fiber noise -->
+  <rect width="1024" height="1024" rx="232" fill="url(#paper)" filter="url(#brushEdge)" opacity="0.06"/>
+
+  <!-- Distant mountains (lightest, most blurred) -->
+  <path d="M60 540 L200 360 L320 480 L440 320 L560 470 L680 350 L820 500 L960 420 L960 620 L60 620 Z"
+        fill="url(#inkFar)" filter="url(#mistFar)"/>
+
+  <!-- Mid mountains -->
+  <path d="M100 620 L260 440 L380 560 L520 400 L660 560 L800 440 L940 600 L940 680 L100 680 Z"
+        fill="url(#inkMid)" filter="url(#mistMid)"/>
+
+  <!-- Near foreground mountains (sharp, bold) -->
+  <path d="M40 720 L200 540 L340 680 L480 480 L620 660 L760 520 L900 690 L940 760 L40 760 Z"
+        fill="url(#inkNear)"/>
+
+  <!-- Central peak (Yama) — bold triangular peak -->
+  <path d="M316 720 L512 320 L708 720 Z" fill="url(#inkNear)"/>
+
+  <!-- Central peak — light brush-stroke highlight (snowcap / mist) -->
+  <path d="M468 404 L512 320 L556 404 L536 396 L512 360 L488 396 Z"
+        fill="#F7F0DD" opacity="0.7"/>
+
+  <!-- Water/mist bands between ranges -->
+  <rect x="0" y="600" width="1024" height="14" fill="#F7F0DD" opacity="0.55"/>
+  <rect x="0" y="680" width="1024" height="12" fill="#F7F0DD" opacity="0.45"/>
+
+  <!-- Calligraphic brushstroke under wordmark -->
+  <path d="M320 800 Q512 780 704 800"
+        fill="none" stroke="#1F2937" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Wordmark "YAMA" — serif, brush-inspired -->
+  <text x="500" y="884" text-anchor="middle"
+        font-family="'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif"
+        font-size="128" font-weight="700" letter-spacing="18"
+        fill="#111827">YAMA</text>
+
+  <!-- "ENGINE" in refined Chinese-style sans -->
+  <text x="500" y="936" text-anchor="middle"
+        font-family="'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+        font-size="32" font-weight="400" letter-spacing="30"
+        fill="#4B5563">ENGINE</text>
+
+  <!-- Chinese subtitle 山 under YAMA (calligraphy feel) -->
+  <text x="500" y="982" text-anchor="middle"
+        font-family="'Noto Serif SC', 'Songti SC', 'SimSun', serif"
+        font-size="34" font-weight="500" letter-spacing="14"
+        fill="#1F2937">山　·　岳</text>
+
+  <!-- Red artist seal (印章) top-right -->
+  <g transform="translate(808, 200)">
+    <rect x="0" y="0" width="76" height="76" rx="6"
+          fill="url(#seal)"/>
+    <text x="38" y="52" text-anchor="middle"
+          font-family="'Noto Serif SC', 'Songti SC', serif"
+          font-size="52" font-weight="700"
+          fill="#F7F0DD">山</text>
+  </g>
+
+  <!-- Small seal bottom-left -->
+  <g transform="translate(116, 812)">
+    <rect x="0" y="0" width="44" height="44" rx="4"
+          fill="url(#seal)" opacity="0.9"/>
+    <text x="22" y="32" text-anchor="middle"
+          font-family="'Noto Serif SC', 'Songti SC', serif"
+          font-size="28" font-weight="700"
+          fill="#F7F0DD">岳</text>
+  </g>
+</svg>

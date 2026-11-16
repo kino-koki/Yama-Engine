@@ -105,6 +105,32 @@ namespace YamaEngine.Assets.Importers
         private readonly List<ObjMaterial> _materials = new();
         private readonly Dictionary<string, int> _materialNameToIndex = new(StringComparer.Ordinal);
 
+        /// <summary>
+        /// 解析 OBJ/MTL 引用的相对路径并确保不逃逸资产目录。
+        /// OBJ/MTL 文本来自未受信文件, 可含 ../ 或绝对路径, 直接 Combine 会读到资产目录之外的任意文件。
+        /// </summary>
+        private static string ResolveSafePath(string baseDir, string relative)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("资产引用路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"资产引用路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"资产引用路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
+        }
+
         // 当前状态
         private int _currentMaterialIndex = -1;
         private int _currentSmoothGroup = 0;
@@ -355,7 +381,7 @@ namespace YamaEngine.Assets.Importers
             var mtlFiles = SplitWhitespace(mtlLibName);
             foreach (var mtlFile in mtlFiles)
             {
-                string mtlPath = Path.Combine(baseDir, mtlFile);
+                string mtlPath = ResolveSafePath(baseDir, mtlFile);
                 if (File.Exists(mtlPath))
                 {
                     ParseMtlFile(mtlPath, baseDir);
@@ -485,8 +511,10 @@ namespace YamaEngine.Assets.Importers
                 if (parts[i].StartsWith("-"))
                 {
                     // 跳过选项标志和它的参数
+                    // 工业级防御: 选项参数不足 3 个时, i += 3 会让循环越界退出并静默丢弃
+                    // 后续真实路径 token。应只跳过实际存在的参数。
                     if (parts[i] == "-s" || parts[i] == "-o" || parts[i] == "-t")
-                        i += 3; // 跳过 3 个数值参数
+                        i += Math.Min(3, parts.Length - (i + 1));
                     else
                         i += 0; // 其他标志无参数或下一行处理
                     continue;
@@ -497,7 +525,7 @@ namespace YamaEngine.Assets.Importers
             if (pathParts.Count == 0) return string.Empty;
 
             string texPath = string.Join(" ", pathParts);
-            string fullPath = Path.Combine(baseDir, texPath);
+            string fullPath = ResolveSafePath(baseDir, texPath);
             return fullPath;
         }
 

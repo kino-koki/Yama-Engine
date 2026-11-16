@@ -138,11 +138,11 @@ namespace YamaEngine.PluginSystem
     /// <summary>版本历史记录。</summary>
     public sealed class PluginVersionHistory
     {
-        public string Version { get; set; }
+        public string? Version { get; set; }
         public DateTime ReleaseDate { get; set; }
-        public string Changelog { get; set; }
+        public string? Changelog { get; set; }
         public long DownloadCount { get; set; }
-        public string DownloadUrl { get; set; }
+        public string? DownloadUrl { get; set; }
 
         public override string ToString() => $"v{Version} ({ReleaseDate:yyyy-MM-dd})";
     }
@@ -156,13 +156,13 @@ namespace YamaEngine.PluginSystem
     {
         public string Query { get; set; } = string.Empty;
         public List<string> Tags { get; set; } = new List<string>();
-        public string Category { get; set; }
-        public string Author { get; set; }
+        public string? Category { get; set; }
+        public string? Author { get; set; }
         public MarketSortMode SortMode { get; set; } = MarketSortMode.Relevance;
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
         public double MinRating { get; set; } = 0;
-        public string EngineCompatVersion { get; set; }
+        public string? EngineCompatVersion { get; set; }
         public List<string> SourceIds { get; set; } = new List<string>();
 
         public override string ToString() =>
@@ -178,7 +178,7 @@ namespace YamaEngine.PluginSystem
         public int PageSize { get; set; }
         public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
         public TimeSpan SearchTime { get; set; }
-        public string CacheKey { get; set; }
+        public string? CacheKey { get; set; }
 
         public bool HasMore => Page < TotalPages;
 
@@ -194,18 +194,18 @@ namespace YamaEngine.PluginSystem
     public sealed class DownloadTask
     {
         public string TaskId { get; set; } = Guid.NewGuid().ToString("N");
-        public string PluginId { get; set; }
-        public string PluginName { get; set; }
-        public string DownloadUrl { get; set; }
-        public string LocalPath { get; set; }
+        public string PluginId { get; set; } = string.Empty;
+        public string PluginName { get; set; } = string.Empty;
+        public string? DownloadUrl { get; set; }
+        public string LocalPath { get; set; } = string.Empty;
         public long TotalBytes { get; set; }
         public long DownloadedBytes { get; set; }
         public DownloadState State { get; set; } = DownloadState.Pending;
         public DateTime StartTime { get; set; }
         public DateTime? CompleteTime { get; set; }
-        public string ErrorMessage { get; set; }
-        public string Checksum { get; set; }
-        public string SourceId { get; set; }
+        public string? ErrorMessage { get; set; }
+        public string? Checksum { get; set; }
+        public string? SourceId { get; set; }
 
         [JsonIgnore]
         public double Progress => TotalBytes > 0 ? (double)DownloadedBytes / TotalBytes * 100 : 0;
@@ -231,19 +231,19 @@ namespace YamaEngine.PluginSystem
     public sealed class PluginReview
     {
         public string ReviewId { get; set; } = Guid.NewGuid().ToString("N");
-        public string PluginId { get; set; }
-        public string Author { get; set; }
-        public string AuthorId { get; set; }
+        public string PluginId { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string? AuthorId { get; set; }
         public double Rating { get; set; }
-        public string Title { get; set; }
-        public string Content { get; set; }
+        public string? Title { get; set; }
+        public string? Content { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public DateTime? EditedDate { get; set; }
         public int HelpfulCount { get; set; }
         public int ReportCount { get; set; }
         public ReviewStatus Status { get; set; } = ReviewStatus.Approved;
         public List<PluginReview> Replies { get; set; } = new List<PluginReview>();
-        public string ParentReviewId { get; set; }
+        public string? ParentReviewId { get; set; }
 
         public override string ToString() => $"★{Rating:F1} {Title} by {Author}";
     }
@@ -255,7 +255,7 @@ namespace YamaEngine.PluginSystem
     /// <summary>市场缓存项。</summary>
     internal sealed class MarketCacheEntry<T>
     {
-        public T Data { get; set; }
+        public T Data { get; set; } = default!;
         public DateTime CachedTime { get; set; } = DateTime.Now;
         public TimeSpan Expiry { get; set; } = TimeSpan.FromMinutes(30);
 
@@ -304,13 +304,13 @@ namespace YamaEngine.PluginSystem
         public int MaxConcurrentDownloads { get; set; } = 3;
 
         // 事件
-        public event Action<DownloadTask> OnDownloadStarted;
-        public event Action<DownloadTask> OnDownloadProgress;
-        public event Action<DownloadTask> OnDownloadCompleted;
-        public event Action<DownloadTask, string> OnDownloadFailed;
-        public event Action<MarketPluginInfo> OnUpdateAvailable;
-        public event Action<MarketSearchResult> OnSearchCompleted;
-        public event Action<PluginReview> OnReviewSubmitted;
+        public event Action<DownloadTask>? OnDownloadStarted;
+        public event Action<DownloadTask>? OnDownloadProgress;
+        public event Action<DownloadTask>? OnDownloadCompleted;
+        public event Action<DownloadTask, string>? OnDownloadFailed;
+        public event Action<MarketPluginInfo>? OnUpdateAvailable;
+        public event Action<MarketSearchResult>? OnSearchCompleted;
+        public event Action<PluginReview>? OnReviewSubmitted;
 
         // 统计
         public int TotalDownloads { get; private set; }
@@ -549,7 +549,7 @@ namespace YamaEngine.PluginSystem
         #region 插件详情
 
         /// <summary>获取插件详情。</summary>
-        public async Task<MarketPluginInfo> GetPluginDetailsAsync(string pluginId)
+        public async Task<MarketPluginInfo?> GetPluginDetailsAsync(string pluginId)
         {
             // 检查缓存
             if (EnableCache && _detailCache.TryGetValue(pluginId, out var cached) && !cached.IsExpired)
@@ -586,7 +586,7 @@ namespace YamaEngine.PluginSystem
             return null;
         }
 
-        private async Task<MarketPluginInfo> GetDetailsFromSource(MarketSource source, string pluginId)
+        private async Task<MarketPluginInfo?> GetDetailsFromSource(MarketSource source, string pluginId)
         {
             if (source.Type == MarketSourceType.Local)
             {
@@ -604,7 +604,7 @@ namespace YamaEngine.PluginSystem
         #region 下载
 
         /// <summary>下载插件。</summary>
-        public async Task<DownloadTask> DownloadAsync(string pluginId, string downloadUrl = null, long expectedSize = 0, string checksum = null)
+        public async Task<DownloadTask?> DownloadAsync(string pluginId, string? downloadUrl = null, long expectedSize = 0, string? checksum = null)
         {
             var info = await GetPluginDetailsAsync(pluginId);
             if (info == null && string.IsNullOrEmpty(downloadUrl))
@@ -803,7 +803,10 @@ namespace YamaEngine.PluginSystem
             // 检查已安装插件的更新
             foreach (var plugin in PluginManager.Instance.GetLoadedPlugins())
             {
-                var marketInfo = await GetPluginDetailsAsync(plugin.Descriptor?.PluginId);
+                var pluginId = plugin.Descriptor?.PluginId;
+                if (string.IsNullOrEmpty(pluginId)) continue;
+
+                var marketInfo = await GetPluginDetailsAsync(pluginId);
                 if (marketInfo != null && marketInfo.Version > plugin.Info.Version)
                 {
                     updates.Add(marketInfo);
@@ -937,7 +940,7 @@ namespace YamaEngine.PluginSystem
         #region 上传
 
         /// <summary>上传插件到市场。</summary>
-        public async Task<bool> UploadPluginAsync(string pluginId, string archivePath, string changelog = null, ReviewStatus requestedStatus = ReviewStatus.Pending)
+        public async Task<bool> UploadPluginAsync(string pluginId, string archivePath, string? changelog = null, ReviewStatus requestedStatus = ReviewStatus.Pending)
         {
             if (!File.Exists(archivePath))
             {
@@ -1019,7 +1022,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>获取图片 (带缓存)。</summary>
-        public async Task<byte[]> GetImageAsync(string imageUrl)
+        public async Task<byte[]?> GetImageAsync(string imageUrl)
         {
             if (string.IsNullOrEmpty(imageUrl)) return null;
 

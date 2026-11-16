@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FDE047"/>
+      <stop offset="0.5" stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+    <linearGradient id="mtnFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FCD34D"/>
+      <stop offset="1" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="mtnNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FEF3C7"/>
+      <stop offset="1" stop-color="#D97706"/>
+    </linearGradient>
+    <radialGradient id="sunHalo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FEF3C7" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#FBBF24" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="ringClip">
+      <circle cx="512" cy="480" r="286"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="232" fill="#1A0A02"/>
+
+  <!-- Sun halo -->
+  <circle cx="512" cy="480" r="360" fill="url(#sunHalo)"/>
+
+  <!-- Inner sun disc -->
+  <circle cx="512" cy="540" r="160" fill="#FEF3C7" opacity="0.9"/>
+
+  <!-- Outer engine ring -->
+  <circle cx="512" cy="480" r="310" fill="none" stroke="url(#ringGrad)" stroke-width="16"/>
+  <!-- Dashed inner ring -->
+  <circle cx="512" cy="480" r="278" fill="none" stroke="#FBBF24"
+          stroke-width="3" stroke-dasharray="4 20" opacity="0.7"/>
+
+  <!-- Mountain silhouettes clipped inside the ring -->
+  <g clip-path="url(#ringClip)">
+    <!-- Far mountain (left pair) -->
+    <path d="M150 660 L360 400 L480 540 L440 660 Z" fill="url(#mtnFar)"/>
+    <!-- Far mountain (right pair) -->
+    <path d="M560 660 L680 460 L880 660 Z" fill="url(#mtnFar)"/>
+    <!-- Central peak (tallest) -->
+    <path d="M330 660 L512 320 L694 660 Z" fill="url(#mtnNear)"/>
+    <!-- Snow caps -->
+    <path d="M478 388 L512 320 L546 388 L528 384 L512 356 L496 384 Z"
+          fill="#FFFBEB"/>
+    <!-- Horizon -->
+    <rect x="150" y="660" width="724" height="80" fill="#78350F" opacity="0.35"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="512" y="858" text-anchor="middle"
+        font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="134" font-weight="800" letter-spacing="18"
+        fill="#FEF3C7">YAMA</text>
+  <text x="512" y="924" text-anchor="middle"
+        font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="38" font-weight="600" letter-spacing="30"
+        fill="#FBBF24">ENGINE</text>
+</svg>

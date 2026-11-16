@@ -1338,15 +1338,28 @@ namespace YamaEngine.AI
             var bmin = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
             var bmax = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
             float cs = br.ReadSingle(), ch = br.ReadSingle();
+            // 工业级防御: 计数来自未受信字节流, 必须先校验非负且不超过剩余字节可容纳的元素数,
+            // 否则伪造 count=0x7FFFFFFF 可直接触发 OOM (每个顶点至少 12 字节)。
+            long remaining = ms.Length - ms.Position;
             int vcount = br.ReadInt32();
+            if (vcount < 0 || (long)vcount * 12 > remaining)
+                throw new InvalidDataException($"NavMesh data corrupt: vertex count {vcount} exceeds remaining {remaining} bytes.");
             var verts = new Vector3[vcount];
             for (int i = 0; i < vcount; i++)
                 verts[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+            remaining = ms.Length - ms.Position;
             int pcount = br.ReadInt32();
+            // 每个多边形至少占 4(顶点数) + 2(Area/Flags) + 2(NeighborPoly) + 8*4(单顶点) 字节
+            if (pcount < 0 || (long)pcount * 20 > remaining)
+                throw new InvalidDataException($"NavMesh data corrupt: polygon count {pcount} exceeds remaining {remaining} bytes.");
             var polys = new NavPoly[pcount];
             for (int i = 0; i < pcount; i++)
             {
                 int vc = br.ReadInt32();
+                // 每个顶点索引 4 字节; 同样先校验防止 new int[vc] OOM。
+                remaining = ms.Length - ms.Position;
+                if (vc < 0 || (long)vc * 4 > remaining - 6)
+                    throw new InvalidDataException($"NavMesh data corrupt: polygon {i} vertex count {vc} exceeds remaining {remaining} bytes.");
                 var vi = new int[vc];
                 for (int j = 0; j < vc; j++) vi[j] = br.ReadInt32();
                 polys[i] = new NavPoly

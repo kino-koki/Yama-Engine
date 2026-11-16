@@ -1,0 +1,151 @@
+{
+  "data": [
+    {
+      "id": "image-001",
+      "title": "Yama Logo - 山峰三峰版",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794638457694,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "naturalSize": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-peaks.svg"
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "Yama Logo - Y 字单色版",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794638457695,
+      "canvasData": {
+        "x": 480,
+        "y": 0,
+        "naturalSize": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-mono.svg"
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "Yama Logo - 旭日山岳版",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794638457696,
+      "canvasData": {
+        "x": 960,
+        "y": 0,
+        "naturalSize": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-sun.svg"
+      }
+    },
+    {
+      "id": "image-004",
+      "title": "Yama Logo - 中国画水墨版",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794639147123,
+      "canvasData": {
+        "x": 1440,
+        "y": 0,
+        "naturalSize": {
+          "width": 1024,
+          "height": 1024
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-ink-painting.svg"
+      }
+    },
+    {
+      "id": "image-005",
+      "title": "Yama Logo - 水墨山水主视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794639925717,
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-ink-main.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "image-006",
+      "title": "Yama Logo - 水墨横版字标",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794639925718,
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-ink-wordmark.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "image-007",
+      "title": "Yama Logo - 朱砂印章图腾",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794639925719,
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-ink-seal.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "image-008",
+      "title": "Yama Logo - 纯墨单色印章",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794639925720,
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-ink-mono.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "image-009",
+      "title": "Yama Logo - 朱砂方印三峰图腾（无字）",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794640569234,
+      "devMetadata": {
+        "imageSrc": "assets/yama-logo-ink-seal-mark.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "freeSize",
+    "projectName": "Yama Logo"
+  }
+}

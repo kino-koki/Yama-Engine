@@ -22,7 +22,7 @@ namespace YamaEngine.Animation
     {
         public float DeltaTime { get; set; }
         public float CurrentTime { get; set; }
-        public Skeleton Skeleton { get; set; }
+        public Skeleton? Skeleton { get; set; }
         public Dictionary<string, float> Parameters { get; } = new Dictionary<string, float>();
 
         /// <summary>Get a blend parameter by name, returning 0 if not found.</summary>
@@ -68,14 +68,14 @@ namespace YamaEngine.Animation
         public List<BlendNode> Children { get; } = new List<BlendNode>();
 
         /// <summary>Cache for the last evaluated pose (avoids re-evaluation within a frame).</summary>
-        protected SkeletonPose _cachedPose;
+        protected SkeletonPose? _cachedPose;
         protected float _cachedFrame = -1f;
 
         /// <summary>
         /// Evaluate this node and return a SkeletonPose. Implementations must
         /// be deterministic given the same context.
         /// </summary>
-        public abstract SkeletonPose Evaluate(BlendContext context);
+        public abstract SkeletonPose? Evaluate(BlendContext context);
 
         /// <summary>Reset playback state (time, events) for this node and children.</summary>
         public virtual void Reset()
@@ -90,7 +90,7 @@ namespace YamaEngine.Animation
         public virtual float GetDuration() => 0f;
 
         /// <summary>Return cached pose if still valid for the given frame, else null.</summary>
-        protected SkeletonPose GetCached(float frame)
+        protected SkeletonPose? GetCached(float frame)
         {
             if (_cachedPose != null && MathF.Abs(_cachedFrame - frame) < 1e-6f)
                 return _cachedPose;
@@ -127,7 +127,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class ClipNode : BlendNode
     {
-        public AnimationClipReal Clip { get; set; }
+        public AnimationClipReal? Clip { get; set; }
         public float PlaybackSpeed { get; set; } = 1f;
         public float CurrentTime { get; set; }
         public bool AutoLoop { get; set; } = true;
@@ -144,7 +144,7 @@ namespace YamaEngine.Animation
                 AutoLoop = clip.Loop;
         }
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             if (Clip == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -198,7 +198,7 @@ namespace YamaEngine.Animation
         /// <summary>Entry in the 1D blend space: a child node with an axis position.</summary>
         public struct BlendEntry
         {
-            public BlendNode Node;
+            public BlendNode? Node;
             public float Position;
         }
 
@@ -232,7 +232,7 @@ namespace YamaEngine.Animation
             }
         }
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             EnsureSorted();
             if (context.Skeleton == null) return null;
@@ -250,7 +250,7 @@ namespace YamaEngine.Animation
             {
                 var childCtx = context.Clone();
                 childCtx.CurrentTime = PlaybackTime;
-                return Entries[0].Node.Evaluate(childCtx);
+                return Entries[0].Node!.Evaluate(childCtx);
             }
 
             // Clamp below range
@@ -258,7 +258,7 @@ namespace YamaEngine.Animation
             {
                 var childCtx = context.Clone();
                 childCtx.CurrentTime = PlaybackTime;
-                return Entries[0].Node.Evaluate(childCtx);
+                return Entries[0].Node!.Evaluate(childCtx);
             }
 
             // Clamp above range
@@ -266,7 +266,7 @@ namespace YamaEngine.Animation
             {
                 var childCtx = context.Clone();
                 childCtx.CurrentTime = PlaybackTime;
-                return Entries[Entries.Count - 1].Node.Evaluate(childCtx);
+                return Entries[Entries.Count - 1].Node!.Evaluate(childCtx);
             }
 
             // Find adjacent pair
@@ -292,11 +292,11 @@ namespace YamaEngine.Animation
             var ctxB = context.Clone();
             ctxB.CurrentTime = PlaybackTime;
 
-            SkeletonPose poseA = Entries[idx].Node.Evaluate(ctxA);
-            SkeletonPose poseB = Entries[idx + 1].Node.Evaluate(ctxB);
+            SkeletonPose? poseA = Entries[idx].Node!.Evaluate(ctxA);
+            SkeletonPose? poseB = Entries[idx + 1].Node!.Evaluate(ctxB);
 
             // Blend the two poses
-            return SkeletonPose.Blend(poseA, poseB, alpha);
+            return SkeletonPose.Blend(poseA!, poseB!, alpha);
         }
 
         public override float GetDuration()
@@ -329,7 +329,7 @@ namespace YamaEngine.Animation
         /// <summary>Entry in the 2D blend space.</summary>
         public struct BlendEntry2D
         {
-            public BlendNode Node;
+            public BlendNode? Node;
             public Vector2 Position;
         }
 
@@ -339,7 +339,7 @@ namespace YamaEngine.Animation
         public Vector2 CurrentValue { get; set; }
         public float PlaybackTime { get; set; }
 
-        private List<(int A, int B, int C)> _triangles;
+        private List<(int A, int B, int C)>? _triangles;
         private bool _triangulated;
 
         public BlendSpace2D()
@@ -532,7 +532,7 @@ namespace YamaEngine.Animation
         // Evaluation
         // ------------------------------------------------------------------
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             if (!_triangulated)
                 Triangulate();
@@ -553,7 +553,7 @@ namespace YamaEngine.Animation
             {
                 var ctx = context.Clone();
                 ctx.CurrentTime = PlaybackTime;
-                return Entries[0].Node.Evaluate(ctx);
+                return Entries[0].Node!.Evaluate(ctx);
             }
 
             // Two entries: blend along the line segment
@@ -571,9 +571,9 @@ namespace YamaEngine.Animation
                 ctxA.CurrentTime = PlaybackTime;
                 var ctxB = context.Clone();
                 ctxB.CurrentTime = PlaybackTime;
-                var poseA = Entries[0].Node.Evaluate(ctxA);
-                var poseB = Entries[1].Node.Evaluate(ctxB);
-                return SkeletonPose.Blend(poseA, poseB, t);
+                var poseA = Entries[0].Node!.Evaluate(ctxA);
+                var poseB = Entries[1].Node!.Evaluate(ctxB);
+                return SkeletonPose.Blend(poseA!, poseB!, t);
             }
 
             // Three or more: find containing triangle
@@ -639,11 +639,11 @@ namespace YamaEngine.Animation
             // Fallback: just evaluate first entry
             var fallbackCtx = context.Clone();
             fallbackCtx.CurrentTime = PlaybackTime;
-            return Entries[0].Node.Evaluate(fallbackCtx);
+            return Entries[0].Node!.Evaluate(fallbackCtx);
         }
 
         /// <summary>Blend three child poses by barycentric weights.</summary>
-        private SkeletonPose BlendThree(BlendContext context, int ia, int ib, int ic,
+        private SkeletonPose? BlendThree(BlendContext context, int ia, int ib, int ic,
             float wa, float wb, float wc)
         {
             var ctxA = context.Clone();
@@ -653,13 +653,14 @@ namespace YamaEngine.Animation
             var ctxC = context.Clone();
             ctxC.CurrentTime = PlaybackTime;
 
-            SkeletonPose poseA = Entries[ia].Node.Evaluate(ctxA);
-            SkeletonPose poseB = Entries[ib].Node.Evaluate(ctxB);
-            SkeletonPose poseC = Entries[ic].Node.Evaluate(ctxC);
+            SkeletonPose? poseA = Entries[ia].Node!.Evaluate(ctxA);
+            SkeletonPose? poseB = Entries[ib].Node!.Evaluate(ctxB);
+            SkeletonPose? poseC = Entries[ic].Node!.Evaluate(ctxC);
 
             if (poseA == null) return poseB ?? poseC;
             if (poseB == null) return poseA;
             if (poseC == null) return poseA;
+            if (context.Skeleton == null) return poseA;
 
             int count = Math.Min(poseA.BoneCount, Math.Min(poseB.BoneCount, poseC.BoneCount));
             var result = new SkeletonPose(context.Skeleton);
@@ -828,9 +829,9 @@ namespace YamaEngine.Animation
     /// </summary>
     public class BlendLayer
     {
-        public BlendNode Node { get; set; }
+        public BlendNode? Node { get; set; }
         public float Weight { get; set; } = 1f;
-        public BoneMask Mask { get; set; }
+        public BoneMask? Mask { get; set; }
 
         /// <summary>If true, this layer is blended additively rather than overriding.</summary>
         public bool IsAdditive { get; set; }
@@ -843,7 +844,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class LayeredBlendNode : BlendNode
     {
-        public BlendNode BaseLayer { get; set; }
+        public BlendNode? BaseLayer { get; set; }
         public List<BlendLayer> Layers { get; } = new List<BlendLayer>();
 
         public LayeredBlendNode()
@@ -851,7 +852,7 @@ namespace YamaEngine.Animation
             NodeType = BlendNodeType.LayeredBlend;
         }
 
-        public void AddLayer(BlendNode node, float weight, BoneMask mask = null, bool additive = false)
+        public void AddLayer(BlendNode node, float weight, BoneMask? mask = null, bool additive = false)
         {
             var layer = new BlendLayer
             {
@@ -865,12 +866,12 @@ namespace YamaEngine.Animation
                 Children.Add(node);
         }
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             if (context.Skeleton == null) return null;
 
             // Evaluate base layer
-            SkeletonPose result = BaseLayer?.Evaluate(context);
+            SkeletonPose? result = BaseLayer?.Evaluate(context);
             if (result == null)
                 result = context.Skeleton.CreateBindPose();
             else
@@ -883,7 +884,7 @@ namespace YamaEngine.Animation
                 float weight = Math.Clamp(layer.Weight, 0f, 1f);
                 if (weight <= 0f) continue;
 
-                SkeletonPose overlay = layer.Node.Evaluate(context);
+                SkeletonPose? overlay = layer.Node.Evaluate(context);
                 if (overlay == null) continue;
 
                 if (layer.IsAdditive)
@@ -906,7 +907,7 @@ namespace YamaEngine.Animation
         /// by (weight * maskWeight). Position/Scale use Lerp, Rotation uses SLerp.
         /// </summary>
         private static void ApplyOverrideLayer(SkeletonPose basePose, SkeletonPose overlay,
-            float weight, BoneMask mask)
+            float weight, BoneMask? mask)
         {
             int count = Math.Min(basePose.BoneCount, overlay.BoneCount);
             for (int i = 0; i < count; i++)
@@ -931,7 +932,7 @@ namespace YamaEngine.Animation
         /// delta (relative to identity) scaled by weight.
         /// </summary>
         private static void ApplyAdditiveLayer(SkeletonPose basePose, SkeletonPose overlay,
-            float weight, BoneMask mask)
+            float weight, BoneMask? mask)
         {
             int count = Math.Min(basePose.BoneCount, overlay.BoneCount);
             for (int i = 0; i < count; i++)
@@ -993,19 +994,19 @@ namespace YamaEngine.Animation
     /// </summary>
     public class AdditiveBlendNode : BlendNode
     {
-        public BlendNode BaseNode { get; set; }
-        public BlendNode AdditiveNode { get; set; }
-        public SkeletonPose AdditiveBasePose { get; set; }
+        public BlendNode? BaseNode { get; set; }
+        public BlendNode? AdditiveNode { get; set; }
+        public SkeletonPose? AdditiveBasePose { get; set; }
         public float Weight { get; set; } = 1f;
         public AdditiveType AdditiveMode { get; set; } = AdditiveType.TranslationRotationScale;
-        public string WeightParameter { get; set; }
+        public string? WeightParameter { get; set; }
 
         public AdditiveBlendNode()
         {
             NodeType = BlendNodeType.AdditiveBlend;
         }
 
-        public AdditiveBlendNode(BlendNode baseNode, BlendNode additiveNode, SkeletonPose additiveBase = null)
+        public AdditiveBlendNode(BlendNode baseNode, BlendNode additiveNode, SkeletonPose? additiveBase = null)
             : this()
         {
             BaseNode = baseNode;
@@ -1015,11 +1016,11 @@ namespace YamaEngine.Animation
             if (additiveNode != null) Children.Add(additiveNode);
         }
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             if (context.Skeleton == null) return null;
 
-            SkeletonPose basePose = BaseNode?.Evaluate(context);
+            SkeletonPose? basePose = BaseNode?.Evaluate(context);
             if (basePose == null)
                 basePose = context.Skeleton.CreateBindPose();
             else
@@ -1028,7 +1029,7 @@ namespace YamaEngine.Animation
             if (AdditiveNode == null)
                 return basePose;
 
-            SkeletonPose additivePose = AdditiveNode.Evaluate(context);
+            SkeletonPose? additivePose = AdditiveNode.Evaluate(context);
             if (additivePose == null)
                 return basePose;
 
@@ -1176,7 +1177,7 @@ namespace YamaEngine.Animation
             }
         }
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             if (context.Skeleton == null || SyncedNodes.Count == 0)
                 return context.Skeleton?.CreateBindPose();
@@ -1267,7 +1268,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class StateMachineBlendNode : BlendNode
     {
-        public AnimStateMachineReal StateMachine { get; set; }
+        public AnimStateMachineReal? StateMachine { get; set; }
 
         public StateMachineBlendNode()
         {
@@ -1279,7 +1280,7 @@ namespace YamaEngine.Animation
             StateMachine = stateMachine;
         }
 
-        public override SkeletonPose Evaluate(BlendContext context)
+        public override SkeletonPose? Evaluate(BlendContext context)
         {
             if (StateMachine == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();

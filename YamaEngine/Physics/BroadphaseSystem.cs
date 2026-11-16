@@ -1069,21 +1069,21 @@ namespace YamaEngine.Physics
             }
 
             private BVHNode[] _nodes = new BVHNode[256];
+            private int _nodeCount;   // 已分配节点数（Build 是一次性重建，用计数分配即可）
             private int _root = -1;
-            private int _freeList = -1;
             private readonly List<(int id, AABB box)> _buildBuffer = new(256);
 
             public void Clear()
             {
                 _root = -1;
-                _freeList = -1;
+                _nodeCount = 0;
                 _buildBuffer.Clear();
             }
 
             public void Build(List<(int id, AABB box)> prims)
             {
                 _root = -1;
-                _freeList = -1;
+                _nodeCount = 0;
                 if (prims.Count == 0) return;
 
                 _buildBuffer.Clear();
@@ -1143,23 +1143,9 @@ namespace YamaEngine.Physics
 
             private int AllocNode()
             {
-                if (_freeList == -1)
-                {
-                    if (_nodes.Length == 0 || _nodes.All(n => n.BodyId != -1 || n.Left != -1))
-                    {
-                        int oldSize = _nodes.Length;
-                        Array.Resize(ref _nodes, Math.Max(8, oldSize * 2));
-                    }
-                    // 找一个空槽
-                    for (int i = 0; i < _nodes.Length; i++)
-                    {
-                        if (_nodes[i].BodyId == -1 && _nodes[i].Left == -1 && _nodes[i].Right == -1)
-                            return i;
-                    }
-                }
-                int idx = _freeList;
-                _freeList = -1; // 简化，不用链表
-                return idx;
+                if (_nodeCount >= _nodes.Length)
+                    Array.Resize(ref _nodes, Math.Max(8, _nodes.Length * 2));
+                return _nodeCount++;
             }
 
             public void QueryPairs(List<CandidatePair> results)

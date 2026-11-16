@@ -104,12 +104,12 @@ namespace YamaEngine.AI
     {
         public string Name { get; set; } = "";
         public BlackboardKeyType KeyType { get; set; } = BlackboardKeyType.None;
-        public object DefaultValue { get; set; }
+        public object? DefaultValue { get; set; }
         public int Index { get; set; } = -1;
-        public List<Action<object, object>> Observers { get; } = new List<Action<object, object>>();
+        public List<Action<object?, object?>> Observers { get; } = new List<Action<object?, object?>>();
 
         public BTBlackboardKeyDef() { }
-        public BTBlackboardKeyDef(string name, BlackboardKeyType type, object defaultValue = null)
+        public BTBlackboardKeyDef(string name, BlackboardKeyType type, object? defaultValue = null)
         {
             Name = name;
             KeyType = type;
@@ -126,7 +126,7 @@ namespace YamaEngine.AI
         public int CachedIndex { get; set; } = -1;
         public bool IsResolved => CachedIndex >= 0;
 
-        public T GetValue(Blackboard bb)
+        public T? GetValue(Blackboard bb)
         {
             if (bb == null || !IsResolved) return default;
             return bb.GetValue<T>(CachedIndex);
@@ -165,7 +165,7 @@ namespace YamaEngine.AI
             _orderedKeys.Add(key);
         }
 
-        public BTBlackboardKeyDef AddKey(string name, BlackboardKeyType type, object defaultValue = null)
+        public BTBlackboardKeyDef? AddKey(string name, BlackboardKeyType type, object? defaultValue = null)
         {
             var key = new BTBlackboardKeyDef(name, type, defaultValue);
             AddKey(key);
@@ -178,7 +178,7 @@ namespace YamaEngine.AI
             return -1;
         }
 
-        public BTBlackboardKeyDef GetKey(string name)
+        public BTBlackboardKeyDef? GetKey(string name)
         {
             _keys.TryGetValue(name, out var key);
             return key;
@@ -189,9 +189,9 @@ namespace YamaEngine.AI
             return new Blackboard(this);
         }
 
-        public List<Dictionary<string, object>> SerializeKeys()
+        public List<Dictionary<string, object?>> SerializeKeys()
         {
-            return _orderedKeys.Select(k => new Dictionary<string, object>
+            return _orderedKeys.Select(k => new Dictionary<string, object?>
             {
                 { "name", k.Name },
                 { "type", (int)k.KeyType },
@@ -205,12 +205,12 @@ namespace YamaEngine.AI
     /// </summary>
     public class Blackboard
     {
-        private readonly BTBlackboardDefinition _definition;
-        private readonly object[] _values;
+        private readonly BTBlackboardDefinition? _definition;
+        private readonly object?[] _values;
         private readonly Dictionary<string, int> _dynamicKeys = new Dictionary<string, int>();
-        private readonly List<(string Name, object Value)> _dynamicValues = new List<(string, object)>();
+        private readonly List<(string Name, object? Value)> _dynamicValues = new List<(string, object?)>();
 
-        public BTBlackboardDefinition Definition => _definition;
+        public BTBlackboardDefinition? Definition => _definition;
 
         internal Blackboard(BTBlackboardDefinition definition)
         {
@@ -220,14 +220,14 @@ namespace YamaEngine.AI
                 _values[i] = definition.Keys[i].DefaultValue;
         }
 
-        public T GetValue<T>(int index)
+        public T? GetValue<T>(int index)
         {
             if (index < 0 || index >= _values.Length) return default;
             if (_values[index] is T typed) return typed;
             return default;
         }
 
-        public void SetValue(int index, object value)
+        public void SetValue(int index, object? value)
         {
             if (index < 0 || index >= _values.Length) return;
             var old = _values[index];
@@ -235,20 +235,20 @@ namespace YamaEngine.AI
             NotifyObservers(index, old, value);
         }
 
-        public T GetValue<T>(string name)
+        public T? GetValue<T>(string name)
         {
-            int idx = _definition.GetKeyIndex(name);
+            int idx = _definition?.GetKeyIndex(name) ?? -1;
             if (idx >= 0) return GetValue<T>(idx);
             return default;
         }
 
-        public void SetValue(string name, object value)
+        public void SetValue(string name, object? value)
         {
-            int idx = _definition.GetKeyIndex(name);
+            int idx = _definition?.GetKeyIndex(name) ?? -1;
             if (idx >= 0) SetValue(idx, value);
         }
 
-        public void SetDynamicValue(string name, object value)
+        public void SetDynamicValue(string name, object? value)
         {
             if (_dynamicKeys.TryGetValue(name, out int idx))
                 _dynamicValues[idx] = (name, value);
@@ -259,7 +259,7 @@ namespace YamaEngine.AI
             }
         }
 
-        public T GetDynamicValue<T>(string name)
+        public T? GetDynamicValue<T>(string name)
         {
             if (_dynamicKeys.TryGetValue(name, out int idx))
             {
@@ -268,26 +268,27 @@ namespace YamaEngine.AI
             return default;
         }
 
-        public void AddObserver(string keyName, Action<object, object> observer)
+        public void AddObserver(string keyName, Action<object?, object?> observer)
         {
-            var key = _definition.GetKey(keyName);
+            var key = _definition?.GetKey(keyName);
             if (key != null) key.Observers.Add(observer);
         }
 
-        public void RemoveObserver(string keyName, Action<object, object> observer)
+        public void RemoveObserver(string keyName, Action<object?, object?> observer)
         {
-            var key = _definition.GetKey(keyName);
+            var key = _definition?.GetKey(keyName);
             if (key != null) key.Observers.Remove(observer);
         }
 
-        private void NotifyObservers(int index, object oldVal, object newVal)
+        private void NotifyObservers(int index, object? oldVal, object? newVal)
         {
-            if (index >= 0 && index < _definition.Keys.Count)
+            if (index >= 0 && index < (_definition?.Keys.Count ?? 0))
             {
-                var key = _definition.Keys[index];
+                var key = _definition!.Keys[index];
                 foreach (var obs in key.Observers)
                 {
-                    try { obs(oldVal, newVal); } catch { }
+                    try { obs(oldVal, newVal); }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[BehaviorTree] 观察者回调异常: {ex.GetType().Name}: {ex.Message}"); }
                 }
             }
         }
@@ -300,7 +301,7 @@ namespace YamaEngine.AI
 
         public void ClearValue(string name)
         {
-            int idx = _definition.GetKeyIndex(name);
+            int idx = _definition?.GetKeyIndex(name) ?? -1;
             if (idx >= 0)
             {
                 var old = _values[idx];
@@ -315,16 +316,16 @@ namespace YamaEngine.AI
 
         public bool HasKey(string name)
         {
-            return _definition.GetKeyIndex(name) >= 0 || _dynamicKeys.ContainsKey(name);
+            return (_definition?.GetKeyIndex(name) ?? -1) >= 0 || _dynamicKeys.ContainsKey(name);
         }
 
         public Dictionary<string, object> Serialize()
         {
             var dict = new Dictionary<string, object>();
-            for (int i = 0; i < _definition.Keys.Count; i++)
+            for (int i = 0; i < (_definition?.Keys.Count ?? 0); i++)
             {
                 if (_values[i] != null)
-                    dict[_definition.Keys[i].Name] = _values[i];
+                    dict[_definition!.Keys[i].Name!] = _values[i]!;
             }
             foreach (var kv in _dynamicValues)
             {
@@ -342,7 +343,7 @@ namespace YamaEngine.AI
                     SetDynamicValue(kv.Key.Substring(4), kv.Value);
                 else
                 {
-                    int idx = _definition.GetKeyIndex(kv.Key);
+                    int idx = _definition?.GetKeyIndex(kv.Key) ?? -1;
                     if (idx >= 0) SetValue(idx, kv.Value);
                 }
             }
@@ -465,13 +466,13 @@ namespace YamaEngine.AI
     public class BlackboardComponent
     {
         /// <summary>黑板实例。</summary>
-        public Blackboard Blackboard { get; private set; }
+        public Blackboard? Blackboard { get; private set; }
 
         /// <summary>所属 Pawn 的引用。</summary>
-        public YamaEngine.GameFramework.Pawn OwnerPawn { get; private set; }
+        public YamaEngine.GameFramework.Pawn? OwnerPawn { get; private set; }
 
         /// <summary>黑板定义。</summary>
-        public BTBlackboardDefinition Definition { get; private set; }
+        public BTBlackboardDefinition? Definition { get; private set; }
 
         public BlackboardComponent() { }
 
@@ -497,7 +498,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取黑板值。</summary>
-        public T GetValue<T>(string keyName)
+        public T? GetValue<T>(string keyName)
         {
             return Blackboard == null ? default : Blackboard.GetValue<T>(keyName);
         }
@@ -531,11 +532,11 @@ namespace YamaEngine.AI
     /// </summary>
     public sealed class BTNodeContext
     {
-        public BehaviorTreeInstance TreeInstance { get; }
-        public Blackboard Blackboard => TreeInstance?.Blackboard;
+        public BehaviorTreeInstance? TreeInstance { get; }
+        public Blackboard? Blackboard => TreeInstance?.Blackboard;
         public float DeltaTime { get; set; }
-        public BTNode ActiveNode { get; set; }
-        public object UserData { get; set; }
+        public BTNode? ActiveNode { get; set; }
+        public object? UserData { get; set; }
         public bool IsDebugMode { get; set; }
 
         public BTNodeContext(BehaviorTreeInstance inst)
@@ -553,7 +554,7 @@ namespace YamaEngine.AI
         public string Description { get; set; } = "";
         public int NodeId { get; internal set; } = -1;
         public List<BTNode> Children { get; } = new List<BTNode>();
-        public BTNode Parent { get; internal set; }
+        public BTNode? Parent { get; internal set; }
         public List<BTDecorator> Decorators { get; } = new List<BTDecorator>();
         public List<BTService> Services { get; } = new List<BTService>();
         public BTNodeState LastState { get; set; } = BTNodeState.Inactive;
@@ -635,7 +636,7 @@ namespace YamaEngine.AI
 
         public virtual BTNode Clone()
         {
-            var clone = (BTNode)Activator.CreateInstance(GetType());
+            var clone = (BTNode)Activator.CreateInstance(GetType())!;
             clone.NodeName = NodeName;
             clone.Description = Description;
             clone.HasBreakpoint = HasBreakpoint;
@@ -729,7 +730,7 @@ namespace YamaEngine.AI
         public BTConditionalBranch() { NodeName = "ConditionalBranch"; }
 
         /// <summary>条件评估委托。</summary>
-        public Func<BTNodeContext, bool> Condition { get; set; }
+        public Func<BTNodeContext, bool>? Condition { get; set; }
 
         public override BTNodeState Execute(BTNodeContext ctx)
         {
@@ -817,7 +818,7 @@ namespace YamaEngine.AI
         public BTWhileLoop() { NodeName = "WhileLoop"; }
 
         /// <summary>循环条件委托。</summary>
-        public Func<BTNodeContext, bool> LoopCondition { get; set; }
+        public Func<BTNodeContext, bool>? LoopCondition { get; set; }
         /// <summary>黑板键名作为条件（读取bool）。</summary>
         public string ConditionKey { get; set; } = "";
 
@@ -950,7 +951,7 @@ namespace YamaEngine.AI
     /// </summary>
     public abstract class BTDecorator : BTNode
     {
-        private BTNode _decoratedNode;
+        private BTNode? _decoratedNode;
         public BTNodeState AbortResult { get; protected set; } = BTNodeState.Failed;
         public BTAbortCondition AbortCondition { get; set; } = BTAbortCondition.None;
 
@@ -975,7 +976,7 @@ namespace YamaEngine.AI
 
         public override BTNode Clone()
         {
-            var clone = (BTDecorator)Activator.CreateInstance(GetType());
+            var clone = (BTDecorator)Activator.CreateInstance(GetType())!;
             clone.NodeName = NodeName;
             clone.Description = Description;
             clone.AbortResult = AbortResult;
@@ -1080,13 +1081,13 @@ namespace YamaEngine.AI
     public sealed class KeepRunning : BTDecorator
     {
         /// <summary>保持运行的条件。</summary>
-        public Func<BTNodeContext, bool> KeepCondition { get; set; }
+        public Func<BTNodeContext, bool>? KeepCondition { get; set; }
 
         public KeepRunning() { NodeName = "KeepRunning"; }
 
         public override BTNodeState ApplyResult(BTNodeState childResult)
         {
-            if (KeepCondition != null && KeepCondition(default))
+            if (KeepCondition != null && KeepCondition(default!))
                 return BTNodeState.Running;
             return childResult;
         }
@@ -1177,7 +1178,7 @@ namespace YamaEngine.AI
         /// <summary>克隆服务。</summary>
         public virtual BTService Clone()
         {
-            var clone = (BTService)Activator.CreateInstance(GetType());
+            var clone = (BTService)Activator.CreateInstance(GetType())!;
             clone.ServiceName = ServiceName;
             clone.TickInterval = TickInterval;
             return clone;
@@ -1188,7 +1189,7 @@ namespace YamaEngine.AI
     public sealed class BTService_UpdateBlackboard : BTService
     {
         public string TargetKey { get; set; } = "";
-        public Func<BTNodeContext, object> UpdateFunc { get; set; }
+        public Func<BTNodeContext, object?>? UpdateFunc { get; set; }
 
         public BTService_UpdateBlackboard() { ServiceName = "UpdateBlackboard"; TickInterval = 0.5f; }
 
@@ -1205,7 +1206,7 @@ namespace YamaEngine.AI
     {
         public BTService_Default() { ServiceName = "DefaultService"; TickInterval = 1f; }
 
-        public Action<BTNodeContext> OnTick { get; set; }
+        public Action<BTNodeContext>? OnTick { get; set; }
 
         protected override void PerformService(BTNodeContext ctx)
         {
@@ -1216,9 +1217,9 @@ namespace YamaEngine.AI
     /// <summary>自定义服务：通过委托自定义。</summary>
     public sealed class BTService_Custom : BTService
     {
-        public Action<BTNodeContext> OnStart { get; set; }
-        public Action<BTNodeContext> OnTick { get; set; }
-        public Action<BTNodeContext> OnStop { get; set; }
+        public Action<BTNodeContext>? OnStart { get; set; }
+        public Action<BTNodeContext>? OnTick { get; set; }
+        public Action<BTNodeContext>? OnStop { get; set; }
 
         public BTService_Custom() { ServiceName = "CustomService"; TickInterval = 0.5f; }
 
@@ -1385,7 +1386,7 @@ namespace YamaEngine.AI
     public sealed class BTTask_SetBlackboardValue : BTTaskV1
     {
         public string KeyName { get; set; } = "";
-        public object Value { get; set; }
+        public object? Value { get; set; }
         public string ValueKey { get; set; } = ""; // 从另一个黑板键读取值
 
         public BTTask_SetBlackboardValue() { NodeName = "SetBlackboardValue"; }
@@ -1395,7 +1396,7 @@ namespace YamaEngine.AI
             if (ctx.Blackboard == null || string.IsNullOrEmpty(KeyName))
                 return BTNodeState.Failed;
 
-            object val = Value;
+            object? val = Value;
             if (!string.IsNullOrEmpty(ValueKey))
                 val = ctx.Blackboard.GetDynamicValue<object>(ValueKey) ?? Value;
 
@@ -1446,8 +1447,8 @@ namespace YamaEngine.AI
     /// <summary>运行子行为树。</summary>
     public sealed class BTTask_RunBehaviorTree : BTTaskV1
     {
-        public BehaviorTree SubTreeAsset { get; set; }
-        private BehaviorTreeInstance _subInstance;
+        public BehaviorTree? SubTreeAsset { get; set; }
+        private BehaviorTreeInstance? _subInstance;
 
         public BTTask_RunBehaviorTree() { NodeName = "RunBehaviorTree"; }
 
@@ -1455,7 +1456,7 @@ namespace YamaEngine.AI
         {
             base.InitNode(ctx);
             if (SubTreeAsset != null)
-                _subInstance = SubTreeAsset.CreateInstance(ctx.TreeInstance?.Blackboard);
+                _subInstance = SubTreeAsset.CreateInstance(ctx.TreeInstance?.Blackboard!);
         }
 
         protected override BTNodeState ExecuteTask(BTNodeContext ctx)
@@ -1480,8 +1481,8 @@ namespace YamaEngine.AI
     public sealed class BTTask_ActorAction : BTTaskV1
     {
         public string ActionName { get; set; } = "";
-        public Action<BTNodeContext> OnExecute { get; set; }
-        public Func<BTNodeContext, BTNodeState> ActionFunc { get; set; }
+        public Action<BTNodeContext>? OnExecute { get; set; }
+        public Func<BTNodeContext, BTNodeState>? ActionFunc { get; set; }
 
         public BTTask_ActorAction() { NodeName = "ActorAction"; }
 
@@ -1498,7 +1499,7 @@ namespace YamaEngine.AI
     public sealed class BTTask_SpawnActor : BTTaskV1
     {
         public string SpawnLocationKey { get; set; } = "SpawnLocation";
-        public Func<BTNodeContext, YamaEngine.GameFramework.Actor> SpawnFunc { get; set; }
+        public Func<BTNodeContext, YamaEngine.GameFramework.Actor?>? SpawnFunc { get; set; }
 
         public BTTask_SpawnActor() { NodeName = "SpawnActor"; }
 
@@ -1587,7 +1588,7 @@ namespace YamaEngine.AI
     {
         public Guid AssetId { get; set; } = Guid.NewGuid();
         public string AssetName { get; set; } = "UntitledBehaviorTree";
-        public BTNode RootNode { get; set; }
+        public BTNode? RootNode { get; set; }
         /// <summary>构建器设置的行为树根节点（<see cref="BehaviorNode"/> 层级）。</summary>
         public BehaviorNode? Root { get; set; }
         public BTBlackboardDefinition BlackboardDefinition { get; set; } = new BTBlackboardDefinition();
@@ -1599,13 +1600,13 @@ namespace YamaEngine.AI
         public BehaviorTreeInstance CreateInstance()
         {
             var bb = BlackboardDefinition.CreateBlackboard();
-            BTNode clonedRoot = RootNode?.Clone();
+            BTNode? clonedRoot = RootNode?.Clone();
             return new BehaviorTreeInstance(this, bb, clonedRoot);
         }
 
         public BehaviorTreeInstance CreateInstance(Blackboard sharedBlackboard)
         {
-            BTNode clonedRoot = RootNode?.Clone();
+            BTNode? clonedRoot = RootNode?.Clone();
             return new BehaviorTreeInstance(this, sharedBlackboard, clonedRoot);
         }
 
@@ -1651,22 +1652,22 @@ namespace YamaEngine.AI
     {
         public BehaviorTree Tree { get; }
         public Blackboard Blackboard { get; }
-        public BTNode RootNode { get; private set; }
+        public BTNode? RootNode { get; private set; }
         public BTNodeContext Context { get; }
         public BTNodeState CurrentState { get; private set; } = BTNodeState.Inactive;
         public bool IsRunning { get; private set; }
         public bool IsSuspended { get; set; }
 
-        public Action<BTNode, BTNodeContext> OnBreakpointHit { get; set; }
+        public Action<BTNode, BTNodeContext>? OnBreakpointHit { get; set; }
         public Stack<BTNode> ExecutionStack { get; } = new Stack<BTNode>();
 
         /// <summary>上次 Update 的时间。</summary>
         public float LastUpdateTime { get; private set; }
 
-        internal BehaviorTreeInstance(BehaviorTree tree, Blackboard blackboard, BTNode rootNode = null)
+        internal BehaviorTreeInstance(BehaviorTree tree, Blackboard blackboard, BTNode? rootNode = null)
         {
             Tree = tree;
-            Blackboard = blackboard ?? tree?.CreateInstance().Blackboard;
+            Blackboard = blackboard ?? tree!.CreateInstance().Blackboard;
             RootNode = rootNode;
             Context = new BTNodeContext(this);
         }
@@ -1726,7 +1727,7 @@ namespace YamaEngine.AI
     /// <summary>兼容别名。</summary>
     public sealed class BTInstance : BehaviorTreeInstance
     {
-        internal BTInstance(BehaviorTree tree, Blackboard blackboard, BTNode rootNode = null)
+        internal BTInstance(BehaviorTree tree, Blackboard blackboard, BTNode? rootNode = null)
             : base(tree, blackboard, rootNode) { }
     }
 
@@ -1779,21 +1780,21 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取已注册的行为树。</summary>
-        public BehaviorTree GetTree(Guid assetId)
+        public BehaviorTree? GetTree(Guid assetId)
         {
             _registeredTrees.TryGetValue(assetId, out var tree);
             return tree;
         }
 
         /// <summary>创建实例。</summary>
-        public BehaviorTreeInstance CreateInstance(Guid treeAssetId)
+        public BehaviorTreeInstance? CreateInstance(Guid treeAssetId)
         {
             if (!_registeredTrees.TryGetValue(treeAssetId, out var tree)) return null;
             return tree.CreateInstance();
         }
 
         /// <summary>从池中获取实例。</summary>
-        public BehaviorTreeInstance AcquireInstance(Guid treeAssetId)
+        public BehaviorTreeInstance? AcquireInstance(Guid treeAssetId)
         {
             if (_instancePool.TryGetValue(treeAssetId, out var pool) && pool.Count > 0)
                 return pool.Pop();
@@ -1801,7 +1802,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>归还实例到池中。</summary>
-        public void ReleaseInstance(BehaviorTreeInstance instance)
+        public void ReleaseInstance(BehaviorTreeInstance? instance)
         {
             if (instance == null) return;
             instance.Cleanup();
@@ -1899,7 +1900,7 @@ namespace YamaEngine.AI
                 _pool[asset.AssetId] = new Stack<BehaviorTreeInstance>();
         }
 
-        public BehaviorTreeInstance Acquire(Guid assetId)
+        public BehaviorTreeInstance? Acquire(Guid assetId)
         {
             if (_pool.TryGetValue(assetId, out var stack) && stack.Count > 0)
                 return stack.Pop();
@@ -1908,7 +1909,7 @@ namespace YamaEngine.AI
             return null;
         }
 
-        public void Release(BehaviorTreeInstance instance)
+        public void Release(BehaviorTreeInstance? instance)
         {
             if (instance == null) return;
             var assetId = instance.Tree?.AssetId ?? Guid.Empty;
@@ -1938,7 +1939,7 @@ namespace YamaEngine.AI
 
     public sealed class BTVisualNode
     {
-        public BTNode Node { get; set; }
+        public BTNode? Node { get; set; }
         public Vector2 Position { get; set; }
         public Vector2 Size { get; set; } = new Vector2(200, 60);
         public Vector3 NodeColor { get; set; } = new Vector3(0.2f, 0.6f, 1f);
@@ -1946,8 +1947,8 @@ namespace YamaEngine.AI
 
     public sealed class BTVisualConnection
     {
-        public BTVisualNode From { get; set; }
-        public BTVisualNode To { get; set; }
+        public BTVisualNode? From { get; set; }
+        public BTVisualNode? To { get; set; }
     }
 
     public sealed class BTVisualGraph
@@ -1960,10 +1961,10 @@ namespace YamaEngine.AI
             Nodes.Clear();
             Connections.Clear();
             if (tree?.RootNode == null) return;
-            BuildNodeRecursive(tree.RootNode, null, 0, 0);
+            BuildNodeRecursive(tree.RootNode, null!, 0, 0);
         }
 
-        private BTVisualNode BuildNodeRecursive(BTNode node, BTVisualNode parent, int depth, int siblingIndex)
+        private BTVisualNode BuildNodeRecursive(BTNode node, BTVisualNode? parent, int depth, int siblingIndex)
         {
             var visual = new BTVisualNode
             {
@@ -1991,10 +1992,10 @@ namespace YamaEngine.AI
 
     public sealed class BTDebugger
     {
-        public BehaviorTreeInstance ActiveInstance { get; set; }
+        public BehaviorTreeInstance? ActiveInstance { get; set; }
         public bool IsEnabled { get; set; }
 
-        public BTNode GetCurrentNode() => ActiveInstance?.Context?.ActiveNode;
+        public BTNode? GetCurrentNode() => ActiveInstance?.Context?.ActiveNode;
 
         public string GetStateDescription()
         {

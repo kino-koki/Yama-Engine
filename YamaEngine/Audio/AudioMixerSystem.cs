@@ -524,7 +524,7 @@ namespace YamaEngine.Audio
 
                 case DuckState.Releasing:
                     CurrentProgress -= deltaTime / Math.Max(0.001f, ReleaseTime);
-                    if (CurrentProgress <= 0f)
+                    if (CurrentProgress <= 1e-4f)
                     {
                         CurrentProgress = 0f;
                         TargetBus.Volume = _originalVolume;

@@ -179,7 +179,7 @@ namespace YamaEngine.Assets.Importers
                 {
                     fs.Position = 80;
                     byte[] countBytes = new byte[4];
-                    fs.Read(countBytes, 0, 4);
+                    fs.ReadExactly(countBytes, 0, 4);
                     uint triCount = BitConverter.ToUInt32(countBytes, 0);
 
                     long expectedSize = 84 + (long)triCount * 50;
@@ -274,14 +274,19 @@ namespace YamaEngine.Assets.Importers
             uint triCount = BitConverter.ToUInt32(data, 80);
             _messages.Add($"Binary STL: {triCount} 三角形");
 
+            // 工业级防御: 前置校验文件长度是否足以容纳全部三角形。
+            // 防: (1) 损坏文件声明巨量 triCount 导致循环死循环/巨量分配; (2) triCount 使 int 溢出。
+            long requiredSize = 84 + (long)triCount * 50;
+            if (requiredSize > data.Length)
+                throw new InvalidDataException(
+                    $"Binary STL 数据截断: 声明 {triCount} 三角形需 {requiredSize} 字节, 实际 {data.Length} 字节");
+
             int offset = 84;
             for (int i = 0; i < triCount; i++)
             {
+                // 防御: offset+50 越界即损坏数据 (前置校验已保证不会, 此处为二次防线)。
                 if (offset + 50 > data.Length)
-                {
-                    _messages.Add($"警告: 文件在三角形 {i} 处截断");
-                    break;
-                }
+                    throw new InvalidDataException($"Binary STL 在三角形 {i} 处截断");
 
                 var tri = new StlTriangle
                 {

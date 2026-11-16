@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Start — Yama Engine</title>
+<meta name="description" content="Get Yama Engine running in ten minutes: restore dependencies, build the engine, open the editor, run the tests. Every step has a real command and an expected output.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="get-started-en.html">
+<link rel="alternate" hreflang="en" href="get-started-en.html"
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="Quick Start — Yama Engine">
+<meta property="og:description" content="Get Yama Engine running in ten minutes: restore dependencies, build the engine, open the editor, run the tests. Every step has a real command and an expected output.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+<style>
+/* Quick-start page styles */
+.guide{background:var(--paper)}
+.guide-steps{border-top:1px solid var(--ink)}
+.gstep{
+  display:grid;grid-template-columns:64px 220px 1fr;gap:28px;
+  padding:30px 0;border-bottom:1px solid var(--rule);align-items:start;
+}
+.gstep-num{
+  font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.06em;
+  color:var(--paper);background:var(--orange);width:44px;height:44px;
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+.gstep:nth-child(2n) .gstep-num{background:var(--ochre)}
+.gstep h3{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-.02em;line-height:1.3;margin-bottom:6px}
+.gstep .gmeta{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:10px}
+.gstep p{font-size:14.5px;color:var(--ink-2);line-height:1.75;max-width:60ch}
+.cmd{
+  margin-top:14px;background:var(--ink);color:#E8FFD1;
+  font-family:var(--font-mono);font-size:13px;line-height:1.8;
+  padding:14px 18px;overflow-x:auto;white-space:pre;position:relative;
+}
+.cmd::before{
+  content:"PS>";color:var(--ochre);margin-right:10px;font-weight:600;
+}
+.cmd .out{color:rgba(250,249,245,.55)}
+.gstep .tip{
+  margin-top:12px;font-size:13px;color:var(--ink-2);
+  border-left:3px solid var(--ochre);padding:8px 14px;background:var(--paper-2);
+}
+.gstep .tip b{color:var(--orange);font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px}
+@media(max-width:900px){
+  .gstep{grid-template-columns:48px 1fr;gap:16px}
+  .gstep > div:last-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-banner" role="region" aria-label="Announcement">
+  <span><span class="hl">NEW</span> — Real physics engine v2 merged: analytic-grade tests + joint constraint system</span>
+  <a href="status-en.html#roadmap">See the roadmap</a>
+  <button class="dismiss" aria-label="Close announcement">✕</button>
+</div>
+
+<nav class="m-past">
+  <div class="wrap">
+    <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why-en.html">Why</a>
+      <a href="capabilities-en.html">Capabilities</a>
+      <a href="compare-en.html">Compare</a>
+      <a href="architecture-en.html">Architecture</a>
+      <a href="status-en.html">Honest Status</a>
+      <a href="get-started-en.html" aria-current="page">Quick Start</a>
+      <a href="faq-en.html">FAQ</a>
+      <a href="index.html" class="lang">中文</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">Quick Start</div>
+    <h1>Get the engine<br><em>running</em> in ten minutes.</h1>
+    <p class="lede">
+      No 100GB download like Unreal, no activation flow like Unity. Clone the repo, install one .NET SDK — from build to opening the editor, every step is real and verifiable.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" class="hero-cta">
+        Clone the repository
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="guide">
+  <div class="wrap" style="padding-top:72px">
+    <div class="sec-head reveal">
+      <div class="sec-index">
+        <span class="n">Q-1</span>
+        <span class="t">Prerequisites</span>
+      </div>
+      <div>
+        <h2>Before starting, you need<br><span class="accent">three things</span>.</h2>
+        <p>Windows 10/11 x64 · .NET SDK 10 (the repo's global.json pins 10.0.203) · a Vulkan 1.3+ capable GPU and driver. The C++ bridge and editor window need Visual Studio 2022 (with the desktop workload), but building the engine library and running tests do not.</p>
+      </div>
+    </div>
+
+    <div class="guide-steps reveal">
+      <div class="gstep">
+        <span class="gstep-num">01</span>
+        <div>
+          <h3>Get the code</h3>
+          <span class="gmeta">~1 min · Git</span>
+        </div>
+        <div>
+          <p>Clone the repository and enter it. The repo is small; cloning is quick.</p>
+          <div class="cmd">git clone https://github.com/kino-koki/Yama-Engine.git
+cd Yama-Engine</div>
+        </div>
+      </div>
+
+      <div class="gstep">
+        <span class="gstep-num">02</span>
+        <div>
+          <h3>Restore dependencies</h3>
+          <span class="gmeta">~2 min · dotnet restore</span>
+        </div>
+        <div>
+          <p>Restore NuGet packages. Silk.NET (Vulkan bindings), xUnit and other dependencies download automatically.</p>
+          <div class="cmd">dotnet restore YamaEditor.sln</div>
+          <div class="tip"><b>Note</b>The repo ships a NuGet.config; on constrained networks, first confirm api.nuget.org is reachable.</div>
+        </div>
+      </div>
+
+      <div class="gstep">
+        <span class="gstep-num">03</span>
+        <div>
+          <h3>Build the engine core library</h3>
+          <span class="gmeta">~1 min · 0 errors 0 warnings</span>
+        </div>
+        <div>
+          <p>YamaEngine is the engine core library (~320K lines of C#). All managed projects currently build with 0 errors and 0 warnings; any new warning fails the build via -warnaserror.</p>
+          <div class="cmd">dotnet build YamaEngine\YamaEngine.csproj -c Debug
+
+<span class="out">// expected output (tail)</span>
+<span class="out">// Build succeeded.  0 Warning(s)  0 Error(s)</span></div>
+        </div>
+      </div>
+
+      <div class="gstep">
+        <span class="gstep-num">04</span>
+        <div>
+          <h3>Run the test suite</h3>
+          <span class="gmeta">~3 min · 1559 cases</span>
+        </div>
+        <div>
+          <p>Tests cover physics analytic solutions, ECS, animation state machines, render post-processing and more. A full green run means your environment is set up correctly.</p>
+          <div class="cmd">dotnet run --project YamaEngine.Tests\YamaEngine.Tests.csproj
+
+<span class="out">// expected output (tail)</span>
+<span class="out">// All YamaEngine tests passed.</span></div>
+        </div>
+      </div>
+
+      <div class="gstep">
+        <span class="gstep-num">05</span>
+        <div>
+          <h3>Open the editor</h3>
+          <span class="gmeta">~2 min · WinUI 3 + Vulkan</span>
+        </div>
+        <div>
+          <p>The editor is a WinUI 3 shell hosting a Vulkan viewport. Shaders compile on first launch — give it a moment.</p>
+          <div class="cmd">dotnet build YamaEditor\YamaEditor.csproj -c Debug
+dotnet run --project YamaEditor\YamaEditor.csproj</div>
+          <div class="tip"><b>Honest note</b>The Vulkan runtime still has stability issues on some drivers (a historical 0xC0000005) — this is the top-priority fix. If you hit a crash, please file an Issue with the log.</div>
+        </div>
+      </div>
+
+      <div class="gstep">
+        <span class="gstep-num">06</span>
+        <div>
+          <h3>Change a line, watch hot-reload</h3>
+          <span class="gmeta">Optional · Roslyn scripting</span>
+        </div>
+        <div>
+          <p>Change a log line in the YamaCLI sandbox and experience runtime script hot-reload — no process restart needed.</p>
+          <div class="cmd">dotnet run --project YamaCLI\YamaCLI.csproj</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin:44px 0 70px">
+      <span class="callout-tag">Next Step</span>
+      <p>Once it runs, start reading the code from the <a href="architecture-en.html" style="color:var(--orange);text-decoration:underline">six-layer architecture</a>: RHI → Vulkan backend → SceneRendererReal is the shortest path to understanding the whole engine.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Quote band ══════════ -->
+<section class="quote-band">
+  <div class="q">"A storm is coming — <span class="em">the wind fills the tower</span>."</div>
+  <span class="src">Xu Hun, "East Tower of Xianyang City" · Tang dynasty</span>
+  <p class="note">Compile errors are at zero — the mountain rain is near — but the real GPU end-to-end validation hasn't run yet. Closing that gap is exactly what Phase 1 is about.</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>A desktop game &amp; modeling engine prototype built from scratch in C#/.NET 10, targeting UE5-class rendering with a lightweight integrated workflow. MIT licensed.</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub repository">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">Open source · Star the repo to support development</span>
+        </div>
+      </div>
+      <div class="foot-copy">© 2026 Lu’an Qingnai Technology Co., Ltd. · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Engine</h4>
+        <a href="why-en.html">Why Yama</a>
+        <a href="capabilities-en.html">Core systems</a>
+        <a href="compare-en.html">Compare</a>
+        <a href="architecture-en.html">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>Status</h4>
+        <a href="status-en.html">Honest status</a>
+        <a href="status-en.html#build">Build results</a>
+        <a href="status-en.html#roadmap">Roadmap</a>
+        <a href="get-started-en.html">Quick start</a>
+      </div>
+      <div class="foot-col">
+        <h4>Modules</h4>
+        <a href="capabilities-en.html#rendering">Render pipeline</a>
+        <a href="capabilities-en.html#physics">Physics engine</a>
+        <a href="capabilities-en.html#ai">Artificial intelligence</a>
+        <a href="capabilities-en.html#ecs">ECS architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>More</h4>
+        <a href="poem.html">A Tang poem</a>
+        <a href="status-en.html">Maturity assessment</a>
+        <a href="faq-en.html#contribute">Contribute</a>
+        <a href="index.html">中文首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · Open-source desktop engine</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="Back to top">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

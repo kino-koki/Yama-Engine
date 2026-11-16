@@ -1364,6 +1364,13 @@ namespace YamaEngine.MicroCluster
                 }
 
                 // 步骤2: 读取每个Mesh的头部
+                // 工业级防御: MeshCount 为 uint, 来自文件头。巨值 → new MicroClusterMeshHeader[MeshCount] 抛
+                // OverflowException (非诊断性), 且每个头部至少占 36 字节。先校验上限与流剩余。
+                if (fileHeader.MeshCount > 1_000_000 ||
+                    (long)fileHeader.MeshCount * 36 > stream.Length - stream.Position)
+                    throw new InvalidDataException(
+                        $"无效的.microcluster文件: MeshCount={fileHeader.MeshCount} 超出流剩余");
+
                 var meshHeaders = new MicroClusterMeshHeader[fileHeader.MeshCount];
                 for (int i = 0; i < fileHeader.MeshCount; i++)
                 {
@@ -1377,14 +1384,30 @@ namespace YamaEngine.MicroCluster
 
                     // 定位到数据偏移位置
                     long currentPos = stream.Position;
+                    // 工业级防御: DataOffset 为 uint, 来自文件头, 须在流范围内。
+                    if (header.DataOffset > stream.Length)
+                        throw new InvalidDataException(
+                            $"无效的.microcluster文件: Mesh {i} DataOffset={header.DataOffset} 超出文件 {stream.Length} 字节");
                     stream.Seek(header.DataOffset, SeekOrigin.Begin);
+
+                    // 工业级防御: NameLength/DataSize 为 uint, 来自文件头。
+                    // (int) 强转回绕为负 → ReadBytes(负) 抛非诊断性异常; DataSize<NameLength 同样。
+                    // 且须 ≤ 流剩余, 防 ReadBytes 静默返回短数据 (截断)。
+                    long avail = stream.Length - stream.Position;
+                    if (header.NameLength > int.MaxValue || header.NameLength > avail)
+                        throw new InvalidDataException(
+                            $"无效的.microcluster文件: Mesh {i} NameLength={header.NameLength} 超出剩余 {avail} 字节");
+                    if (header.DataSize < header.NameLength || header.DataSize > int.MaxValue ||
+                        (long)header.DataSize > avail)
+                        throw new InvalidDataException(
+                            $"无效的.microcluster文件: Mesh {i} DataSize={header.DataSize} 非法 (剩余 {avail} 字节)");
 
                     // 读取网格名称
                     byte[] nameBytes = reader.ReadBytes((int)header.NameLength);
                     string meshName = Encoding.UTF8.GetString(nameBytes);
 
                     // 读取压缩的网格数据
-                    byte[] compressedData = reader.ReadBytes((int)header.DataSize - (int)header.NameLength);
+                    byte[] compressedData = reader.ReadBytes((int)(header.DataSize - header.NameLength));
 
                     // 解压缩
                     Mesh mesh = DecompressMesh(compressedData);

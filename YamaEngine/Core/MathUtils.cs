@@ -31,8 +31,14 @@ namespace YamaEngine.Core
 
         public YamaRandom(int seed)
         {
-            _s0 = (ulong)seed;
-            _s1 = (ulong)(seed * 6364136223846793005 + 1442695040888963407);
+            // XorShift128+ 要求两状态不同时为零，否则退化为全零序列（产生恒定输出）。
+            // 用 splitmix64 混合种子，确保非零且分布良好。
+            ulong z = (ulong)(uint)seed + 0x9E3779B97F4A7C15UL;
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+            _s0 = z ^ (z >> 31);
+            _s1 = _s0 + 0x9E3779B97F4A7C15UL;
+            if (_s0 == 0 && _s1 == 0) _s1 = 0x9E3779B97F4A7C15UL;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,13 +53,26 @@ namespace YamaEngine.Core
 
         public int Next() => (int)(NextULong() & 0x7FFFFFFF);
 
-        public int Next(int max) => (int)(NextULong() % (ulong)max);
+        public int Next(int max)
+        {
+            if (max <= 0) throw new ArgumentOutOfRangeException(nameof(max));
+            return (int)(NextULong() % (ulong)max);
+        }
 
-        public int Next(int min, int max) => min + (int)(NextULong() % (ulong)(max - min));
+        public int Next(int min, int max)
+        {
+            if (min > max) throw new ArgumentOutOfRangeException(nameof(min), "min must be <= max.");
+            if (min == max) return min;
+            return min + (int)(NextULong() % (ulong)(max - min));
+        }
 
         public float NextFloat() => (NextULong() >> 11) * (1.0f / 9007199254740992.0f);
 
-        public float NextFloat(float min, float max) => min + NextFloat() * (max - min);
+        public float NextFloat(float min, float max)
+        {
+            if (min > max) throw new ArgumentOutOfRangeException(nameof(min), "min must be <= max.");
+            return min + NextFloat() * (max - min);
+        }
 
         public double NextDouble() => (NextULong() >> 11) * (1.0 / 9007199254740992.0);
 
@@ -180,21 +199,25 @@ namespace YamaEngine.Core
             return radians;
         }
 
-        /// <summary>向量角度差。</summary>
+        /// <summary>向量角度差（度）。对零向量安全：任一输入为零向量时返回 0。</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float AngleBetween(Vector3 from, Vector3 to)
         {
-            float dot = Clamp(Vector3.Dot(Vector3.Normalize(from), Vector3.Normalize(to)), -1, 1);
+            float lenSq = from.LengthSquared() * to.LengthSquared();
+            if (lenSq < MathConstants.EPSILON) return 0; // 任一为零向量，角度未定义，返回 0
+            float dot = Clamp(Vector3.Dot(from, to) / MathF.Sqrt(lenSq), -1, 1);
             return MathF.Acos(dot) * MathConstants.RAD_TO_DEG;
         }
 
-        /// <summary>点到线段的最近距离。</summary>
+        /// <summary>点到线段的最近距离。对退化线段（a==b）安全：退化为点到点距离。</summary>
         public static float DistanceToSegment(Vector3 point, Vector3 a, Vector3 b)
         {
             var ab = b - a;
+            float lenSq = ab.LengthSquared();
+            if (lenSq < MathConstants.EPSILON)
+                return Vector3.Distance(point, a); // 退化线段：点距离
             var ap = point - a;
-            float t = Vector3.Dot(ap, ab) / ab.LengthSquared();
-            t = Clamp(t, 0, 1);
+            float t = Clamp(Vector3.Dot(ap, ab) / lenSq, 0, 1);
             var closest = a + ab * t;
             return Vector3.Distance(point, closest);
         }
@@ -226,7 +249,7 @@ namespace YamaEngine.Core
             return t >= 0;
         }
 
-        /// <summary>判断点是否在三角形内。</summary>
+        /// <summary>判断点是否在三角形内。退化三角形（共线/零面积）返回 false。</summary>
         public static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
         {
             var v0 = c - a;
@@ -239,7 +262,9 @@ namespace YamaEngine.Core
             float dot11 = Vector2.Dot(v1, v1);
             float dot12 = Vector2.Dot(v1, v2);
 
-            float inv = 1.0f / (dot00 * dot11 - dot01 * dot01);
+            float denom = dot00 * dot11 - dot01 * dot01;
+            if (Math.Abs(denom) < MathConstants.EPSILON) return false; // 退化三角形
+            float inv = 1.0f / denom;
             float u = (dot11 * dot02 - dot01 * dot12) * inv;
             float v = (dot00 * dot12 - dot01 * dot02) * inv;
 
@@ -315,7 +340,13 @@ namespace YamaEngine.Core
             int exp = ((bits >> 23) & 0xFF) - 127 + 15;
             int mantissa = (bits >> 13) & 0x3FF;
 
-            if (exp <= 0) { mantissa = (mantissa | 0x400) >> (1 - exp); exp = 0; }
+            if (exp <= 0)
+            {
+                // 次正规数 / 下溢：限制右移位数，避免未定义行为（移位数 >= 32）
+                if (exp < -10) return (ushort)sign; // 过小，下溢为（带符号）零
+                mantissa = (mantissa | 0x400) >> (1 - exp);
+                exp = 0;
+            }
             else if (exp > 30) { exp = 31; mantissa = 0; }
             else { mantissa &= 0x3FF; }
 
@@ -341,9 +372,11 @@ namespace YamaEngine.Core
     // ====== 几何工具 ======
     public static class GeometryUtils
     {
-        /// <summary>计算 AABB 包围盒。</summary>
+        /// <summary>计算 AABB 包围盒。空数组抛出 ArgumentException（AABB 未定义）。</summary>
         public static void ComputeAABB(Vector3[] vertices, out Vector3 min, out Vector3 max)
         {
+            if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+            if (vertices.Length == 0) throw new ArgumentException("Cannot compute AABB of an empty vertex set.", nameof(vertices));
             min = new Vector3(float.MaxValue);
             max = new Vector3(float.MinValue);
             foreach (var v in vertices)
@@ -362,6 +395,8 @@ namespace YamaEngine.Core
         /// <summary>包围球半径。</summary>
         public static float BoundingSphereRadius(Vector3[] vertices)
         {
+            if (vertices == null) throw new ArgumentNullException(nameof(vertices));
+            if (vertices.Length == 0) return 0;
             ComputeAABB(vertices, out var min, out var max);
             var center = AABBCenter(min, max);
             float maxDistSq = 0;

@@ -232,7 +232,7 @@ namespace YamaEngine.Build
 
             try
             {
-                var targetPath = Path.Combine(config.TargetAddress, remotePath.TrimStart('/'));
+                var targetPath = ResolveTargetPath(config, remotePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
                 File.Copy(localPath, targetPath, true);
                 result.Success = true;
@@ -253,7 +253,7 @@ namespace YamaEngine.Build
         {
             try
             {
-                var targetPath = Path.Combine(config.TargetAddress, remotePath.TrimStart('/'));
+                var targetPath = ResolveTargetPath(config, remotePath);
                 if (File.Exists(targetPath))
                     File.Delete(targetPath);
                 return Task.FromResult(true);
@@ -266,7 +266,7 @@ namespace YamaEngine.Build
 
         public override Task<bool> VerifyFileAsync(DeployConfig config, string remotePath, string expectedHash, CancellationToken ct)
         {
-            var targetPath = Path.Combine(config.TargetAddress, remotePath.TrimStart('/'));
+            var targetPath = ResolveTargetPath(config, remotePath);
             if (!File.Exists(targetPath)) return Task.FromResult(false);
             var hash = ComputeHash(targetPath, config.HashAlgorithm);
             return Task.FromResult(hash == expectedHash);
@@ -276,8 +276,35 @@ namespace YamaEngine.Build
 
         public override Task<bool> FileExistsAsync(DeployConfig config, string remotePath, CancellationToken ct)
         {
-            var targetPath = Path.Combine(config.TargetAddress, remotePath.TrimStart('/'));
+            var targetPath = ResolveTargetPath(config, remotePath);
             return Task.FromResult(File.Exists(targetPath));
+        }
+
+        /// <summary>
+        /// 工业级防御: 安全解析部署目标路径。
+        /// remotePath 来自部署配置 (未受信), 可为 "../" 或绝对路径,
+        /// Path.Combine 会让文件写/删/读逃逸出 TargetAddress (路径穿越)。
+        /// </summary>
+        private static string ResolveTargetPath(DeployConfig config, string remotePath)
+        {
+            if (string.IsNullOrEmpty(config.TargetAddress) || string.IsNullOrEmpty(remotePath))
+                throw new InvalidDataException("部署目标路径为空");
+
+            string normalized = remotePath.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"部署目标路径为绝对路径, 拒绝: {remotePath}");
+
+            string rootFull = Path.GetFullPath(config.TargetAddress);
+            string full = Path.GetFullPath(Path.Combine(rootFull, normalized));
+
+            string rootPrefix = rootFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? rootFull
+                : rootFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, rootFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"部署目标路径逃逸出目录, 拒绝: {remotePath}");
+
+            return full;
         }
 
         private static string ComputeHash(string filePath, string algorithm)
@@ -323,7 +350,7 @@ namespace YamaEngine.Build
             {
                 // 实际实现中使用 Socket/TCP 传输
                 // 此处模拟为本地文件复制
-                var targetPath = Path.Combine(config.TargetAddress, remotePath.TrimStart('/'));
+                var targetPath = ResolveTargetPath(config, remotePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
                 File.Copy(localPath, targetPath, true);
                 result.Success = true;
@@ -344,6 +371,33 @@ namespace YamaEngine.Build
         public override Task<bool> VerifyFileAsync(DeployConfig config, string remotePath, string expectedHash, CancellationToken ct) => Task.FromResult(true);
         public override Task DisconnectAsync() => Task.CompletedTask;
         public override Task<bool> FileExistsAsync(DeployConfig config, string remotePath, CancellationToken ct) => Task.FromResult(true);
+
+        /// <summary>
+        /// 工业级防御: 安全解析部署目标路径。
+        /// remotePath 来自部署配置 (未受信), 可为 "../" 或绝对路径,
+        /// Path.Combine 会让文件写逃逸出 TargetAddress (路径穿越)。
+        /// </summary>
+        private static string ResolveTargetPath(DeployConfig config, string remotePath)
+        {
+            if (string.IsNullOrEmpty(config.TargetAddress) || string.IsNullOrEmpty(remotePath))
+                throw new InvalidDataException("部署目标路径为空");
+
+            string normalized = remotePath.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"部署目标路径为绝对路径, 拒绝: {remotePath}");
+
+            string rootFull = Path.GetFullPath(config.TargetAddress);
+            string full = Path.GetFullPath(Path.Combine(rootFull, normalized));
+
+            string rootPrefix = rootFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? rootFull
+                : rootFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, rootFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"部署目标路径逃逸出目录, 拒绝: {remotePath}");
+
+            return full;
+        }
     }
 
     /// <summary>

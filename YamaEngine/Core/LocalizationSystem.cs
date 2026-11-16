@@ -655,9 +655,10 @@ namespace YamaEngine.Core
                 RegisterTable(table);
                 OnTableReloaded?.Invoke(info.locale);
             }
-            catch
+            catch (Exception ex)
             {
-                // 重载失败则忽略，保持旧表
+                // 重载失败则忽略，保持旧表 (记录原因, 不静默)。
+                System.Diagnostics.Debug.WriteLine($"[Localization] 重载表 {path} 失败: {ex.Message}");
             }
         }
 
@@ -773,10 +774,17 @@ namespace YamaEngine.Core
             };
             if (e.PluralForms != null && e.PluralForms.Count > 0)
             {
-                var max = e.PluralForms.Keys.Max() + 1;
-                var arr = new string[max];
+                // 工业级防御: 复数形式键来自不可信 CSV/PO/表, 可为负或 int.MaxValue→OOM/Overflow。
+                long maxL = (long)e.PluralForms.Keys.Max() + 1;
+                if (maxL <= 0 || maxL > 256)
+                    throw new InvalidDataException($"本地化复数形式数量非法: {maxL}");
+                var arr = new string[(int)maxL];
                 foreach (var kv in e.PluralForms)
+                {
+                    if (kv.Key < 0 || kv.Key >= arr.Length)
+                        throw new InvalidDataException($"本地化复数形式索引非法: {kv.Key}");
                     arr[kv.Key] = kv.Value;
+                }
                 entry.Plurals = arr;
             }
             return entry;

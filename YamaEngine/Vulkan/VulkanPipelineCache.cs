@@ -428,6 +428,12 @@ namespace YamaEngine.Vulkan
                 return;
             }
 
+            if (size > int.MaxValue)
+            {
+                Console.Error.WriteLine($"[PipelineCache] 缓存数据过大({size} 字节)，超过 int.MaxValue，放弃保存");
+                return;
+            }
+
             var data = new byte[(int)size];
             fixed (byte* pData = data)
             {

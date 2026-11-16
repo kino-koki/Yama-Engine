@@ -225,6 +225,12 @@ namespace YamaEngine.Assets.Importers
             //   每个分区: [ type(1B) | offset(8B) | size(8B) ]
 
             int count = _reader.ReadInt32();
+            // 工业级防御: 每个 TOC 分区至少 17 字节 (1+8+8), count 不得超过
+            // 剩余流可容纳的分区数, 否则恶意文件声明巨值 count 循环到流耗尽。
+            long maxTocEntries = (_stream.Length - _stream.Position) / 17;
+            if (count < 0 || count > maxTocEntries)
+                throw new InvalidDataException(
+                    $"USD TOC 分区数越界: {count}, 流最多容纳 {maxTocEntries} 个");
             for (int i = 0; i < count; i++)
             {
                 byte typeByte = _reader.ReadByte();
@@ -334,9 +340,14 @@ namespace YamaEngine.Assets.Importers
             //   每个 token: [ length(4B) | data(length bytes) ]
 
             int count = _reader.ReadInt32();
+            SafeElementCount(count);
             for (int i = 0; i < count; i++)
             {
                 int length = _reader.ReadInt32();
+                // 工业级防御: length 来自文件, 无校验时 BinaryReader.ReadBytes 内部
+                // `new byte[length]` 可被恶意文件声明为 2GB 触发 OOM。
+                if (length < 0 || length > _stream.Length - _stream.Position)
+                    throw new InvalidDataException($"USD token 长度越界: {length}");
                 byte[] tokenBytes = _reader.ReadBytes(length);
                 string token = Encoding.UTF8.GetString(tokenBytes);
                 Data.Tokens.Add(token);
@@ -369,7 +380,10 @@ namespace YamaEngine.Assets.Importers
                 }
                 else
                 {
-                    break;
+                    // 工业级防御: length 超出分区剩余字节, 属损坏数据。
+                    // 原代码静默 break 丢弃后续所有字符串 (静默截断)。
+                    throw new InvalidDataException(
+                        $"USD string 长度越界: {length}, 分区剩余 {end - _stream.Position} 字节");
                 }
             }
         }
@@ -438,12 +452,20 @@ namespace YamaEngine.Assets.Importers
                 case 7: // string (4 字节长度 + 数据)
                     {
                         int length = _reader.ReadInt32();
-                        if (length > 0 && length < 10 * 1024 * 1024)
-                        {
-                            byte[] strBytes = _reader.ReadBytes(length);
-                            return Encoding.UTF8.GetString(strBytes);
-                        }
-                        return string.Empty;
+                        // 工业级防御: length 必须落在流剩余范围内 (原代码仅 <10MB 未校验流剩余,
+                        // 恶意文件可声明 9MB 但流仅剩 1 字节, ReadBytes 静默返回短数据)。
+                        // length 为正但超出流剩余或超上限 → 损坏数据, 抛异常而非静默返回空串 (静默截断)。
+                        if (length < 0)
+                            throw new InvalidDataException($"USD string 长度为负: {length}");
+                        if (length > _stream.Length - _stream.Position)
+                            throw new InvalidDataException(
+                                $"USD string 长度 {length} 超出剩余 {_stream.Length - _stream.Position} 字节");
+                        if (length >= 10 * 1024 * 1024)
+                            throw new InvalidDataException($"USD string 长度过大: {length} 字节");
+                        if (length == 0)
+                            return string.Empty;
+                        byte[] strBytes = _reader.ReadBytes(length);
+                        return Encoding.UTF8.GetString(strBytes);
                     }
                 case 8: // matrix4d (64 bytes = 16 * float64)
                     {
@@ -501,17 +523,23 @@ namespace YamaEngine.Assets.Importers
                 case 134: // string[]
                     return ReadArrayValue(() => {
                         int len = _reader.ReadInt32();
-                        if (len > 0 && len < 1024 * 1024)
+                        // 工业级防御: len 必须落在流剩余范围内。
+                        if (len > 0 && len <= _stream.Length - _stream.Position &&
+                            len < 1024 * 1024)
                         {
                             byte[] b = _reader.ReadBytes(len);
                             return Encoding.UTF8.GetString(b);
                         }
+                        if (len < 0)
+                            throw new InvalidDataException($"USD string[] 长度为负: {len}");
                         return string.Empty;
                     });
                 case 135: // float3[]
                     {
                         int count = _reader.ReadInt32();
-                        var arr = new float[count * 3][];
+                        SafeElementCount(count);
+                        // float3 每个元素至少 12 字节, 校验 count 不会溢出/撑爆。
+                        var arr = new float[count][];
                         for (int i = 0; i < count; i++)
                             arr[i] = new float[] { _reader.ReadSingle(), _reader.ReadSingle(), _reader.ReadSingle() };
                         return arr;
@@ -525,10 +553,30 @@ namespace YamaEngine.Assets.Importers
             return null;
         }
 
+        /// <summary>
+        /// 工业级防御: 校验来自文件的数组/元素数量不会撑爆内存。
+        /// 每元素至少 1 字节, 数量不得超过剩余流字节, 且不得超过绝对上限
+        /// (1000 万元素 ≈ 80MB 引用数组, 超出即视为损坏数据)。
+        /// </summary>
+        private long SafeElementCount(long count)
+        {
+            if (count < 0)
+                throw new InvalidDataException($"USD 数组数量为负: {count}");
+            long remaining = _stream.Length - _stream.Position;
+            if (count > remaining)
+                throw new InvalidDataException(
+                    $"USD 数组数量越界: {count} 个元素, 流仅剩 {remaining} 字节");
+            if (count > 10_000_000)
+                throw new InvalidDataException(
+                    $"USD 数组数量过大: {count} (上限 1000 万)");
+            return count;
+        }
+
         /// <summary>读取一个数组值（通用格式：4 字节元素数量 + 元素序列）。</summary>
         private T[] ReadArrayValue<T>(Func<T> readElement)
         {
             int count = _reader.ReadInt32();
+            SafeElementCount(count);
             var arr = new T[count];
             for (int i = 0; i < count; i++)
                 arr[i] = readElement();
@@ -584,6 +632,13 @@ namespace YamaEngine.Assets.Importers
                 int specType = _reader.ReadInt32();
                 int pathIndex = _reader.ReadInt32();
                 int fieldCount = _reader.ReadInt32();
+
+                // 工业级防御: fieldCount 来自文件, 声明数超过分区可容纳数即损坏数据。
+                // 原代码内层 `if (end - pos < 4) break` 会静默截断丢弃 spec 的字段。
+                long remainingFields = (end - _stream.Position) / 4;
+                if (fieldCount < 0 || fieldCount > remainingFields)
+                    throw new InvalidDataException(
+                        $"USD spec 字段数越界: {fieldCount}, 分区可容纳 {remainingFields} 个");
 
                 var spec = new UsdCrateSpec
                 {

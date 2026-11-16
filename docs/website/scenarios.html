@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用场景 — Yama Engine</title>
+<meta name="description" content="3D 游戏原型、地形与场景编辑、DCC 工具实时桥接 — 三大工作流，从建模到部署覆盖桌面 3A 开发的每个环节。">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="scenarios.html">
+<link rel="alternate" hreflang="en" href="scenarios-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<meta property="og:title" content="使用场景 — Yama Engine">
+<meta property="og:description" content="3D 游戏原型、地形与场景编辑、DCC 工具实时桥接 — 三大工作流，从建模到部署覆盖桌面 3A 开发的每个环节。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html" data-nav="why">为什么</a>
+      <a href="capabilities.html" data-nav="capabilities">能力</a>
+      <a href="scenarios.html" data-nav="scenarios" aria-current="page">场景</a>
+      <a href="architecture.html" data-nav="architecture">架构</a>
+      <a href="compare.html">对比</a>
+      <a href="get-started.html" data-nav="get-started">快速上手</a>
+      <a href="status.html" data-nav="status">真实状态</a>
+      <a href="faq.html" data-nav="faq">FAQ</a>
+      <a href="poem.html" data-nav="poem">诗</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+<!-- ══════════ PAGE HERO ══════════ -->
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">03 / What you can build</div>
+    <h1>不只是引擎，<br>是一个<em>完整的工作流</em>。</h1>
+    <p class="lede">
+      Yama 不只是一个运行时。从建模到部署，从视觉脚本到 DCC 桥接，它试图覆盖桌面 3A 游戏开发的每一个环节。这里讲清三大工作流，以及它们是怎么在一个窗口里连贯起来的。
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="prose reveal" style="padding:64px 32px 20px">
+      <p class="lead">大多数引擎让你"在引擎里做游戏"。Yama 试图让你"在一个窗口里完成从资产到发布的全过程" — 建模、地形、动画、代码、测试，五种模式一键切换，不用跳出这个进程。</p>
+
+      <h3>工作流一 · 3D 游戏原型</h3>
+      <p>物理驱动、状态同步、热加载脚本 — 在编辑器里按 Play 立刻试玩，改一行 C# 立刻看到效果。原型阶段最需要的就是"改完立刻跑"，Yama 的 Roslyn 热加载 + ECS 系统调度就是为了让这一循环短到无感。</p>
+      <ol>
+        <li><div>在建模模式里摆好几何体，导出为引擎网格。</div></li>
+        <li><div>在场景模式里给刚体挂 RigidBody + Collider 组件。</div></li>
+        <li><div>在代码模式里写一行 C#，热加载，按 Play。</div></li>
+        <li><div>物理 solver 推进刚体，渲染系统读 Transform，视口即时更新。</div></li>
+      </ol>
+
+      <h3>工作流二 · 地形与场景编辑</h3>
+      <p>五种编辑模式一键切换：场景、地形、建模、代码、测试。地形雕刻、物体摆放、NavMesh 烘焙、光照烘焙 — 全部在同一个窗口里完成。不需要切到 Houdini、不需要切到 Substance、不需要切到另一个引擎。</p>
+      <div class="two-col">
+        <div class="spec-card">
+          <h4>地形模式</h4>
+          <span class="spec-sub">Heightmap Sculpt</span>
+          <p>笔刷雕刻高度图，实时生成法线，配合 NavMesh 烘焙把可行走区域一并算好。</p>
+        </div>
+        <div class="spec-card">
+          <h4>场景模式</h4>
+          <span class="spec-sub">Transform Gizmo</span>
+          <p>平移 / 旋转 / 缩放 gizmo，大纲树、检查器面板、内容浏览器齐备。</p>
+        </div>
+      </div>
+
+      <h3>工作流三 · DCC 工具实时桥接</h3>
+      <p>Blender 里改一个顶点，Yama 视口里同步刷新。Maya / 3ds Max 资产一键推送，不需要导出导入的来回折腾。LiveLink TCP 插件实时同步网格与动画，Python 插件把资产推送进引擎资产管线。</p>
+      <p>这条工作流的意义在于：<strong>你不必为了用 Yama 而改变你的建模习惯</strong>。喜欢 Blender 就继续用 Blender，喜欢 Maya 就继续用 Maya，Yama 在另一端接住你。</p>
+
+      <div class="callout">
+        <span class="callout-tag">Honest Note</span>
+        <p>DCC 桥接目前处于骨架级实现 — 数据能收发，但未做生产级测试。这一块的成熟度是 30%，详见 <a href="status.html" style="color:var(--orange);text-decoration:underline">真实状态</a>。</p>
+      </div>
+
+      <h3>一个场景，三种视图</h3>
+      <ul>
+        <li><div><strong>视口视图：</strong>Vulkan 渲染的实时画面，PBR + 级联阴影 + TSR。</div></li>
+        <li><div><strong>大纲视图：</strong>场景层级树，拖拽即可改变父子关系。</div></li>
+        <li><div><strong>检查器视图：</strong>选中对象的组件面板，ImGui 驱动，改数值立刻写回组件。</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+<!-- ══════════ FOOTER (Mistral 1:1) ══════════ -->
+
+<!-- ══════════ 《盘铭》引言带（借鉴 SenseNova）══════════ -->
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+      <div class="foot-social">
+        <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+      </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="scenarios.html">使用场景</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="get-started.html">快速上手</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="status.html">成熟度评估</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

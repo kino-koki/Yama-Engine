@@ -1563,9 +1563,10 @@ namespace YamaEngine.Gameplay
                 {
                     h(this, args);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 吞掉异常
+                    // 吞掉异常: 单个监听器异常不应崩掉整个分发, 但记录以便排查。
+                    System.Diagnostics.Debug.WriteLine($"[GameplayTag] 事件监听器异常: {ex.GetType().Name}: {ex.Message}");
                 }
             }
         }

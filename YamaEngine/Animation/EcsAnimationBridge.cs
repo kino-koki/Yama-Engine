@@ -39,6 +39,7 @@ namespace YamaEngine.Animation
 
         private readonly Dictionary<Guid, Skeleton> _skeletonCache = new();
         private readonly Dictionary<Guid, AnimationClip> _clipCache = new();
+        private readonly Dictionary<Guid, AnimationBlueprintAsset> _blueprintCache = new();
         private readonly Dictionary<int, Animator> _animatorCache = new();
 
         // ── 事件 ──────────────────────────────────────────────────────────────────
@@ -113,6 +114,17 @@ namespace YamaEngine.Animation
             {
                 animator = new Animator(skeleton);
                 _animatorCache[entityId] = animator;
+            }
+
+            // 从动画蓝图资产填充 Animator.Controller (闭合"控制器钩子未填充"缺口)
+            if (anim.AnimationBlueprintId != Guid.Empty)
+            {
+                if (anim.RuntimeController == null)
+                {
+                    anim.RuntimeController = BuildController(anim.AnimationBlueprintId, skeleton);
+                }
+                if (animator.Controller != anim.RuntimeController)
+                    animator.Controller = anim.RuntimeController;
             }
 
             // 同步当前状态
@@ -284,6 +296,47 @@ namespace YamaEngine.Animation
             return null;
         }
 
+        private AnimatorController? BuildController(Guid blueprintId, Skeleton skeleton)
+        {
+            if (!_blueprintCache.TryGetValue(blueprintId, out var asset))
+                return null;
+
+            return AnimationBlueprintRuntime.Build(asset, skeleton, ResolveClip);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  公共 API — 运行时资产注入 (资源管线填充 Animator.Controller)
+        // ─────────────────────────────────────────────────────────────────────────
+
+        /// <summary>注册运行时骨骼资源 (供 SkeletonId 解析)。</summary>
+        public void RegisterSkeleton(Guid id, Skeleton skeleton)
+        {
+            if (id != Guid.Empty && skeleton != null)
+                _skeletonCache[id] = skeleton;
+        }
+
+        /// <summary>注册运行时动画剪辑资源 (供 AnimationClipId / 蓝图剪辑解析)。</summary>
+        public void RegisterClip(Guid id, AnimationClip clip)
+        {
+            if (id != Guid.Empty && clip != null)
+                _clipCache[id] = clip;
+        }
+
+        /// <summary>注册动画蓝图资产 (供 AnimationBlueprintId 解析为 AnimatorController)。</summary>
+        public void RegisterBlueprint(AnimationBlueprintAsset asset)
+        {
+            if (asset != null && asset.Id != Guid.Empty)
+                _blueprintCache[asset.Id] = asset;
+        }
+
+        /// <summary>清空全部运行时资产缓存。</summary>
+        public void ClearRuntimeAssets()
+        {
+            _skeletonCache.Clear();
+            _clipCache.Clear();
+            _blueprintCache.Clear();
+        }
+
         // ─────────────────────────────────────────────────────────────────────────
         //  公共 API
         // ─────────────────────────────────────────────────────────────────────────
@@ -353,6 +406,12 @@ namespace YamaEngine.Animation
         public void ClearEntityCache(int entityId)
         {
             _animatorCache.Remove(entityId);
+        }
+
+        /// <summary>获取指定实体当前使用的运行时 Animator (如尚未创建返回 null)。</summary>
+        public Animator? GetAnimator(int entityId)
+        {
+            return _animatorCache.TryGetValue(entityId, out var animator) ? animator : null;
         }
     }
 }

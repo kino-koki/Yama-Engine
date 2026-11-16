@@ -480,7 +480,11 @@ namespace YamaEngine.Build
                     var records = JsonSerializer.Deserialize<List<BuildTimeRecord>>(json);
                     if (records != null) _history.AddRange(records);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // 性能记录解析失败: 记录并跳过该文件, 不静默。
+                    System.Diagnostics.Debug.WriteLine($"[BuildProfiler] 加载历史记录 {file} 失败: {ex.Message}");
+                }
             }
             _history.Sort((a, b) => a.TimestampUtc.CompareTo(b.TimestampUtc));
         }

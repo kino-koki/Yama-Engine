@@ -588,8 +588,9 @@ namespace YamaEngine.Input
 
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[InputRebinding] 加载绑定失败: {ex.GetType().Name}: {ex.Message}");
                 return false;
             }
         }

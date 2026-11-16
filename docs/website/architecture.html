@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六层架构 — Yama Engine</title>
+<meta name="description" content="D3D12 已废弃，整个引擎只有一个图形后端 — Vulkan 1.4，通过 RHI 抽象层与上层子系统隔离。">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="architecture.html">
+<link rel="alternate" hreflang="en" href="architecture-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<meta property="og:title" content="六层架构 — Yama Engine">
+<meta property="og:description" content="D3D12 已废弃，整个引擎只有一个图形后端 — Vulkan 1.4，通过 RHI 抽象层与上层子系统隔离。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html" data-nav="why">为什么</a>
+      <a href="capabilities.html" data-nav="capabilities">能力</a>
+      <a href="scenarios.html" data-nav="scenarios">场景</a>
+      <a href="architecture.html" data-nav="architecture" aria-current="page">架构</a>
+      <a href="get-started.html" data-nav="get-started">快速上手</a>
+      <a href="status.html" data-nav="status">真实状态</a>
+      <a href="faq.html" data-nav="faq">FAQ</a>
+      <a href="poem.html" data-nav="poem">诗</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+<!-- ══════════ PAGE HERO ══════════ -->
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">04 / Architecture</div>
+    <h1>六层架构，<br>一个<em>图形后端</em>。</h1>
+    <p class="lede">
+      D3D12 已废弃并从工程中排除。整个引擎只有一个图形后端 — Vulkan 1.4，通过 RHI 抽象层与上层子系统隔离。这意味着只需维护一套图形代码路径。这里把六层结构、模块依赖与这个决策的理由讲透。
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="arch reveal" style="margin-top:64px">
+      <div class="arch-head"><span>Layer</span><span>Contents</span></div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">YamaEditor<span class="tag-lite">· WinUI 3</span></div>
+        <div class="arch-layer-body">原生 Windows 编辑器外壳。XAML UI 框架嵌入 Vulkan Surface，提供视口、大纲、检查器、内容浏览器与序列编辑器。
+          <div class="mods"><span>Viewport</span><span>Outliner</span><span>Inspector</span><span>Content Browser</span><span>Sequence Editor</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Gameplay &amp; Scripting</div>
+        <div class="arch-layer-body">游戏玩法逻辑与脚本运行时。GameplayAbilities 提供技能系统，Roslyn C# Scripting 支持热加载。
+          <div class="mods"><span>GameplayAbilities</span><span>VisualScript</span><span>Roslyn Scripting</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Engine Systems</div>
+        <div class="arch-layer-body">引擎核心子系统 — 所有 gameplay 直接调用的功能层。12 个模块通过 ECS 架构协作。
+          <div class="mods"><span>Rendering</span><span>Physics</span><span>AI</span><span>Animation</span><span>Audio</span><span>Network</span><span>ECS</span><span>Assets</span><span>Input</span><span>Particles</span><span>VFX</span><span>Build</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">RHI Layer</div>
+        <div class="arch-layer-body">渲染硬件抽象接口。描述符管理、命令缓冲录制、GPU 同步。上层代码完全不接触 Vulkan API。
+          <div class="mods"><span>RHI Abstraction</span><span>21 文件</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Vulkan<span class="tag-lite">· Silk.NET</span></div>
+        <div class="arch-layer-body">唯一图形后端。Vulkan 1.4 通过 Silk.NET 2.22 绑定，17 个文件封装了 Instance / Device / Swapchain / Pipeline 的完整生命周期。
+          <div class="mods"><span>Vulkan 1.4</span><span>Silk.NET 2.22</span><span>17 文件</span></div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-layer-name">Core &amp; Platform</div>
+        <div class="arch-layer-body">引擎基础设施层。数学库、序列化、线程池、内存管理 — 所有上层模块依赖的基础工具。
+          <div class="mods"><span>EngineCore</span><span>MathUtils</span><span>Serialization</span><span>Threading</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="prose reveal" style="padding:56px 32px 20px">
+      <h3>为什么"一个后端"是决策，不是偷懒</h3>
+      <p>很多引擎为了兼容性维护两个甚至三个图形后端。Yama 决定只维护一个，理由有三：</p>
+      <ol>
+        <li><div><strong>代码路径减半。</strong>一套 RHI 抽象、一套命令录制、一套同步逻辑。每修一个 GPU 崩溃，只需修一次。</div></li>
+        <li><div><strong>特性不妥协。</strong>Vulkan 1.4 覆盖 Mesh Shader、Ray Tracing、Bindless、Dynamic Rendering。与其在两个 API 上做"最大公约数"，不如在一个 API 上做全集。</div></li>
+        <li><div><strong>单人可维护。</strong>Yama 目前由一位主要维护者推动，第二个后端是真实的维护税，不是加分项。</div></li>
+      </ol>
+
+      <div class="callout">
+        <span class="callout-tag">Cost</span>
+        <p>代价是平台受限：Yama 现在只跑在 Windows，因为 WinUI 3 编辑器依赖 Windows。Linux / macOS 通过 MoltenVK 移植层理论上可行，但不是当前优先级。</p>
+      </div>
+
+      <h3>RHI 抽象：上层永远不碰 Vulkan</h3>
+      <p>RHI 层（21 文件）是引擎与 API 之间唯一的分界。上层子系统只知道 <code>RHICommandBuffer</code>、<code>RHIPipeline</code>、<code>RHIDescriptorSet</code> 这类抽象句柄；真正的 Vulkan 对象被封装在实现里。这是"一个后端"决策得以成立的结构基础 — 如果未来想加后端，RHI 是唯一需要动的地方。</p>
+      <ul>
+        <li><div><strong>描述符管理：</strong>统一管理 UBO / SSBO / Sampler 的绑定，避免上层手写描述符布局。</div></li>
+        <li><div><strong>命令缓冲录制：</strong>把渲染命令封装成可重放的命令列表，支持多线程录制。</div></li>
+        <li><div><strong>GPU 同步：</strong>Fence / Semaphore / 资源屏障封装，上层不直接处理 Vulkan 同步原语。</div></li>
+      </ul>
+
+      <h3>依赖方向</h3>
+      <p>依赖只允许从上层指向下层，反向依赖通过接口注入。这样，Core &amp; Platform 不依赖任何图形 API，可以被单测覆盖；Vulkan 层只被 RHI 引用，可以被替换。</p>
+      <div class="two-col">
+        <div class="spec-card">
+          <h4>上层 → 下层</h4>
+          <span class="spec-sub">Allowed</span>
+          <p>Editor → Gameplay → Engine Systems → RHI → Vulkan → Core。</p>
+        </div>
+        <div class="spec-card">
+          <h4>下层 → 上层</h4>
+          <span class="spec-sub">Forbidden</span>
+          <p>Core 不知道 Rendering 存在；Vulkan 不知道 Editor 存在。通过接口注入解耦。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ══════════ FOOTER (Mistral 1:1) ══════════ -->
+
+<!-- ══════════ 《盘铭》引言带（借鉴 SenseNova）══════════ -->
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+      <div class="foot-social">
+        <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+      </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="scenarios.html">使用场景</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="get-started.html">快速上手</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="status.html">成熟度评估</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

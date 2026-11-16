@@ -112,8 +112,17 @@ namespace YamaEngine.Cel2D
 
                 if (bone.ParentIndex >= 0 && bone.ParentIndex < i)
                 {
-                    // world = parentWorld * local
-                    bone.WorldMatrix = Matrix3x2.Multiply(_bones[bone.ParentIndex].WorldMatrix, bone.LocalMatrix);
+                    // world = parentWorld * local（正确合成平移：parentRotation * localTranslation + parentTranslation）
+                    // .NET Matrix3x2.Multiply 不旋转子骨骼平移，需手动合成
+                    var pw = _bones[bone.ParentIndex].WorldMatrix;
+                    var lm = bone.LocalMatrix;
+                    bone.WorldMatrix = new Matrix3x2(
+                        pw.M11 * lm.M11 + pw.M12 * lm.M21,
+                        pw.M11 * lm.M12 + pw.M12 * lm.M22,
+                        pw.M21 * lm.M11 + pw.M22 * lm.M21,
+                        pw.M21 * lm.M12 + pw.M22 * lm.M22,
+                        pw.M11 * lm.M31 + pw.M21 * lm.M32 + pw.M31,
+                        pw.M12 * lm.M31 + pw.M22 * lm.M32 + pw.M32);
                 }
                 else
                 {

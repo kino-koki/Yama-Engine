@@ -237,7 +237,7 @@ namespace YamaEngine.Build
                 DownloadUrl = entry.DownloadUrl,
                 TotalBytes = entry.SizeBytes,
                 Status = DownloadStatus.Downloading,
-                TempFilePath = Path.Combine(tempDir, entry.FilePath.Replace('/', Path.DirectorySeparatorChar))
+                TempFilePath = SafeCombine(tempDir, entry.FilePath)
             };
 
             Directory.CreateDirectory(Path.GetDirectoryName(state.TempFilePath)!);
@@ -304,6 +304,33 @@ namespace YamaEngine.Build
             return state;
         }
 
+        /// <summary>
+        /// 工业级防御: 安全拼接安装根目录与 manifest 相对路径。
+        /// entry.FilePath 来自远端 manifest (未受信), 可为 "../" 或绝对路径,
+        /// 路径穿越会导致任意文件写/删/读。
+        /// </summary>
+        private static string SafeCombine(string root, string relative)
+        {
+            if (string.IsNullOrEmpty(root) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("热更新路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"热更新路径为绝对路径, 拒绝: {relative}");
+
+            string rootFull = Path.GetFullPath(root);
+            string full = Path.GetFullPath(Path.Combine(rootFull, normalized));
+
+            string rootPrefix = rootFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? rootFull
+                : rootFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, rootFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"热更新路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
+        }
+
         private static string ComputeHash(string filePath)
         {
             using var sha = SHA256.Create();
@@ -347,10 +374,10 @@ namespace YamaEngine.Build
                 foreach (var entry in manifest.Files)
                 {
                     if (entry.ChangeType == PatchFileChangeType.Added) continue;
-                    var filePath = Path.Combine(installRoot, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
+                    var filePath = SafeCombine(installRoot, entry.FilePath);
                     if (File.Exists(filePath))
                     {
-                        var backupPath = Path.Combine(_config.BackupDirectory, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
+                        var backupPath = SafeCombine(_config.BackupDirectory, entry.FilePath);
                         Directory.CreateDirectory(Path.GetDirectoryName(backupPath)!);
                         File.Copy(filePath, backupPath, true);
                     }
@@ -363,8 +390,8 @@ namespace YamaEngine.Build
                     {
                         case PatchFileChangeType.Added:
                         case PatchFileChangeType.Modified:
-                            var srcPath = Path.Combine(downloadedDir, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
-                            var destPath = Path.Combine(installRoot, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
+                            var srcPath = SafeCombine(downloadedDir, entry.FilePath);
+                            var destPath = SafeCombine(installRoot, entry.FilePath);
                             if (!File.Exists(srcPath))
                             {
                                 result.Errors.Add($"Downloaded file missing: {entry.FilePath}");
@@ -377,7 +404,7 @@ namespace YamaEngine.Build
                             break;
 
                         case PatchFileChangeType.Deleted:
-                            var delPath = Path.Combine(installRoot, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
+                            var delPath = SafeCombine(installRoot, entry.FilePath);
                             if (File.Exists(delPath)) File.Delete(delPath);
                             result.DeletedFiles++;
                             break;
@@ -385,8 +412,8 @@ namespace YamaEngine.Build
                         case PatchFileChangeType.Renamed:
                             if (entry.NewFilePath != null)
                             {
-                                var oldPath = Path.Combine(installRoot, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
-                                var newPath = Path.Combine(installRoot, entry.NewFilePath.Replace('/', Path.DirectorySeparatorChar));
+                                var oldPath = SafeCombine(installRoot, entry.FilePath);
+                                var newPath = SafeCombine(installRoot, entry.NewFilePath);
                                 Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
                                 if (File.Exists(oldPath)) File.Move(oldPath, newPath);
                                 result.InstalledFiles++;
@@ -399,7 +426,7 @@ namespace YamaEngine.Build
                 foreach (var entry in manifest.Files)
                 {
                     if (entry.ChangeType == PatchFileChangeType.Deleted) continue;
-                    var verifyPath = Path.Combine(installRoot, entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
+                    var verifyPath = SafeCombine(installRoot, entry.FilePath);
                     if (File.Exists(verifyPath))
                     {
                         var hash = ComputeHash(verifyPath);
@@ -431,7 +458,7 @@ namespace YamaEngine.Build
                 foreach (var file in Directory.EnumerateFiles(_config.BackupDirectory, "*.*", SearchOption.AllDirectories))
                 {
                     var relative = Path.GetRelativePath(_config.BackupDirectory, file).Replace('\\', '/');
-                    var dest = Path.Combine(installRoot, relative.Replace('/', Path.DirectorySeparatorChar));
+                    var dest = SafeCombine(installRoot, relative);
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                     File.Copy(file, dest, true);
                 }
@@ -458,6 +485,34 @@ namespace YamaEngine.Build
             using var sha = SHA256.Create();
             using var stream = File.OpenRead(filePath);
             return Convert.ToHexString(sha.ComputeHash(stream)).ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// 工业级防御: 安全拼接安装根目录与 manifest 相对路径。
+        /// entry.FilePath 来自远端 manifest (未受信), 可为 "../" 或绝对路径,
+        /// Path.Combine 会让文件写入/删除/读取逃逸出安装目录 (任意文件写/删)。
+        /// 解析为完整路径并校验仍位于 root 内, 否则抛异常。
+        /// </summary>
+        private static string SafeCombine(string root, string relative)
+        {
+            if (string.IsNullOrEmpty(root) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("热更新路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"热更新路径为绝对路径, 拒绝: {relative}");
+
+            string rootFull = Path.GetFullPath(root);
+            string full = Path.GetFullPath(Path.Combine(rootFull, normalized));
+
+            string rootPrefix = rootFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? rootFull
+                : rootFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, rootFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"热更新路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
         }
     }
 
@@ -540,6 +595,8 @@ namespace YamaEngine.Build
             }
             catch (Exception ex)
             {
+                // 网络/解析失败: 记录原因, 静默置 UpdateAvailable=false 导致客户端跳过更新。
+                Console.WriteLine($"[HotUpdate] 检查更新失败: {ex.GetType().Name}: {ex.Message}");
                 result.UpdateAvailable = false;
             }
 

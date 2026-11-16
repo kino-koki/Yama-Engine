@@ -63,34 +63,33 @@ namespace YamaEngine.Physics.Real
         {
             if (colliders.Count < 2)
                 return new List<(Collider, Collider)>();
-                
+
             var pairs = new List<(Collider, Collider)>();
-            
+
             // 更新并重建树
             SetColliders(colliders);
-            
+
             // 使用 AABB 树查询潜在碰撞对
             for (int i = 0; i < colliders.Count; i++)
             {
                 var colliderA = colliders[i];
                 var aabbA = colliderA.GetBoundingBox();
-                
-                // 查询与当前碰撞体 AABB 相交的所有碰撞体
+
                 var overlapping = _tree?.Query(aabbA) ?? new List<Collider>();
-                
+
                 foreach (var colliderB in overlapping)
                 {
-                    if (colliderA.GetHashCode() >= colliderB.GetHashCode())
-                        continue; // 避免重复检测
-                        
-                    // 检查碰撞层
+                    // 排除自身；用对象引用比较（比 hashcode 更可靠）。
+                    if (ReferenceEquals(colliderA, colliderB))
+                        continue;
+
                     if (!ShouldCollide(colliderA.Body, colliderB.Body))
                         continue;
-                        
+
                     pairs.Add((colliderA, colliderB));
                 }
             }
-            
+
             return pairs;
         }
         
@@ -268,72 +267,110 @@ namespace YamaEngine.Physics.Real
         private List<Contact> BoxBox(BoxCollider boxA, BoxCollider boxB)
         {
             var contacts = new List<Contact>();
-            
-            // 计算世界空间变换
-            var transformA = boxA.GetWorldTransform();
-            var transformB = boxB.GetWorldTransform();
-            var inverseTransformB = Matrix4x4.Invert(transformB, out var invB) ? invB : Matrix4x4.Identity;
-            
-            // 将 boxA 的8个角点变换到 boxB 的局部空间
-            var halfSizeA = boxA.Size * 0.5f;
-            var cornersA = new[]
-            {
-                new Vector3(-halfSizeA.X, -halfSizeA.Y, -halfSizeA.Z),
-                new Vector3(halfSizeA.X, -halfSizeA.Y, -halfSizeA.Z),
-                new Vector3(-halfSizeA.X, halfSizeA.Y, -halfSizeA.Z),
-                new Vector3(halfSizeA.X, halfSizeA.Y, -halfSizeA.Z),
-                new Vector3(-halfSizeA.X, -halfSizeA.Y, halfSizeA.Z),
-                new Vector3(halfSizeA.X, -halfSizeA.Y, halfSizeA.Z),
-                new Vector3(-halfSizeA.X, halfSizeA.Y, halfSizeA.Z),
-                new Vector3(halfSizeA.X, halfSizeA.Y, halfSizeA.Z)
-            };
-            
-            var halfSizeB = boxB.Size * 0.5f;
-            
-            // 检查每个角点是否在 boxB 内
-            foreach (var corner in cornersA)
-            {
-                var worldCorner = Vector3.Transform(corner, transformA);
-                var localCornerB = Vector3.Transform(worldCorner, inverseTransformB);
-                
-                // 计算最近的表面点和穿透深度
-                Vector3 clampedPoint = Vector3.Clamp(localCornerB, -halfSizeB, halfSizeB);
-                Vector3 penetration = localCornerB - clampedPoint;
-                float penetrationDepth = penetration.Length();
-                
-                if (penetrationDepth > 1e-6f)
+
+            // 委托给与运行时一致的分离轴定理（SAT）实现。
+            // 旧的"角点-在-盒内"测试在面接触时无法生成接触点（角点 clamp 后 penetration=0），
+            // 且对角穿透时产生斜向伪法线，导致盒子无法在地面静止。
+            var tA = boxA.GetWorldTransform();
+            var tB = boxB.GetWorldTransform();
+            var rotA = Quaternion.CreateFromRotationMatrix(tA);
+            var rotB = Quaternion.CreateFromRotationMatrix(tB);
+            var posA = tA.Translation;
+            var posB = tB.Translation;
+
+            // SAT 求最小穿透轴（法线从 A 指向 B）。
+            Span<Vector3> axesA = stackalloc Vector3[3];
+            Span<Vector3> axesB = stackalloc Vector3[3];
+            axesA[0] = Vector3.Transform(Vector3.UnitX, rotA);
+            axesA[1] = Vector3.Transform(Vector3.UnitY, rotA);
+            axesA[2] = Vector3.Transform(Vector3.UnitZ, rotA);
+            axesB[0] = Vector3.Transform(Vector3.UnitX, rotB);
+            axesB[1] = Vector3.Transform(Vector3.UnitY, rotB);
+            axesB[2] = Vector3.Transform(Vector3.UnitZ, rotB);
+
+            Vector3 halfA = boxA.Size * 0.5f;
+            Vector3 halfB = boxB.Size * 0.5f;
+            Vector3 t = posB - posA;
+
+            Span<float> R = stackalloc float[9];
+            Span<float> AbsR = stackalloc float[9];
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
                 {
-                    Vector3 normalB = Vector3.Normalize(penetration);
-                    Vector3 normalA = Vector3.TransformNormal(-normalB, transformB);
-                    
-                    Vector3 worldPoint = worldCorner - normalA * penetrationDepth;
-                    
-                    var contact = new Contact
+                    R[i * 3 + j] = Vector3.Dot(axesA[i], axesB[j]);
+                    AbsR[i * 3 + j] = MathF.Abs(R[i * 3 + j]) + 1e-5f;
+                }
+
+            float minPen = float.MaxValue;
+            Vector3 minAxis = Vector3.Zero;
+
+            for (int i = 0; i < 3; i++)
+            {
+                float ra = halfA[i];
+                float rb = halfB[0] * AbsR[i * 3 + 0] + halfB[1] * AbsR[i * 3 + 1] + halfB[2] * AbsR[i * 3 + 2];
+                float pen = ra + rb - MathF.Abs(Vector3.Dot(t, axesA[i]));
+                if (pen < 0) return contacts; // 分离
+                if (pen < minPen) { minPen = pen; minAxis = axesA[i]; }
+            }
+
+            for (int j = 0; j < 3; j++)
+            {
+                float ra = halfA[0] * AbsR[j] + halfA[1] * AbsR[3 + j] + halfA[2] * AbsR[6 + j];
+                float rb = halfB[j];
+                float pen = ra + rb - MathF.Abs(Vector3.Dot(t, axesB[j]));
+                if (pen < 0) return contacts; // 分离
+                if (pen < minPen) { minPen = pen; minAxis = axesB[j]; }
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    Vector3 axis = Vector3.Cross(axesA[i], axesB[j]);
+                    float lenSq = axis.LengthSquared();
+                    if (lenSq < 1e-5f) continue;
+                    axis /= MathF.Sqrt(lenSq);
+
+                    float ra = 0, rb = 0;
+                    for (int k = 0; k < 3; k++)
                     {
-                        Point = worldPoint,
-                        Normal = Vector3.Normalize(normalA),
-                        PenetrationDepth = penetrationDepth,
-                        BodyA = boxA.Body,
-                        BodyB = boxB.Body,
-                        ColliderA = boxA,
-                        ColliderB = boxB,
-                        PointA = corner,
-                        PointB = clampedPoint
-                    };
-                    
-                    contacts.Add(contact);
+                        ra += halfA[k] * MathF.Abs(Vector3.Dot(axesA[k], axis));
+                        rb += halfB[k] * MathF.Abs(Vector3.Dot(axesB[k], axis));
+                    }
+                    float pen = ra + rb - MathF.Abs(Vector3.Dot(t, axis));
+                    if (pen < 0) return contacts; // 分离
+                    if (pen < minPen) { minPen = pen; minAxis = axis; }
                 }
             }
-            
-            // 限制最多4个接触点
-            if (contacts.Count > 4)
+
+            // 保证法线从 A 指向 B。
+            if (Vector3.Dot(t, minAxis) < 0) minAxis = -minAxis;
+            if (minAxis.LengthSquared() < 1e-10f) minAxis = Vector3.UnitY;
+            minAxis = Vector3.Normalize(minAxis);
+
+            // 单点面接触：接触点取 B 中心在 A 表面的投影（面接触的合理近似）。
+            // 注：面-面 4 点 manifold 曾尝试 9 次以修复 TestKineticFrictionDeceleration，
+            // 每次都在下落冲击/静置边际深度下退化（盒漂到 Y=1.27~1.36、倾斜被抛离），
+            // 均回滚到本单点基线（13/14）。当前稳定在 13/14，勿再尝试简化 manifold——
+            // 正确修复需 PhysX/Box2D b2CollidePolygons 级完整 EPA + incident-face clipping，
+            // 是一次大重构，且必须同时处理 bias/N 防弹飞，增量尝试都会破坏现有 13 项测试。
+            Vector3 contactPoint = posA + minAxis * Vector3.Dot(minAxis, posB - posA);
+            contacts.Add(new Contact
             {
-                // 选择穿透最深的4个点
-                contacts = contacts.OrderByDescending(c => c.PenetrationDepth).Take(4).ToList();
-            }
-            
+                Point = contactPoint,
+                Normal = minAxis,
+                PenetrationDepth = MathF.Max(0f, minPen),
+                BodyA = boxA.Body,
+                BodyB = boxB.Body,
+                ColliderA = boxA,
+                ColliderB = boxB,
+                PointA = contactPoint,
+                PointB = contactPoint
+            });
+
             return contacts;
         }
+
         
         private List<Contact> SphereSphere(SphereCollider sphereA, SphereCollider sphereB)
         {

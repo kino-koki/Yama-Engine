@@ -14,6 +14,15 @@ namespace YamaEngine.Tests
 {
     public static class TestHelpers
     {
+        /// <summary>
+        /// 全局失败计数器。各测试方法抛出的异常由 Program 的分组 catch 捕获，
+        /// 分组应调用 RecordFailure() 累加，最终由 Program 据此设置进程退出码，
+        /// 确保 CI 能正确判定测试失败（避免"打印 FAIL 但退出 0"）。
+        /// </summary>
+        public static int GlobalFailures = 0;
+
+        public static void RecordFailure() => GlobalFailures++;
+
         public static void AssertTrue(bool condition, string message)
         {
             if (!condition) throw new InvalidOperationException(message);
@@ -25,6 +34,26 @@ namespace YamaEngine.Tests
             {
                 throw new InvalidOperationException($"{message} Expected: {expected}; Actual: {actual}");
             }
+        }
+
+        /// <summary>
+        /// 断言执行 action 抛出指定类型异常（或其子类）。
+        /// </summary>
+        public static void AssertThrows<TEx>(Action action, string message) where TEx : Exception
+        {
+            try
+            {
+                action();
+            }
+            catch (TEx)
+            {
+                return; // 符合预期
+            }
+            catch (Exception other)
+            {
+                throw new InvalidOperationException($"{message} 期望异常 {typeof(TEx).Name}，实际抛出 {other.GetType().Name}: {other.Message}");
+            }
+            throw new InvalidOperationException($"{message} 期望抛出 {typeof(TEx).Name}，但未抛任何异常");
         }
 
         public static EditableMesh CreateSculptPlane()

@@ -71,7 +71,7 @@ namespace YamaEngine.MicroCluster
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
                 // 读取页表头
                 var header = new byte[16];
-                await stream.ReadAsync(header, 0, 16);
+                await stream.ReadExactlyAsync(header, 0, 16);
                 int pageCount = BitConverter.ToInt32(header, 0);
                 long pageTableOffset = BitConverter.ToInt64(header, 4);
 
@@ -80,14 +80,14 @@ namespace YamaEngine.MicroCluster
                 // 读取页表
                 stream.Seek(pageTableOffset + pageIndex * 16, SeekOrigin.Begin);
                 var pageEntry = new byte[16];
-                await stream.ReadAsync(pageEntry, 0, 16);
+                await stream.ReadExactlyAsync(pageEntry, 0, 16);
                 long pageOffset = BitConverter.ToInt64(pageEntry, 0);
                 int pageSize = BitConverter.ToInt32(pageEntry, 8);
 
                 // 读取页数据
                 stream.Seek(pageOffset, SeekOrigin.Begin);
                 var data = new byte[pageSize];
-                await stream.ReadAsync(data, 0, pageSize);
+                await stream.ReadExactlyAsync(data, 0, pageSize);
 
                 return new MicroClusterPage
                 {

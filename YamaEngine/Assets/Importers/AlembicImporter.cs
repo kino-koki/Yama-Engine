@@ -304,6 +304,12 @@ namespace YamaEngine.Assets.Importers
                 // 分组节点
                 uint childCount = BitConverter.ToUInt32(data, (int)offset + 1);
 
+                // 工业级防御: childCount 来自文件头, 可伪造巨值 → new long[childCount] OOM 向量。
+                // 每个子节点偏移至少占 8 字节, 故 childCount 须能容纳于剩余数据。
+                long availableBytes = data.Length - ((long)offset + 5);
+                if (childCount > 1_000_000 || (long)childCount * 8 > availableBytes)
+                    throw new InvalidDataException($"Alembic 分组子节点数非法: {childCount} (剩余 {availableBytes} 字节)");
+
                 // 读取子节点偏移量
                 long[] childOffsets = new long[childCount];
                 for (int i = 0; i < childCount; i++)

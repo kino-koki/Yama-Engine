@@ -20,12 +20,12 @@ namespace YamaEngine.Diagnostics
     {
         public string ReportId { get; set; } = Guid.NewGuid().ToString("N");
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-        public string Platform { get; set; }
-        public string EngineVersion { get; set; }
-        public string ExceptionType { get; set; }
-        public string ExceptionMessage { get; set; }
-        public string StackTrace { get; set; }
-        public string InnerException { get; set; }
+        public string Platform { get; set; } = string.Empty;
+        public string EngineVersion { get; set; } = string.Empty;
+        public string ExceptionType { get; set; } = string.Empty;
+        public string ExceptionMessage { get; set; } = string.Empty;
+        public string StackTrace { get; set; } = string.Empty;
+        public string InnerException { get; set; } = string.Empty;
 
         public SystemInfo System { get; set; } = new SystemInfo();
         public EngineStateInfo EngineState { get; set; } = new EngineStateInfo();
@@ -92,13 +92,13 @@ namespace YamaEngine.Diagnostics
 
     public class SystemInfo
     {
-        public string OS { get; set; }
-        public string OSVersion { get; set; }
-        public string Architecture { get; set; }
-        public string CPU { get; set; }
+        public string OS { get; set; } = string.Empty;
+        public string OSVersion { get; set; } = string.Empty;
+        public string Architecture { get; set; } = string.Empty;
+        public string CPU { get; set; } = string.Empty;
         public int CPUCores { get; set; }
-        public string GPU { get; set; }
-        public string GPUDriver { get; set; }
+        public string GPU { get; set; } = string.Empty;
+        public string GPUDriver { get; set; } = string.Empty;
         public ulong TotalMemoryMB { get; set; }
         public ulong FreeMemoryMB { get; set; }
         public ulong ProcessMemoryMB { get; set; }
@@ -112,15 +112,15 @@ namespace YamaEngine.Diagnostics
         public ulong CurrentFrame { get; set; }
         public TimeSpan Uptime { get; set; }
         public bool IsPlaying { get; set; }
-        public string ActiveSystem { get; set; }
+        public string ActiveSystem { get; set; } = string.Empty;
     }
 
     public class ThreadSnapshot
     {
         public int ManagedThreadId { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public bool IsBackground { get; set; }
-        public string StackTrace { get; set; }
+        public string StackTrace { get; set; } = string.Empty;
     }
 
     // ======================== 迷你转储写入器 ========================
@@ -130,8 +130,9 @@ namespace YamaEngine.Diagnostics
     /// </summary>
     public static class MinidumpWriter
     {
-        public static void WriteMinidump(string outputPath, Exception primaryException = null)
+        public static void WriteMinidump(string outputPath, Exception? primaryException = null)
         {
+#pragma warning disable CA1416 // ProcessThread.PriorityLevel/StartTime 为 Windows/Unix 专属，minidump 仅崩溃诊断时调用
             var sb = new StringBuilder();
             sb.AppendLine("MINIDUMP");
             sb.AppendLine($"Timestamp: {DateTime.UtcNow:O}");
@@ -166,7 +167,7 @@ namespace YamaEngine.Diagnostics
             if (primaryException != null)
             {
                 sb.AppendLine("[Primary Exception]");
-                sb.AppendLine(primaryException.StackTrace);
+                sb.AppendLine(primaryException.StackTrace ?? string.Empty);
                 sb.AppendLine();
             }
             sb.AppendLine("[Current Thread]");
@@ -180,6 +181,7 @@ namespace YamaEngine.Diagnostics
             }
 
             File.WriteAllText(outputPath, sb.ToString(), Encoding.UTF8);
+#pragma warning restore CA1416
         }
     }
 
@@ -196,7 +198,7 @@ namespace YamaEngine.Diagnostics
             _capacity = capacity;
         }
 
-        public void Append(string message)
+        public void Append(string? message)
         {
             lock (_lock)
             {
@@ -225,7 +227,7 @@ namespace YamaEngine.Diagnostics
         private readonly string _recoveryDirectory;
         private readonly Timer _autoSaveTimer;
         private bool _isEnabled;
-        private Func<string> _captureStateCallback;
+        private Func<string>? _captureStateCallback;
 
         public RecoverySystem(string recoveryDirectory, int autoSaveIntervalMs = 30000)
         {
@@ -234,12 +236,12 @@ namespace YamaEngine.Diagnostics
             _autoSaveTimer = new Timer(OnAutoSave, null, autoSaveIntervalMs, autoSaveIntervalMs);
         }
 
-        public void SetCaptureCallback(Func<string> callback) => _captureStateCallback = callback;
+        public void SetCaptureCallback(Func<string>? callback) => _captureStateCallback = callback;
 
         public void Enable() => _isEnabled = true;
         public void Disable() => _isEnabled = false;
 
-        private void OnAutoSave(object state)
+        private void OnAutoSave(object? state)
         {
             if (!_isEnabled || _captureStateCallback == null) return;
             try
@@ -252,7 +254,7 @@ namespace YamaEngine.Diagnostics
             catch { /* swallow auto-save failures */ }
         }
 
-        public string GetLatestRecoveryPath()
+        public string? GetLatestRecoveryPath()
         {
             if (!Directory.Exists(_recoveryDirectory)) return null;
             return Directory.GetFiles(_recoveryDirectory, "autosave_*.json")
@@ -260,7 +262,7 @@ namespace YamaEngine.Diagnostics
                 .FirstOrDefault();
         }
 
-        public string LoadLatestRecovery()
+        public string? LoadLatestRecovery()
         {
             var path = GetLatestRecoveryPath();
             if (path == null) return null;
@@ -293,12 +295,12 @@ namespace YamaEngine.Diagnostics
         private readonly CircularLogBuffer _logBuffer;
         private readonly RecoverySystem _recovery;
         private readonly HttpClient _httpClient;
-        private string _remoteEndpoint;
+        private string? _remoteEndpoint;
         private bool _showDialog;
         private bool _registered;
-        private Func<EngineStateInfo> _getEngineState;
+        private Func<EngineStateInfo>? _getEngineState;
 
-        public event Action<CrashReport> OnCrashReportGenerated;
+        public event Action<CrashReport>? OnCrashReportGenerated;
 
         public CrashHandler(string crashesDirectory, string engineVersion = "1.0.0")
         {
@@ -310,9 +312,9 @@ namespace YamaEngine.Diagnostics
             Directory.CreateDirectory(_crashesDirectory);
         }
 
-        public void SetRemoteEndpoint(string endpoint) => _remoteEndpoint = endpoint;
+        public void SetRemoteEndpoint(string? endpoint) => _remoteEndpoint = endpoint;
         public void SetShowDialog(bool show) => _showDialog = show;
-        public void SetEngineStateCallback(Func<EngineStateInfo> callback) => _getEngineState = callback;
+        public void SetEngineStateCallback(Func<EngineStateInfo>? callback) => _getEngineState = callback;
         public RecoverySystem Recovery => _recovery;
         public CircularLogBuffer LogBuffer => _logBuffer;
 
@@ -332,13 +334,13 @@ namespace YamaEngine.Diagnostics
             _registered = false;
         }
 
-        private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        private void OnUnhandledException(object? sender, UnhandledExceptionEventArgs e)
         {
             var ex = e.ExceptionObject as Exception ?? new Exception("Unknown fatal exception");
             HandleCrash(ex, e.IsTerminating);
         }
 
-        private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
             HandleCrash(e.Exception, false);
             e.SetObserved();
@@ -368,10 +370,10 @@ namespace YamaEngine.Diagnostics
             {
                 EngineVersion = _engineVersion,
                 Platform = RuntimeInformation.OSDescription,
-                ExceptionType = ex.GetType().FullName,
+                ExceptionType = ex.GetType().FullName ?? string.Empty,
                 ExceptionMessage = ex.Message,
-                StackTrace = ex.StackTrace,
-                InnerException = ex.InnerException?.ToString(),
+                StackTrace = ex.StackTrace ?? string.Empty,
+                InnerException = ex.InnerException?.ToString() ?? string.Empty,
                 RecentLogs = _logBuffer.GetRecent(100),
                 System = GatherSystemInfo(),
                 EngineState = _getEngineState?.Invoke() ?? new EngineStateInfo()
@@ -435,7 +437,7 @@ namespace YamaEngine.Diagnostics
                 list.Add(new ThreadSnapshot
                 {
                     ManagedThreadId = current.ManagedThreadId,
-                    Name = current.Name,
+                    Name = current.Name ?? string.Empty,
                     IsBackground = current.IsBackground,
                     StackTrace = new StackTrace(0, false).ToString()
                 });
@@ -516,7 +518,7 @@ namespace YamaEngine.Diagnostics
             catch { }
         }
 
-        public void Log(string message)
+        public void Log(string? message)
         {
             _logBuffer.Append(message);
         }
@@ -533,7 +535,7 @@ namespace YamaEngine.Diagnostics
 
     public static class CrashReporter
     {
-        private static CrashHandler _handler;
+        private static CrashHandler? _handler;
 
         public static void Initialize(string crashesDirectory, string engineVersion = "1.0.0")
         {
@@ -541,13 +543,30 @@ namespace YamaEngine.Diagnostics
             _handler.Register();
         }
 
-        public static CrashHandler Handler => _handler;
+        /// <summary>
+        /// 从崩溃上报配置文件 (打包时生成的 CrashReporterConfig.json) 初始化崩溃上报。
+        /// 若文件不存在或配置禁用则关闭崩溃上报。
+        /// </summary>
+        /// <param name="configPath">配置文件路径。</param>
+        public static void ConfigureFromFile(string configPath)
+        {
+            if (string.IsNullOrWhiteSpace(configPath) || !System.IO.File.Exists(configPath))
+            {
+                Shutdown();
+                return;
+            }
 
-        public static void Log(string message) => _handler?.Log(message);
+            var json = System.IO.File.ReadAllText(configPath);
+            CrashReporterConfig.FromJson(json).Apply();
+        }
 
-        public static void SetRemoteEndpoint(string endpoint) => _handler?.SetRemoteEndpoint(endpoint);
+        public static CrashHandler? Handler => _handler;
+
+        public static void Log(string? message) => _handler?.Log(message);
+
+        public static void SetRemoteEndpoint(string? endpoint) => _handler?.SetRemoteEndpoint(endpoint);
         public static void SetShowDialog(bool show) => _handler?.SetShowDialog(show);
-        public static void SetEngineStateCallback(Func<EngineStateInfo> callback) => _handler?.SetEngineStateCallback(callback);
+        public static void SetEngineStateCallback(Func<EngineStateInfo>? callback) => _handler?.SetEngineStateCallback(callback);
 
         public static void ForceReport(Exception ex) => _handler?.HandleCrash(ex, false);
 

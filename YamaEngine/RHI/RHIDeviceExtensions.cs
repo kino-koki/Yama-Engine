@@ -35,7 +35,7 @@ namespace YamaEngine.RHI
         /// <summary>创建顶点缓冲。</summary>
         public static RHIBuffer CreateVertexBuffer(this RHIDevice device, ulong size,
                                                    bool cpuWritable = false,
-                                                   string name = null)
+                                                   string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -50,7 +50,7 @@ namespace YamaEngine.RHI
         /// <summary>创建索引缓冲。</summary>
         public static RHIBuffer CreateIndexBuffer(this RHIDevice device, ulong size,
                                                   bool cpuWritable = false,
-                                                  string name = null)
+                                                  string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -65,7 +65,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 uniform/constant buffer。</summary>
         public static RHIBuffer CreateUniformBuffer(this RHIDevice device, ulong size,
                                                     bool dynamic = true,
-                                                    string name = null)
+                                                    string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -80,7 +80,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 storage buffer (SSBO/UAV)。</summary>
         public static RHIBuffer CreateStorageBuffer(this RHIDevice device, ulong size,
                                                     RHICpuAccess cpuAccess = RHICpuAccess.None,
-                                                    string name = null)
+                                                    string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -94,7 +94,7 @@ namespace YamaEngine.RHI
 
         /// <summary>创建 staging buffer (CPU 写 GPU 读)。</summary>
         public static RHIBuffer CreateStagingBuffer(this RHIDevice device, ulong size,
-                                                    string name = null)
+                                                    string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -108,7 +108,7 @@ namespace YamaEngine.RHI
 
         /// <summary>创建 readback buffer (GPU 写 CPU 读)。</summary>
         public static RHIBuffer CreateReadbackBuffer(this RHIDevice device, ulong size,
-                                                     string name = null)
+                                                     string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -124,7 +124,7 @@ namespace YamaEngine.RHI
         public static RHIBuffer CreateStructuredBuffer(this RHIDevice device, uint elementCount,
                                                        uint elementStride,
                                                        RHICpuAccess cpuAccess = RHICpuAccess.None,
-                                                       string name = null)
+                                                       string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -140,7 +140,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 texel buffer。</summary>
         public static RHIBuffer CreateTexelBuffer(this RHIDevice device, ulong size,
                                                   RHIFormat format,
-                                                  string name = null)
+                                                  string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -154,7 +154,7 @@ namespace YamaEngine.RHI
 
         /// <summary>创建 indirect argument buffer。</summary>
         public static RHIBuffer CreateIndirectBuffer(this RHIDevice device, ulong size,
-                                                     string name = null)
+                                                     string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -169,7 +169,7 @@ namespace YamaEngine.RHI
         public static RHIBuffer CreateBufferWithData(this RHIDevice device, byte[] data,
                                                       RHIBufferUsage usage,
                                                       RHICpuAccess cpuAccess = RHICpuAccess.None,
-                                                      string name = null)
+                                                      string? name = null)
         {
             var desc = new RHIBufferDesc
             {
@@ -237,7 +237,7 @@ namespace YamaEngine.RHI
         public static RHITexture CreateTexture2D(this RHIDevice device, uint width, uint height,
                                                  RHIFormat format, uint mipLevels = 1,
                                                  RHITextureUsage usage = RHITextureUsage.ShaderResource,
-                                                 string name = null)
+                                                 string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -259,7 +259,7 @@ namespace YamaEngine.RHI
         public static RHITexture CreateTexture2D(this RHIDevice device, int width, int height,
                                                  RHIPixelFormat format,
                                                  RHITextureUsage usage = RHITextureUsage.ShaderResource,
-                                                 string name = null)
+                                                 string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -279,7 +279,7 @@ namespace YamaEngine.RHI
         public static RHITexture CreateTexture3D(this RHIDevice device, uint width, uint height, uint depth,
                                                  RHIFormat format, uint mipLevels = 1,
                                                  RHITextureUsage usage = RHITextureUsage.ShaderResource,
-                                                 string name = null)
+                                                 string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -301,7 +301,7 @@ namespace YamaEngine.RHI
         public static RHITexture CreateTextureCube(this RHIDevice device, uint size,
                                                    RHIFormat format, uint mipLevels = 1,
                                                    RHITextureUsage usage = RHITextureUsage.ShaderResource,
-                                                   string name = null)
+                                                   string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -324,7 +324,7 @@ namespace YamaEngine.RHI
                                                      uint arraySize, RHIFormat format,
                                                      uint mipLevels = 1,
                                                      RHITextureUsage usage = RHITextureUsage.ShaderResource,
-                                                     string name = null)
+                                                     string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -345,7 +345,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 render target。</summary>
         public static RHITexture CreateRenderTarget(this RHIDevice device, uint width, uint height,
                                                     RHIFormat format, uint sampleCount = 1,
-                                                    string name = null)
+                                                    string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -366,7 +366,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 depth stencil。</summary>
         public static RHITexture CreateDepthStencil(this RHIDevice device, uint width, uint height,
                                                     RHIFormat format, uint sampleCount = 1,
-                                                    string name = null)
+                                                    string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -387,7 +387,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 UAV/storage image。</summary>
         public static RHITexture CreateStorageImage(this RHIDevice device, uint width, uint height,
                                                     RHIFormat format, uint mipLevels = 1,
-                                                    string name = null)
+                                                    string? name = null)
         {
             var desc = new RHITextureDesc
             {
@@ -423,7 +423,7 @@ namespace YamaEngine.RHI
     public static class RHISamplerExtensions
     {
         /// <summary>创建默认 linear sampler。</summary>
-        public static RHISampler CreateLinearSampler(this RHIDevice device, string name = null)
+        public static RHISampler CreateLinearSampler(this RHIDevice device, string? name = null)
         {
             var desc = new RHISamplerDesc
             {
@@ -439,7 +439,7 @@ namespace YamaEngine.RHI
         }
 
         /// <summary>创建 point sampler。</summary>
-        public static RHISampler CreatePointSampler(this RHIDevice device, string name = null)
+        public static RHISampler CreatePointSampler(this RHIDevice device, string? name = null)
         {
             var desc = new RHISamplerDesc
             {
@@ -453,7 +453,7 @@ namespace YamaEngine.RHI
         }
 
         /// <summary>创建 wrap sampler (重复)。</summary>
-        public static RHISampler CreateWrapSampler(this RHIDevice device, string name = null)
+        public static RHISampler CreateWrapSampler(this RHIDevice device, string? name = null)
         {
             var desc = new RHISamplerDesc
             {
@@ -467,7 +467,7 @@ namespace YamaEngine.RHI
         }
 
         /// <summary>创建 mirror sampler。</summary>
-        public static RHISampler CreateMirrorSampler(this RHIDevice device, string name = null)
+        public static RHISampler CreateMirrorSampler(this RHIDevice device, string? name = null)
         {
             var desc = new RHISamplerDesc
             {
@@ -481,7 +481,7 @@ namespace YamaEngine.RHI
         }
 
         /// <summary>创建 shadow map sampler (depth compare)。</summary>
-        public static RHISampler CreateShadowSampler(this RHIDevice device, string name = null)
+        public static RHISampler CreateShadowSampler(this RHIDevice device, string? name = null)
         {
             var desc = new RHISamplerDesc
             {
@@ -499,7 +499,7 @@ namespace YamaEngine.RHI
 
         /// <summary>创建 anisotropic sampler。</summary>
         public static RHISampler CreateAnisotropicSampler(this RHIDevice device, uint maxAniso = 16,
-                                                          string name = null)
+                                                          string? name = null)
         {
             var desc = new RHISamplerDesc
             {
@@ -533,7 +533,7 @@ namespace YamaEngine.RHI
                                                         RHIShaderStage stage,
                                                         byte[] bytecode,
                                                         string entryPoint = "main",
-                                                        string name = null)
+                                                        string? name = null)
         {
             var desc = new RHIShaderDesc
             {
@@ -550,7 +550,7 @@ namespace YamaEngine.RHI
                                                        RHIShaderStage stage,
                                                        string source,
                                                        string entryPoint = "main",
-                                                       string name = null)
+                                                       string? name = null)
         {
             var desc = new RHIShaderDesc
             {
@@ -577,7 +577,7 @@ namespace YamaEngine.RHI
                                                                RHIRenderPass renderPass,
                                                                RHIFormat[] rtvFormats,
                                                                RHIFormat dsvFormat = RHIFormat.Unknown,
-                                                               string name = null)
+                                                               string? name = null)
         {
             var desc = new RHIGraphicsPipelineDesc
             {
@@ -594,7 +594,7 @@ namespace YamaEngine.RHI
         /// <summary>创建 compute pipeline。</summary>
         public static RHIPipeline CreateComputePipeline(this RHIDevice device,
                                                         RHIShader computeShader,
-                                                        string name = null)
+                                                        string? name = null)
         {
             var desc = new RHIComputePipelineDesc
             {

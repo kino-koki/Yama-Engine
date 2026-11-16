@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>九大核心系统 — Yama Engine</title>
+<meta name="description" content="渲染管线、物理引擎、人工智能、动画、音频、ECS、一体化编辑器、DCC 桥接、网络与脚本 — 九个系统逐一展开，每个都有实际代码实现。">
+<meta name="view-transition" content="same-origin">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<meta property="og:title" content="九大核心系统 — Yama Engine">
+<meta property="og:description" content="渲染管线、物理引擎、人工智能、动画、音频、ECS、一体化编辑器、DCC 桥接、网络与脚本 — 九个系统逐一展开，每个都有实际代码实现。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body class="has-banner">
+<a class="skip-link" href="#main">跳到主要内容</a>
+<div class="top-banner" role="region" aria-label="公告">
+  <span><span class="hl">NEW</span> — 真实物理引擎 v2 已合入：解析解级物理测试 + 关节约束系统</span>
+  <a href="status.html#roadmap">查看路线图</a>
+  <button class="dismiss" aria-label="关闭公告">✕</button>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why.html" data-nav="why">为什么</a>
+      <a href="capabilities.html" data-nav="capabilities" aria-current="page">能力</a>
+      <a href="scenarios.html" data-nav="scenarios">场景</a>
+      <a href="architecture.html" data-nav="architecture">架构</a>
+      <a href="compare.html">对比</a>
+      <a href="get-started.html" data-nav="get-started">快速上手</a>
+      <a href="status.html" data-nav="status">真实状态</a>
+      <a href="faq.html" data-nav="faq">FAQ</a>
+      <a href="poem.html" data-nav="poem">诗</a>
+      <a href="index-en.html" class="lang">EN</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+<!-- ══════════ PAGE HERO ══════════ -->
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">02 / Engine Capabilities</div>
+    <h1>九大核心系统，<br>每一层都<em>真实存在</em>。</h1>
+    <p class="lede">
+      不是概念图，不是路线图里的占位符。以下每个系统都有实际的代码实现，文件数量与关键算法都标注在卡片上。点击任意一张卡片可以展开完整说明。
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="caps">
+  <div class="wrap">
+    <div class="caps-grid">
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="rendering">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18"/><circle cx="8.5" cy="8.5" r="1.5" fill="var(--orange)"/><path d="M21 15l-5-5L5 21"/></svg>
+        </div>
+        <h3>渲染管线</h3>
+        <span class="files">113 文件 · C#</span>
+        <p>PBR 材质、骨骼蒙皮、级联阴影、时间抗锯齿（TSR）、植被渲染均已接入 SceneRendererReal 管线。ReSTIR 全局光照与路径追踪在算法层完成，等待 GPU 端到端验证。</p>
+        <div class="cap-tags"><span class="tag">PBR</span><span class="tag">Cascade Shadow</span><span class="tag">TSR</span><span class="tag">Skinning</span><span class="tag">ReSTIR</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>延迟渲染（Deferred）路径 + 完整后处理栈：Bloom、景深、色调映射、暗角、色差、镜头光晕、TAA；透明物体走前向路径。PBR 使用 Cook-Torrance BRDF，级联阴影支持 4 级联。ReSTIR / SVGF / 路径追踪已有完整算法与着色器代码，正等待 GPU 端到端验证。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="physics">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <h3>物理引擎</h3>
+        <span class="files">82 文件 · 纯 C#</span>
+        <p>零依赖。GJK / EPA / SAT 碰撞检测、9 种关节约束、自定义向量与四元数库、形状分发器、流体与布料模拟 — 全部从数学公式开始手写，没有任何第三方物理库。</p>
+        <div class="cap-tags"><span class="tag">GJK</span><span class="tag">EPA</span><span class="tag">SAT</span><span class="tag">9 Joints</span><span class="tag">Fluid</span><span class="tag">Cloth</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>碰撞检测包含 GJK（Gilbert-Johnson-Keerthi）、EPA 穿透深度与 SAT（OBB / AABB / 胶囊体）；约束求解器支持铰链、滑轨、球窝等 9 种关节；布料用 Verlet 积分，流体为欧拉网格 + 粒子混合。测试对解析解逐项验证：自由落体、冲量-动量、角动量守恒、库仑摩擦、恢复系数。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="ai">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>人工智能</h3>
+        <span class="files">35 文件 · C#</span>
+        <p>NavMesh 烘焙、A* / D*Lite / JPS+ / Theta* 多算法寻路、GOAP 目标导向规划、行为树、ORCA 群体避障。LLM 驱动 NPC 对话系统集成中。</p>
+        <div class="cap-tags"><span class="tag">NavMesh</span><span class="tag">A* / JPS+</span><span class="tag">GOAP</span><span class="tag">Behavior Tree</span><span class="tag">ORCA</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>NavMesh 采用 Recast 式体素烘焙 + 三角剖分查询；寻路内置 A*、JPS+、Theta*、D*Lite 四种实现；GOAP 支持前置条件 / 效果与规划复用；行为树带黑板与装饰器；群体避障基于 RVO2 论文的 ORCA 实现。LLM 侧 NpcBrain 将大模型输出的 JSON 意图接入行为树与 StateTree。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="animation">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>动画系统</h3>
+        <span class="files">34 文件 · C#</span>
+        <p>Motion Matching 程序化动画选择、FABRIK / CCD / Two-Bone IK 解算、动画状态图表、骨骼重定向。为角色动画与程序化运动提供完整工具链。</p>
+        <div class="cap-tags"><span class="tag">Motion Matching</span><span class="tag">FABRIK IK</span><span class="tag">CCD</span><span class="tag">Retargeting</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>Motion Matching 基于轨迹匹配（未来轨迹 + 姿态代价）在动画库中实时挑选片段；IK 提供 FABRIK、CCD、Two-Bone 三种求解器；重定向支持骨骼映射与偏移修正。状态：核心算法完成，编辑器内预览接入中。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="audio">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        </div>
+        <h3>音频系统</h3>
+        <span class="files">35 文件 · C#</span>
+        <p>WASAPI 与 Miniaudio 双输出后端、FFT 频谱分析、DSP 效果链、卷积混响、实时合成器、3D 空间音频。从底层数字信号处理到上层的音频场景图。</p>
+        <div class="cap-tags"><span class="tag">WASAPI</span><span class="tag">FFT / DSP</span><span class="tag">Convolution Reverb</span><span class="tag">3D Spatial</span><span class="tag">Synth</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>双输出后端：WASAPI（独占 / 共享模式）与 Miniaudio；DSP 链含 EQ、压缩器、延迟与混响；卷积混响使用 FFT 分区卷积；3D 音频按监听者朝向做 HRTF 近似。状态：后端与 DSP 完成，音频场景图接入中。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="ecs">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <h3>ECS 架构</h3>
+        <span class="files">19 文件 · C#</span>
+        <p>Archetype 内存布局，组件数据连续排列以最大化缓存命中率。SystemScheduler 管理执行顺序，EntityCommandBuffer 延迟实体操作，EntityQueryCache 加速查询。</p>
+        <div class="cap-tags"><span class="tag">Archetype</span><span class="tag">SystemScheduler</span><span class="tag">CommandBuffer</span><span class="tag">QueryCache</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>Archetype 按组件组合分块存储，16KB chunk 按缓存行对齐；SystemScheduler 依据读写依赖排序并划分并行组；EntityCommandBuffer 录制 / 回放延迟变更；EntityQueryCache 缓存查询结果。状态：核心完成，性能基准测试进行中。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="editor">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3>一体化编辑器</h3>
+        <span class="files">41 文件 · WinUI 3</span>
+        <p>WinUI 3 原生窗口嵌入 Vulkan Surface，ImGui 驱动视口、大纲、检查器面板。五种工作模式一键切换：场景、地形、建模、代码、测试。</p>
+        <div class="cap-tags"><span class="tag">WinUI 3</span><span class="tag">ImGui</span><span class="tag">Viewport</span><span class="tag">Inspector</span><span class="tag">5 Modes</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>WinUI 3 原生窗口经 Win32 交换链互操作嵌入 Vulkan Surface；ImGui 面板含视口、层级大纲、组件检查器、控制台与资源浏览器；场景 / 地形 / 建模 / 代码 / 测试五种模式共享同一撤销栈。状态：面板与模式切换可用，UX 持续打磨。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="dcc">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3>DCC 桥接</h3>
+        <span class="files">Blender · Maya · Max</span>
+        <p>Blender LiveLink TCP 插件实时同步网格与动画；Maya 和 3ds Max Python 插件将资产推送进引擎资产管线。保持你的建模工具不变。</p>
+        <div class="cap-tags"><span class="tag">Blender LiveLink</span><span class="tag">Maya</span><span class="tag">3ds Max</span><span class="tag">Asset Pipeline</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>Blender 侧为 Python 插件 + TCP LiveLink，实时推送网格 / 骨骼 / 动画；Maya 与 3ds Max 经 OpenMaya / MaxScript 导出中间格式进入资产管线。状态：Blender 链路可跑通基础网格同步，Maya / Max 为骨架级实现。</p></div></div>
+
+      <div class="cap-card reveal" role="button" tabindex="0" aria-expanded="false" id="network">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <h3>网络 · 资产 · 脚本</h3>
+        <span class="files">多子系统 · C#</span>
+        <p>LiteNetLib 状态复制与客户端预测实现多人游戏同步；ProjectSystem 与 AssetDatabase 驱动数据资产管线；Roslyn 提供 C# 热加载脚本，另有可视化脚本编辑器。</p>
+        <div class="cap-tags"><span class="tag">LiteNetLib</span><span class="tag">State Replication</span><span class="tag">Roslyn</span><span class="tag">Visual Script</span></div>
+      
+        <div class="cap-more"><h4>Deep dive · 深入一层</h4><p>网络：LiteNetLib 传输层 + 状态复制（快照插值）+ 客户端预测与服务器回滚。资产：ProjectSystem / AssetDatabase 支持导入、引用与打包。脚本：基于 Roslyn 的 C# 运行时热加载。状态：网络复制与脚本热加载可用。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="prose reveal" style="padding:64px 32px 20px">
+      <h3>深入 · 三个系统怎么协作</h3>
+      <p>九张卡片是横向的"有什么"，这一节纵向讲"怎么协作"。游戏里一个移动的箱子，其实同时经过物理、渲染、ECS 三层：</p>
+      <ol>
+        <li><div>ECS 的 <strong>Transform</strong> 组件持有位置与旋转，<strong>RigidBody</strong> 组件声明它参与物理模拟。</div></li>
+        <li><div>物理系统的 solver 在固定步长里推进速度与位置，写回 Transform。</div></li>
+        <li><div>渲染系统读取 Transform，写入统一的模型矩阵缓存，再交给 Vulkan 的 push constant / UBO。</div></li>
+        <li><div>动画系统通过骨骼蒙皮修改顶点，Motion Matching 决定用哪段动画，全部在 GPU 侧完成。</div></li>
+        <li><div>音频系统按监听者与声源的距离计算 3D 衰减，输出到 WASAPI / Miniaudio。</div></li>
+      </ol>
+
+      <div class="callout">
+        <span class="callout-tag">Honest Note</span>
+        <p>文件数表示"有多少代码"，不表示"已经稳定"。渲染管线成熟度 60%，DCC 桥接 30% — 具体数字在 <a href="status.html" style="color:var(--orange);text-decoration:underline">真实状态</a> 页有逐项评估。</p>
+      </div>
+
+      <h3>技术选型一览</h3>
+      <div class="two-col">
+        <div class="spec-card">
+          <h4>图形 API</h4>
+          <span class="spec-sub">Vulkan 1.4 · Silk.NET 2.22</span>
+          <p>唯一后端。动态渲染、Mesh Shader、Ray Tracing、Bindless 资源全部可用。D3D12 已移除。</p>
+        </div>
+        <div class="spec-card">
+          <h4>UI 框架</h4>
+          <span class="spec-sub">WinUI 3 + ImGui</span>
+          <p>原生窗口嵌入 Vulkan Surface。ImGui 驱动视口 / 大纲 / 检查器，WinUI 3 提供系统级菜单与对话框。</p>
+        </div>
+        <div class="spec-card">
+          <h4>脚本</h4>
+          <span class="spec-sub">Roslyn C# Hot-Reload</span>
+          <p>运行时编译并热加载 C# 脚本，改一行立刻看到效果。另有可视化脚本编辑器。</p>
+        </div>
+        <div class="spec-card">
+          <h4>音频后端</h4>
+          <span class="spec-sub">WASAPI + Miniaudio</span>
+          <p>双输出后端，DSP 效果链 + 卷积混响 + 实时合成器，3D 空间音频。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ══════════ FOOTER (Mistral 1:1) ══════════ -->
+
+<!-- ══════════ 《盘铭》引言带（借鉴 SenseNova）══════════ -->
+<section class="quote-band">
+  <div class="q">山雨欲来<span class="em">风满楼</span>。</div>
+  <span class="src">唐 · 许浑《咸阳城东楼》</span>
+  <p class="note">编译错误已经清零，好比山雨将至；而真正的 GPU 端到端验证还没有跑通 —— 风尚未满楼。这是引擎此刻的真实状态，也是下一阶段要集中攻克的事。</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>用 C#/.NET 10 从零构建的游戏与建模引擎原型。目标对标 UE5 级渲染管线，保持轻量的一体化工作流。MIT 许可。</p>
+      <div class="foot-social">
+        <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub 仓库">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+        <span class="soc-note">开源仓库 · 点个 Star 支持开发</span>
+      </div>
+      </div>
+      <div class="foot-copy">版权所有 © 2026 六安市青奈科技有限责任公司 · MIT License</div>
+    </div>
+
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>引擎</h4>
+        <a href="why.html">为什么做 Yama</a>
+        <a href="capabilities.html">核心系统</a>
+        <a href="scenarios.html">使用场景</a>
+        <a href="architecture.html">架构设计</a>
+      </div>
+      <div class="foot-col">
+        <h4>状态</h4>
+        <a href="status.html">真实状态</a>
+        <a href="get-started.html">快速上手</a>
+        <a href="status.html#build">编译结果</a>
+        <a href="status.html#roadmap">路线图</a>
+        <a href="faq.html">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>模块</h4>
+        <a href="capabilities.html#rendering">渲染管线</a>
+        <a href="capabilities.html#physics">物理引擎</a>
+        <a href="capabilities.html#ai">人工智能</a>
+        <a href="capabilities.html#ecs">ECS 架构</a>
+      </div>
+      <div class="foot-col">
+        <h4>更多</h4>
+        <a href="poem.html">《咸阳城东楼》</a>
+        <a href="status.html">成熟度评估</a>
+        <a href="faq.html#contribute">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </div>
+  </div>
+
+    <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+
+  <div class="foot-bottom">
+    <span>Yama Engine · 开源桌面引擎</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+
+<button class="back-top" aria-label="返回顶部">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

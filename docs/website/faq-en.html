@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ — Yama Engine</title>
+<meta name="description" content="The ten most-asked questions about Yama Engine — including the sharp ones: does it run today, can I ship with it, why C#, and why a Tang poem on the homepage.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FFFAEB">
+<link rel="icon" type="image/png" href="assets/brand/logo-32.png">
+<link rel="apple-touch-icon" href="assets/brand/logo-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="alternate" hreflang="zh-CN" href="faq-en.html">
+<link rel="alternate" hreflang="en" href="faq-en.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta property="og:title" content="FAQ — Yama Engine">
+<meta property="og:description" content="The ten most-asked questions about Yama Engine — including the sharp ones: does it run today, can I ship with it, why C#, and why a Tang poem on the homepage.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/og/index.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-banner" role="region" aria-label="Announcement">
+  <span><span class="hl">NEW</span> — Real physics engine v2 merged: analytic-grade tests + joint constraint system</span>
+  <a href="status-en.html#roadmap">See the roadmap</a>
+  <button class="dismiss" aria-label="Close announcement">✕</button>
+</div>
+
+<nav class="m-past">
+  <div class="wrap">
+    <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+    <div class="nav-links">
+      <a href="why-en.html">Why</a>
+      <a href="capabilities-en.html">Capabilities</a>
+      <a href="compare-en.html">Compare</a>
+      <a href="architecture-en.html">Architecture</a>
+      <a href="status-en.html">Honest Status</a>
+      <a href="get-started-en.html">Quick Start</a>
+      <a href="faq-en.html" aria-current="page">FAQ</a>
+      <a href="index.html" class="lang">中文</a>
+    </div>
+    <div class="nav-cta">
+      
+      <a href="https://github.com/kino-koki/Yama-Engine" class="gh-link" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<header class="page-hero no-hero-img" id="main">
+  <div class="wrap">
+    <div class="kicker">06 / FAQ</div>
+    <h1>Some <em>honest</em> answers.</h1>
+    <p class="lede">
+      The ten most-asked questions about Yama. We don't dodge the sharp ones — including "does it actually run today" and "can I use it for a commercial project".
+    </p>
+  </div>
+
+  <div class="hero-ridge" aria-hidden="true"><svg viewBox="0 0 1440 110" preserveAspectRatio="none" shape-rendering="crispEdges"><defs><linearGradient id="ridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE00"/><stop offset="1" stop-color="#FA500F"/></linearGradient></defs><path d="M0 110 L0 78 L120 52 L240 74 L360 40 L480 66 L600 30 L720 58 L840 40 L960 66 L1080 34 L1200 60 L1320 46 L1440 70 L1440 110 Z" fill="url(#ridgeGrad)"/></svg></div>
+</header>
+
+<section class="faq">
+  <div class="wrap">
+    <div class="faq-list" style="margin-top:56px">
+      <details class="faq-item">
+        <summary>Is Yama a game engine or a modeling tool?</summary>
+        <div class="faq-body">
+          <p>Both. Yama is positioned as an "integrated game &amp; modeling engine" — it runs games like Unreal and edits assets like Blender. The WinUI 3 editor has five work modes: scene, terrain, modeling, code and test. Modeling mode edits mesh geometry directly, without jumping out to Blender.</p>
+          <p>That said, DCC bridges also exist — if you prefer the Blender / Maya modeling experience, LiveLink syncs assets in real time.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Why C# instead of C++?</summary>
+        <div class="faq-body">
+          <p>Because C# lets us write faster, safer and more readable code. The <code>.NET 10</code> JIT already produces machine code close to C++, especially with <code>Span&lt;T&gt;</code>, <code>unsafe</code> and SIMD intrinsics. The physics engine's GJK / EPA is entirely hand-written C#, and performance is within acceptable range.</p>
+          <p>More importantly: C# iterates 3-5× faster than C++. For a project maintained by one person, speed is everything.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>What is Vulkan 1.4? Why only one backend?</summary>
+        <div class="faq-body">
+          <p>Vulkan 1.4 is the Khronos Group's latest graphics API standard (released 2024), with modern features like dynamic rendering, mesh shaders and ray tracing. We maintain only one backend because the D3D12 backend was deprecated and removed from the project — maintaining two backends would slow everything down.</p>
+          <p>Linux / macOS support via a Vulkan translation layer (like MoltenVK) is theoretically possible, but Yama currently runs on Windows only, because the WinUI 3 editor depends on Windows.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Does it run today?</summary>
+        <div class="faq-body">
+          <p>Depends on what "run" means. The engine compiles, the editor starts, assets load, and you can see a Vulkan-rendered triangle in the viewport — all of that works.</p>
+          <p>But the full end-to-end flow of PBR scene rendering + physics simulation + animation + audio still has Vulkan runtime crashes to solve on some discrete-GPU machines (see "Honest Status"). We're attacking this in Phase 1.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Can I use it for a commercial project?</summary>
+        <div class="faq-body">
+          <p>Yama uses the MIT license, so there's no legal barrier to commercial use. But frankly, the current maturity isn't fit for production — the render pipeline's advanced features aren't yet stable on real GPUs, and the editor hasn't been through long-duration stability testing.</p>
+          <p>If you want to prototype, learn engine architecture, or contribute code — now is a great time. If you want to ship a game — wait a bit longer.</p>
+        </div>
+      </details>
+
+      <details class="faq-item" id="contribute">
+        <summary>How do I contribute?</summary>
+        <div class="faq-body">
+          <p>Clone the repository, open <code>YamaEngine.sln</code> in Visual Studio 2026 or JetBrains Rider, and hit F5 to build. Start reading from the <code>YamaVulkanSandbox</code> project — it has the most minimal engine usage examples.</p>
+          <p>Where help is needed most right now: GPU end-to-end debugging, Vulkan validation layer triage, CI/CD setup, and documentation.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Is the physics a PhysX wrapper?</summary>
+        <div class="faq-body">
+          <p>No. Yama's physics engine has zero third-party dependencies — GJK / EPA / SAT collision detection, 9 joint constraint types, and the custom vector &amp; quaternion libraries are all hand-written from the math up. This is the most direct expression of the "code is the documentation" principle — every line you read is our own.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>How far along is the render pipeline?</summary>
+        <div class="faq-body">
+          <p>PBR materials, cascaded shadows, skeletal skinning and temporal anti-aliasing (TSR) are wired into the SceneRendererReal main pipeline. ReSTIR global illumination, SVGF, path tracing and MicroCluster have complete algorithm code written, but aren't integrated into the main pipeline or validated on real GPUs yet — that's Phase 2.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>How is it different from Godot?</summary>
+        <div class="faq-body">
+          <p>Godot is a mature, large-community, cross-platform open-source engine. Yama doesn't aim to replace it — the positioning is different: a single Vulkan backend + hand-written core systems + a WinUI 3 integrated editor, closer to "a readable UE5-class desktop engine".</p>
+          <p>If you want to make a 2D game right now, use Godot. If you want to study how a modern render pipeline gets built from zero, come read Yama.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Why is there a Tang poem on the homepage?</summary>
+        <div class="faq-body">
+          <p>Because "the storm is coming, the wind fills the tower" is a poetic description of the engine's current state — compilation is at zero (the mountain rain approaches), but the real GPU end-to-end validation hasn't run yet (the wind hasn't filled the tower).</p>
+          <p>All eight lines of 《咸阳城东楼》 ("East Tower of Xianyang City" by Xu Hun) are typeset as art in a <a href="poem.html" style="color:var(--orange);text-decoration:underline">standalone poem page</a> — vertical layout, large type, six sunset color bands. Take your time.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Quote band ══════════ -->
+<section class="quote-band">
+  <div class="q">"A storm is coming — <span class="em">the wind fills the tower</span>."</div>
+  <span class="src">Xu Hun, "East Tower of Xianyang City" · Tang dynasty</span>
+  <p class="note">Compile errors are at zero — the mountain rain is near — but the real GPU end-to-end validation hasn't run yet. Closing that gap is exactly what Phase 1 is about.</p>
+</section>
+
+<footer>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="sunset-band" aria-hidden="true"></div>
+  <div class="foot-wordmark" aria-hidden="true">YAMA ENGINE</div>
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <div>
+        <a href="index-en.html" class="logo"><img src="assets/brand/logo-256.png" alt="Yama"> Yama</a>
+        <p>A desktop game &amp; modeling engine prototype built from scratch in C#/.NET 10, targeting UE5-class rendering with a lightweight integrated workflow. MIT licensed.</p>
+        <div class="foot-social">
+          <a class="soc" href="https://github.com/kino-koki/Yama-Engine" target="_blank" rel="noopener" aria-label="GitHub repository">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <span class="soc-note">Open source · Star the repo to support development</span>
+        </div>
+      </div>
+      <div class="foot-copy">© 2026 Lu’an Qingnai Technology Co., Ltd. · MIT License</div>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h4>Engine</h4>
+        <a href="why-en.html">Why Yama</a>
+        <a href="capabilities-en.html">Core systems</a>
+        <a href="compare-en.html">Compare</a>
+        <a href="architecture-en.html">Architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>Status</h4>
+        <a href="status-en.html">Honest status</a>
+        <a href="status-en.html#build">Build results</a>
+        <a href="status-en.html#roadmap">Roadmap</a>
+        <a href="get-started-en.html">Quick start</a>
+      </div>
+      <div class="foot-col">
+        <h4>Modules</h4>
+        <a href="capabilities-en.html#rendering">Render pipeline</a>
+        <a href="capabilities-en.html#physics">Physics engine</a>
+        <a href="capabilities-en.html#ai">Artificial intelligence</a>
+        <a href="capabilities-en.html#ecs">ECS architecture</a>
+      </div>
+      <div class="foot-col">
+        <h4>More</h4>
+        <a href="poem.html">A Tang poem</a>
+        <a href="status-en.html">Maturity assessment</a>
+        <a href="faq-en.html#contribute">Contribute</a>
+        <a href="index.html">中文首页</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>Yama Engine · Open-source desktop engine</span>
+    <span class="tech">C# / .NET 10 / Vulkan 1.4 / Windows</span>
+  </div>
+</footer>
+<button class="back-top" aria-label="Back to top">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>
+</button>
+<script>
+(function(){
+  // Nav menu
+  const burger=document.querySelector('.burger');
+  const links=document.querySelector('.nav-links');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{
+      const open=document.body.classList.toggle('menu-open');
+      burger.setAttribute('aria-expanded',open?'true':'false');
+    });
+    links.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',()=>{
+        document.body.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded','false');
+      });
+    });
+  }
+
+  // Scroll reveal
+  const els=document.querySelectorAll('.reveal');
+  if(els.length && 'IntersectionObserver' in window){
+    const io=new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{threshold:.1});
+    els.forEach(el=>io.observe(el));
+  }else{ els.forEach(el=>el.classList.add('in')); }
+  window.addEventListener('load',()=>{ setTimeout(()=>els.forEach(el=>el.classList.add('in')),300); });
+
+  // Nav tri-state（滚动三态）
+  const nav=document.querySelector('nav');
+  if(nav){
+    const applyNav=()=>{
+      const y=window.scrollY;
+      nav.classList.toggle('m-past',y>680);
+      nav.classList.toggle('m-mid',y>10&&y<=680);
+    };
+    applyNav();
+    window.addEventListener('scroll',applyNav,{passive:true});
+  }
+
+  // Marquee（无限滚动）
+  const track=document.querySelector('.marquee-track');
+  if(track){
+    const items=track.children;
+    if(items.length){
+      track.innerHTML+=track.innerHTML;
+      let pos=0;
+      const speed=20/60;
+      const step=()=>{
+        pos-=speed;
+        const half=track.scrollWidth/2;
+        if(-pos>=half) pos+=half;
+        track.style.transform=`translateX(${pos}px)`;
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  // Top banner dismiss
+  const banner=document.querySelector('.top-banner');
+  if(banner){
+    try{ if(localStorage.getItem('yama-banner')==='off'){ banner.remove(); document.body.classList.remove('has-banner'); } }catch(e){}
+    const d=banner.querySelector('.dismiss');
+    if(d) d.addEventListener('click',()=>{
+      banner.remove(); document.body.classList.remove('has-banner');
+      try{ localStorage.setItem('yama-banner','off'); }catch(e){}
+    });
+  }
+
+  // Back to top
+  const backTop=document.querySelector('.back-top');
+  if(backTop){
+    const toggleBack=()=>backTop.classList.toggle('show',window.scrollY>700);
+    toggleBack();
+    window.addEventListener('scroll',toggleBack,{passive:true});
+    backTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  }
+})();
+</script>
+</body>
+</html>

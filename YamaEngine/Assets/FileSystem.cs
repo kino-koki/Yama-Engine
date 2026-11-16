@@ -201,6 +201,29 @@ namespace YamaEngine.Assets
             return string.Join("/", stack);
         }
 
+        /// <summary>
+        /// 将挂载点虚拟路径转换为无首尾斜杠的根（"/assets/" -> "assets"，"/" -> ""）。
+        /// VFS 内部约定：virtualPath 经 NormalizePath 后无前导斜杠（如 "assets/good.txt"），
+        /// 挂载根统一为无首尾斜杠形式（如 "assets"）以便前缀匹配与切片。
+        /// </summary>
+        private static string TrimMountRoot(string mountRoot)
+        {
+            return mountRoot.Trim('/');
+        }
+
+        /// <summary>
+        /// 路径前缀匹配，要求边界对齐（挂载点"assets"不得匹配"assets2/file"）。
+        /// virtualPath 与 mountRoot 均已规范化为无首尾斜杠形式（如 "assets/good.txt"、"assets"）。
+        /// </summary>
+        private static bool IsMountPrefixMatch(string virtualPath, string mountRoot)
+        {
+            if (mountRoot.Length == 0) return true; // 根挂载点匹配一切
+            if (!virtualPath.StartsWith(mountRoot, StringComparison.OrdinalIgnoreCase)) return false;
+            // 必须紧跟路径分隔符（或路径恰好等于挂载点）
+            return virtualPath.Length == mountRoot.Length ||
+                   virtualPath[mountRoot.Length] == '/';
+        }
+
         // ──────────────────────────────────────────────────────────
         // 文件读取
         // ──────────────────────────────────────────────────────────
@@ -218,10 +241,11 @@ namespace YamaEngine.Assets
                 foreach (var mount in _mountPoints)
                 {
                     if (!mount.IsEnabled) continue;
-                    if (!virtualPath.StartsWith(mount.VirtualPath, StringComparison.OrdinalIgnoreCase))
+                    string mountRoot = TrimMountRoot(mount.VirtualPath);
+                    if (!IsMountPrefixMatch(virtualPath, mountRoot))
                         continue;
 
-                    string relativePath = virtualPath.Substring(mount.VirtualPath.Length).TrimStart('/');
+                    string relativePath = virtualPath.Substring(mountRoot.Length).TrimStart('/');
 
                     switch (mount.Type)
                     {
@@ -262,10 +286,11 @@ namespace YamaEngine.Assets
                 foreach (var mount in _mountPoints)
                 {
                     if (!mount.IsEnabled) continue;
-                    if (!virtualPath.StartsWith(mount.VirtualPath, StringComparison.OrdinalIgnoreCase))
+                    string mountRoot = TrimMountRoot(mount.VirtualPath);
+                    if (!IsMountPrefixMatch(virtualPath, mountRoot))
                         continue;
 
-                    string relativePath = virtualPath.Substring(mount.VirtualPath.Length).TrimStart('/');
+                    string relativePath = virtualPath.Substring(mountRoot.Length).TrimStart('/');
 
                     switch (mount.Type)
                     {
@@ -326,10 +351,11 @@ namespace YamaEngine.Assets
                 foreach (var mount in _mountPoints)
                 {
                     if (!mount.IsEnabled) continue;
-                    if (!virtualPath.StartsWith(mount.VirtualPath, StringComparison.OrdinalIgnoreCase))
+                    string mountRoot = TrimMountRoot(mount.VirtualPath);
+                    if (!IsMountPrefixMatch(virtualPath, mountRoot))
                         continue;
 
-                    relativePath = virtualPath.Substring(mount.VirtualPath.Length).TrimStart('/');
+                    relativePath = virtualPath.Substring(mountRoot.Length).TrimStart('/');
 
                     switch (mount.Type)
                     {
@@ -425,10 +451,11 @@ namespace YamaEngine.Assets
                 foreach (var mount in _mountPoints)
                 {
                     if (!mount.IsEnabled) continue;
-                    if (!virtualDirectory.StartsWith(mount.VirtualPath, StringComparison.OrdinalIgnoreCase))
+                    string mountRoot = TrimMountRoot(mount.VirtualPath);
+                    if (!IsMountPrefixMatch(virtualDirectory, mountRoot))
                         continue;
 
-                    string relativeDir = virtualDirectory.Substring(mount.VirtualPath.Length).TrimStart('/');
+                    string relativeDir = virtualDirectory.Substring(mountRoot.Length).TrimStart('/');
 
                     switch (mount.Type)
                     {
@@ -504,10 +531,11 @@ namespace YamaEngine.Assets
                 foreach (var mount in _mountPoints)
                 {
                     if (!mount.IsEnabled) continue;
-                    if (!virtualDirectory.StartsWith(mount.VirtualPath, StringComparison.OrdinalIgnoreCase))
+                    string mountRoot = TrimMountRoot(mount.VirtualPath);
+                    if (!IsMountPrefixMatch(virtualDirectory, mountRoot))
                         continue;
 
-                    string relativeDir = virtualDirectory.Substring(mount.VirtualPath.Length).TrimStart('/');
+                    string relativeDir = virtualDirectory.Substring(mountRoot.Length).TrimStart('/');
 
                     switch (mount.Type)
                     {

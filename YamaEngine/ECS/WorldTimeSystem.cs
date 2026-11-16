@@ -9,9 +9,6 @@
 //   * 时间尺度
 //
 // 参考 Unity 的 Time 类，但更灵活。
-//
-// FIXME: 没处理系统时间跳变（如 NTP 同步）
-// TODO: 加个时间轴系统，支持回放和慢动作
 // ════════════════════════════════════════════════════════════════════════════
 
 using System;
@@ -154,14 +151,19 @@ namespace YamaEngine.ECS
             float rawDelta = (float)(currentTicks - _lastTicks) / Stopwatch.Frequency;
             _lastTicks = currentTicks;
 
-            // 限制最大 delta
-            rawDelta = Math.Min(rawDelta, _maxDeltaTime);
+            // 系统时间跳变防护（NTP 同步 / 手动改钟 / 高精度计数器回绕）：
+            // 负 delta 会让 _realTime / _gameTime 倒退、定时事件逆序、物理积分反向，
+            // 故与 _maxDeltaTime 一并裁剪到 [0, max]，跳变帧被钳制为单帧最大时间。
+            rawDelta = Math.Clamp(rawDelta, 0f, _maxDeltaTime);
 
             _unscaledDeltaTime = rawDelta;
             _realTime += rawDelta;
 
-            // 计算缩放后的 delta
-            _deltaTime = _paused ? 0f : rawDelta * _timeScale;
+            // 计算缩放后的 delta。缩放后同样钳制到 _maxDeltaTime：
+            // 高倍速下 rawDelta*timeScale 可能远超单帧上限，若不钳制，
+            // 固定步长累积器单帧积压会被下方丢弃分支清零 → 丢步卡顿；
+            // 钳制后 GameTime 每帧最多推进 _maxDeltaTime，行为可预测。
+            _deltaTime = _paused ? 0f : Math.Min(rawDelta * _timeScale, _maxDeltaTime);
             _gameTime += _deltaTime;
 
             // 帧计数
@@ -343,7 +345,9 @@ namespace YamaEngine.ECS
 
             if (_fpsAccumulator >= _fpsUpdateInterval)
             {
-                _fps = _fpsFrameCount / _fpsAccumulator;
+                // 除零防护：accumulator 理论上不会为 0（受 >= 保护），但浮点极限下可能极小，
+                // 避免显示 Infinity/NaN 的 FPS
+                _fps = _fpsAccumulator > 1e-6f ? _fpsFrameCount / _fpsAccumulator : 0f;
                 _fpsAccumulator = 0;
                 _fpsFrameCount = 0;
             }

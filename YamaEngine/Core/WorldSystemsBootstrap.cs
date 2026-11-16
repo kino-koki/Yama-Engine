@@ -190,7 +190,7 @@ namespace YamaEngine.Core
         public long EstimatedMemoryUsage;
 
         /// <summary>错误信息 (初始化失败时)</summary>
-        public string ErrorMessage;
+        public string? ErrorMessage;
 
         public override string ToString()
         {
@@ -229,12 +229,12 @@ namespace YamaEngine.Core
         // --------------------------------------------------------------------
         // 单例实例
         // --------------------------------------------------------------------
-        private static WorldSystemsBootstrap s_Current;
+        private static WorldSystemsBootstrap? s_Current;
 
         /// <summary>
         /// 获取当前引导实例 (单例)
         /// </summary>
-        public static WorldSystemsBootstrap GetCurrentBootstrap()
+        public static WorldSystemsBootstrap? GetCurrentBootstrap()
         {
             return s_Current;
         }
@@ -242,12 +242,12 @@ namespace YamaEngine.Core
         // --------------------------------------------------------------------
         // 引导配置
         // --------------------------------------------------------------------
-        private BootstrapConfig m_Config;
+        private BootstrapConfig? m_Config;
 
         /// <summary>
         /// 获取当前引导配置
         /// </summary>
-        public BootstrapConfig GetConfig()
+        public BootstrapConfig? GetConfig()
         {
             return m_Config;
         }
@@ -255,30 +255,30 @@ namespace YamaEngine.Core
         // --------------------------------------------------------------------
         // 子系统实例引用
         // --------------------------------------------------------------------
-        private RHIDevice m_RHIDevice;
-        private SwapChain m_SwapChain;
-        private RenderGraph m_RenderGraph;
-        private SceneRendererReal m_SceneRenderer;
-        private GPUDrivenPipeline m_GPUDrivenPipeline;
-        private MicroClusterClusterizer m_MicroClusterClusterizer;
-        private MicroClusterVisibility m_MicroClusterVisibility;
-        private MicroClusterStreaming m_MicroClusterStreaming;
-        private ProbeFieldHardwareRayTracer m_ProbeFieldHWRT;
-        private ProbeFieldSurfaceCache m_ProbeFieldSurfaceCache;
-        private ProbeFieldVoxelSystem m_ProbeFieldVoxel;
-        private TerrainRenderer m_TerrainRenderer;
-        private WorldRenderer m_WorldRenderer;
-        private WorldRenderPipeline m_WorldRenderPipeline;
-        private MaterialLibrary m_MaterialLibrary;
-        private BuiltinMaterials m_BuiltinMaterials;
-        private AdaptiveQualitySystem m_AdaptiveQuality;
-        private NeuralSuperResolution m_NeuralSuperRes;
-        private AudioSystem m_AudioSystem;
-        private PhysicsSystem m_PhysicsSystem;
-        private InputSystem m_InputSystem;
-        private UISystem m_UISystem;
-        private ScriptEngine m_ScriptEngine;
-        private GameInstance m_GameInstance;
+        private RHIDevice? m_RHIDevice;
+        private SwapChain? m_SwapChain;
+        private RenderGraph? m_RenderGraph;
+        private SceneRendererReal? m_SceneRenderer;
+        private GPUDrivenPipeline? m_GPUDrivenPipeline;
+        private MicroClusterClusterizer? m_MicroClusterClusterizer;
+        private MicroClusterVisibility? m_MicroClusterVisibility;
+        private MicroClusterStreaming? m_MicroClusterStreaming;
+        private ProbeFieldHardwareRayTracer? m_ProbeFieldHWRT;
+        private ProbeFieldSurfaceCache? m_ProbeFieldSurfaceCache;
+        private ProbeFieldVoxelSystem? m_ProbeFieldVoxel;
+        private TerrainRenderer? m_TerrainRenderer;
+        private WorldRenderer? m_WorldRenderer;
+        private WorldRenderPipeline? m_WorldRenderPipeline;
+        private MaterialLibrary? m_MaterialLibrary;
+        private BuiltinMaterials? m_BuiltinMaterials;
+        private AdaptiveQualitySystem? m_AdaptiveQuality;
+        private NeuralSuperResolution? m_NeuralSuperRes;
+        private AudioSystem? m_AudioSystem;
+        private PhysicsSystem? m_PhysicsSystem;
+        private InputSystem? m_InputSystem;
+        private UISystem? m_UISystem;
+        private ScriptEngine? m_ScriptEngine;
+        private GameInstance? m_GameInstance;
 
         // --------------------------------------------------------------------
         // 子系统状态跟踪
@@ -298,7 +298,7 @@ namespace YamaEngine.Core
         // --------------------------------------------------------------------
         // 启动诊断信息
         // --------------------------------------------------------------------
-        private Stopwatch m_TotalInitStopwatch;
+        private Stopwatch? m_TotalInitStopwatch;
 
         // ====================================================================
         // 构造函数 (私有 — 通过Initialize静态方法创建)
@@ -385,53 +385,59 @@ namespace YamaEngine.Core
         // --------------------------------------------------------------------
         private void ExecuteInitialization()
         {
+            var config = m_Config!;
+            m_TotalInitStopwatch = Stopwatch.StartNew();
+
             // 步骤 1: 创建 RHI Device
             InitSubsystem("RHIDevice", () =>
             {
                 var deviceDesc = new RHIDeviceDescriptor
                 {
-                    API = m_Config.GraphicsAPI,
-                    EnableDebugLayer = m_Config.EnableDebugLayer,
-                    GPUValidationLevel = m_Config.GPUValidationLevel,
-                    ApplicationName = m_Config.ApplicationName,
-                    MaxTextureMemory = m_Config.MaxTextureMemory * 1024 * 1024,
-                    MaxBufferMemory = m_Config.MaxBufferMemory * 1024 * 1024
+                    API = config.GraphicsAPI,
+                    EnableDebugLayer = config.EnableDebugLayer,
+                    GPUValidationLevel = config.GPUValidationLevel,
+                    ApplicationName = config.ApplicationName,
+                    MaxTextureMemory = config.MaxTextureMemory * 1024 * 1024,
+                    MaxBufferMemory = config.MaxBufferMemory * 1024 * 1024
                 };
                 m_RHIDevice = RHIDevice.Create(deviceDesc);
                 Debug.WriteLine($"[Bootstrap] RHI设备创建成功: {m_RHIDevice.AdapterName}, VRAM: {m_RHIDevice.TotalVRAM / (1024 * 1024)}MB");
             });
 
+            // 后续步骤依赖 RHIDevice — 取非空局部引用
+            var device = m_RHIDevice!;
+
             // 步骤 2: 创建 SwapChain
             InitSubsystem("SwapChain", () =>
             {
-                m_SwapChain = new SwapChain(m_RHIDevice, m_Config.WindowWidth, m_Config.WindowHeight, m_Config.VSyncMode, m_Config.Fullscreen);
+                m_SwapChain = new SwapChain(device, config.WindowWidth, config.WindowHeight, config.VSyncMode, config.Fullscreen);
             });
 
             // 步骤 3: 初始化 RenderGraph
             InitSubsystem("RenderGraph", () =>
             {
-                m_RenderGraph = new RenderGraph(m_RHIDevice);
-                m_RenderGraph.SetBackBuffer(m_SwapChain.BackBuffer);
+                m_RenderGraph = new RenderGraph(device);
+                m_RenderGraph.SetBackBuffer(m_SwapChain!.BackBuffer);
             });
 
             // 步骤 4: 初始化 SceneRenderer
             InitSubsystem("SceneRenderer", () =>
             {
-                m_SceneRenderer = new SceneRendererReal(m_RHIDevice, m_RenderGraph);
-                m_SceneRenderer.SetViewport(m_Config.WindowWidth, m_Config.WindowHeight);
+                m_SceneRenderer = new SceneRendererReal(device, m_RenderGraph!);
+                m_SceneRenderer.SetViewport(config.WindowWidth, config.WindowHeight);
             });
 
             // 步骤 5: 初始化 GPUDrivenPipeline
             InitSubsystem("GPUDrivenPipeline", () =>
             {
-                m_GPUDrivenPipeline = new GPUDrivenPipeline(m_RHIDevice, m_RenderGraph);
-                m_GPUDrivenPipeline.SetSceneRenderer(m_SceneRenderer);
+                m_GPUDrivenPipeline = new GPUDrivenPipeline(device, m_RenderGraph!);
+                m_GPUDrivenPipeline.SetSceneRenderer(m_SceneRenderer!);
             });
 
             // 步骤 6: 初始化 MicroCluster 系统 (可选)
-            if (m_Config.EnableMicroCluster)
+            if (config.EnableMicroCluster)
             {
-                if (!m_RHIDevice.SupportsMeshShader)
+                if (!device.SupportsMeshShader)
                 {
                     Debug.WriteLine("[Bootstrap] 警告: GPU不支持Mesh Shader，MicroCluster将被禁用");
                 }
@@ -440,30 +446,30 @@ namespace YamaEngine.Core
                     // 6a: MicroCluster Clusterizer
                     InitSubsystem("MicroCluster.Clusterizer", () =>
                     {
-                        m_MicroClusterClusterizer = new MicroClusterClusterizer(m_RHIDevice);
-                        m_MicroClusterClusterizer.MaxTrianglesPerCluster = m_Config.MicroClusterClusterMaxTriangles;
+                        m_MicroClusterClusterizer = new MicroClusterClusterizer(device);
+                        m_MicroClusterClusterizer.MaxTrianglesPerCluster = config.MicroClusterClusterMaxTriangles;
                     });
 
                     // 6b: MicroCluster Visibility
                     InitSubsystem("MicroCluster.Visibility", () =>
                     {
-                        m_MicroClusterVisibility = new MicroClusterVisibility(m_RHIDevice, m_Config.MicroClusterVisibilityBufferSize * 1024 * 1024);
-                        Rendering.WorldIntegrationHelper.RegisterMicroClusterWithScene(m_SceneRenderer, m_MicroClusterVisibility);
+                        m_MicroClusterVisibility = new MicroClusterVisibility(device, config.MicroClusterVisibilityBufferSize * 1024 * 1024);
+                        Rendering.WorldIntegrationHelper.RegisterMicroClusterWithScene(m_SceneRenderer!, m_MicroClusterVisibility);
                     });
 
                     // 6c: MicroCluster Streaming
                     InitSubsystem("MicroCluster.Streaming", () =>
                     {
-                        m_MicroClusterStreaming = new MicroClusterStreaming(m_RHIDevice, m_MicroClusterClusterizer);
+                        m_MicroClusterStreaming = new MicroClusterStreaming(device, m_MicroClusterClusterizer!);
                         m_MicroClusterStreaming.SetMaxStreamingBandwidth(256 * 1024 * 1024); // 256MB/s
                     });
                 }
             }
 
             // 步骤 7: 初始化 ProbeField 系统 (可选)
-            if (m_Config.EnableProbeField)
+            if (config.EnableProbeField)
             {
-                if (!m_RHIDevice.SupportsRayTracing)
+                if (!device.SupportsRayTracing)
                 {
                     Debug.WriteLine("[Bootstrap] 警告: GPU不支持光线追踪，ProbeField将被禁用");
                 }
@@ -472,30 +478,30 @@ namespace YamaEngine.Core
                     // 7a: ProbeField Hardware Ray Tracer
                     InitSubsystem("ProbeField.HWRT", () =>
                     {
-                        m_ProbeFieldHWRT = new ProbeFieldHardwareRayTracer(m_RHIDevice, m_RenderGraph);
-                        m_ProbeFieldHWRT.MaxBounces = m_Config.ProbeFieldMaxBounces;
+                        m_ProbeFieldHWRT = new ProbeFieldHardwareRayTracer(device, m_RenderGraph!);
+                        m_ProbeFieldHWRT.MaxBounces = config.ProbeFieldMaxBounces;
                     });
 
                     // 7b: ProbeField Surface Cache
                     InitSubsystem("ProbeField.SurfaceCache", () =>
                     {
-                        int cacheWidth = Math.Max(1, (int)(m_Config.WindowWidth * m_Config.ProbeFieldSurfaceCacheScale));
-                        int cacheHeight = Math.Max(1, (int)(m_Config.WindowHeight * m_Config.ProbeFieldSurfaceCacheScale));
-                        m_ProbeFieldSurfaceCache = new ProbeFieldSurfaceCache(m_RHIDevice, cacheWidth, cacheHeight);
+                        int cacheWidth = Math.Max(1, (int)(config.WindowWidth * config.ProbeFieldSurfaceCacheScale));
+                        int cacheHeight = Math.Max(1, (int)(config.WindowHeight * config.ProbeFieldSurfaceCacheScale));
+                        m_ProbeFieldSurfaceCache = new ProbeFieldSurfaceCache(device, cacheWidth, cacheHeight);
                     });
 
                     // 7c: ProbeField Voxel System
                     InitSubsystem("ProbeField.Voxel", () =>
                     {
-                        m_ProbeFieldVoxel = new ProbeFieldVoxelSystem(m_RHIDevice);
+                        m_ProbeFieldVoxel = new ProbeFieldVoxelSystem(device);
                         m_ProbeFieldVoxel.SetVoxelSize(0.2f);
                     });
 
                     // 创建ProbeField集成并注册到场景
                     InitSubsystem("ProbeField.Integration", () =>
                     {
-                        var probefieldIntegration = new ProbeFieldIntegration(m_ProbeFieldHWRT, m_ProbeFieldSurfaceCache, m_ProbeFieldVoxel);
-                        Rendering.WorldIntegrationHelper.RegisterProbeFieldWithScene(m_SceneRenderer, probefieldIntegration);
+                        var probefieldIntegration = new ProbeFieldIntegration(m_ProbeFieldHWRT!, m_ProbeFieldSurfaceCache!, m_ProbeFieldVoxel!);
+                        Rendering.WorldIntegrationHelper.RegisterProbeFieldWithScene(m_SceneRenderer!, probefieldIntegration);
                     });
                 }
             }
@@ -503,39 +509,39 @@ namespace YamaEngine.Core
             // 步骤 8: 初始化 TerrainRenderer
             InitSubsystem("TerrainRenderer", () =>
             {
-                m_TerrainRenderer = new TerrainRenderer(m_RHIDevice, m_RenderGraph);
-                Rendering.WorldIntegrationHelper.RegisterTerrainWithWorld(m_WorldRenderer, m_TerrainRenderer);
+                m_TerrainRenderer = new TerrainRenderer(device, m_RenderGraph!);
+                Rendering.WorldIntegrationHelper.RegisterTerrainWithWorld(m_WorldRenderer!, m_TerrainRenderer);
             });
 
             // 步骤 9: 初始化 WorldRenderer
             InitSubsystem("WorldRenderer", () =>
             {
-                m_WorldRenderer = new WorldRenderer(m_RHIDevice, m_RenderGraph, m_SceneRenderer);
+                m_WorldRenderer = new WorldRenderer(device, m_RenderGraph!, m_SceneRenderer!);
             });
 
             // 步骤 10: 初始化 WorldRenderPipeline
             InitSubsystem("WorldRenderPipeline", () =>
             {
-                Rendering.WorldIntegrationHelper.CreateDefaultRenderPipeline(m_RHIDevice, out m_WorldRenderPipeline);
-                m_WorldRenderPipeline.AttachToRenderGraph(m_RenderGraph);
+                Rendering.WorldIntegrationHelper.CreateDefaultRenderPipeline(device, out m_WorldRenderPipeline);
+                m_WorldRenderPipeline!.AttachToRenderGraph(m_RenderGraph!);
             });
 
             // 步骤 11: 初始化 MaterialLibrary
             InitSubsystem("MaterialLibrary", () =>
             {
-                m_MaterialLibrary = new MaterialLibrary(m_RHIDevice);
-                Rendering.WorldIntegrationHelper.RegisterMaterialsToRenderPipeline(m_WorldRenderPipeline, m_MaterialLibrary);
+                m_MaterialLibrary = new MaterialLibrary(device);
+                Rendering.WorldIntegrationHelper.RegisterMaterialsToRenderPipeline(m_WorldRenderPipeline!, m_MaterialLibrary);
             });
 
             // 步骤 12: 初始化 BuiltinMaterials
             InitSubsystem("BuiltinMaterials", () =>
             {
-                m_BuiltinMaterials = new BuiltinMaterials(m_MaterialLibrary, m_RHIDevice);
+                m_BuiltinMaterials = new BuiltinMaterials(m_MaterialLibrary!, device);
                 m_BuiltinMaterials.InitializeDefaultMaterials();
             });
 
             // 步骤 13: 初始化 AdaptiveQualitySystem
-            if (m_Config.EnableAdaptiveQuality)
+            if (config.EnableAdaptiveQuality)
             {
                 InitSubsystem("AdaptiveQuality", () =>
                 {
@@ -543,28 +549,28 @@ namespace YamaEngine.Core
                     m_AdaptiveQuality.SetTargetFrameRate(60);
                     m_AdaptiveQuality.SetMinResolutionScale(0.5f);
                     m_AdaptiveQuality.SetMaxResolutionScale(1.0f);
-                    m_AdaptiveQuality.AttachToPipeline(m_WorldRenderPipeline);
+                    m_AdaptiveQuality.AttachToPipeline(m_WorldRenderPipeline!);
                 });
             }
 
             // 步骤 14: 初始化 NeuralSuperResolution
-            if (m_Config.EnableNeuralSuperResolution && m_RHIDevice.SupportsSuperResolution())
+            if (config.EnableNeuralSuperResolution && device.SupportsSuperResolution())
             {
                 InitSubsystem("NeuralSuperResolution", () =>
                 {
-                    m_NeuralSuperRes = new NeuralSuperResolution(m_RHIDevice, m_RenderGraph);
-                    m_NeuralSuperRes.SetQualityMode(m_Config.SuperResolutionQuality);
-                    m_NeuralSuperRes.AttachToPipeline(m_WorldRenderPipeline);
+                    m_NeuralSuperRes = new NeuralSuperResolution(device, m_RenderGraph!);
+                    m_NeuralSuperRes.SetQualityMode(config.SuperResolutionQuality);
+                    m_NeuralSuperRes.AttachToPipeline(m_WorldRenderPipeline!);
                 });
             }
 
             // 步骤 15: 初始化 AudioSystem
-            if (m_Config.EnableAudio)
+            if (config.EnableAudio)
             {
                 InitSubsystem("AudioSystem", () =>
                 {
                     m_AudioSystem = new AudioSystem();
-                    m_AudioSystem.Initialize(m_Config.AudioSampleRate, m_Config.AudioBufferSize);
+                    m_AudioSystem.Initialize(config.AudioSampleRate, config.AudioBufferSize);
                     m_AudioSystem.SetMasterVolume(1.0f);
                 });
             }
@@ -572,9 +578,9 @@ namespace YamaEngine.Core
             // 步骤 16: 初始化 PhysicsSystem
             InitSubsystem("PhysicsSystem", () =>
             {
-                m_PhysicsSystem = new PhysicsSystem(m_Config.PhysicsEngine);
-                m_PhysicsSystem.SetFixedTimestep(m_Config.PhysicsFixedTimestep);
-                m_PhysicsSystem.SetMaxSubSteps(m_Config.PhysicsMaxSubSteps);
+                m_PhysicsSystem = new PhysicsSystem(config.PhysicsEngine);
+                m_PhysicsSystem.SetFixedTimestep(config.PhysicsFixedTimestep);
+                m_PhysicsSystem.SetMaxSubSteps(config.PhysicsMaxSubSteps);
                 m_PhysicsSystem.Initialize();
             });
 
@@ -588,17 +594,17 @@ namespace YamaEngine.Core
             // 步骤 18: 初始化 UISystem
             InitSubsystem("UISystem", () =>
             {
-                m_UISystem = new UISystem(m_RHIDevice, m_RenderGraph);
-                m_UISystem.SetViewport(m_Config.WindowWidth, m_Config.WindowHeight);
+                m_UISystem = new UISystem(device, m_RenderGraph!);
+                m_UISystem.SetViewport(config.WindowWidth, config.WindowHeight);
             });
 
             // 步骤 19: 初始化 ScriptEngine (可选)
-            if (m_Config.ScriptBackend != ScriptBackend.None)
+            if (config.ScriptBackend != ScriptBackend.None)
             {
                 InitSubsystem("ScriptEngine", () =>
                 {
-                    m_ScriptEngine = new ScriptEngine(m_Config.ScriptBackend);
-                    m_ScriptEngine.HotReloadEnabled = m_Config.ScriptHotReload;
+                    m_ScriptEngine = new ScriptEngine(config.ScriptBackend);
+                    m_ScriptEngine.HotReloadEnabled = config.ScriptHotReload;
                     m_ScriptEngine.Initialize();
                     m_ScriptEngine.BindEngineAPIs(this);
                 });
@@ -633,7 +639,7 @@ namespace YamaEngine.Core
                 IsInitialized = false,
                 InitDuration = TimeSpan.Zero,
                 EstimatedMemoryUsage = 0,
-                ErrorMessage = null
+                ErrorMessage = default
             };
 
             var sw = Stopwatch.StartNew();
@@ -668,24 +674,25 @@ namespace YamaEngine.Core
         // --------------------------------------------------------------------
         private long EstimateSubsystemMemory(string name)
         {
+            var config = m_Config!;
             switch (name)
             {
                 case "RHIDevice":
                     return 0; // GPU内存，不由进程直接分配
                 case "SwapChain":
-                    return (long)m_Config.WindowWidth * m_Config.WindowHeight * 4 * 3; // 3个back buffer
+                    return (long)config.WindowWidth * config.WindowHeight * 4 * 3; // 3个back buffer
                 case "RenderGraph":
                     return 1024 * 1024; // 图结构本身约1MB
                 case "MicroCluster.Visibility":
-                    return m_Config.MicroClusterVisibilityBufferSize * 1024 * 1024;
+                    return config.MicroClusterVisibilityBufferSize * 1024 * 1024;
                 case "ProbeField.SurfaceCache":
-                    int w = Math.Max(1, (int)(m_Config.WindowWidth * m_Config.ProbeFieldSurfaceCacheScale));
-                    int h = Math.Max(1, (int)(m_Config.WindowHeight * m_Config.ProbeFieldSurfaceCacheScale));
+                    int w = Math.Max(1, (int)(config.WindowWidth * config.ProbeFieldSurfaceCacheScale));
+                    int h = Math.Max(1, (int)(config.WindowHeight * config.ProbeFieldSurfaceCacheScale));
                     return (long)w * h * 16; // 近似
                 case "MaterialLibrary":
                     return 4 * 1024 * 1024; // 基础约4MB
                 case "AudioSystem":
-                    return m_Config.AudioBufferSize * 4 * 8; // 8个缓冲区
+                    return config.AudioBufferSize * 4 * 8; // 8个缓冲区
                 case "PhysicsSystem":
                     return 8 * 1024 * 1024; // 约8MB
                 default:
@@ -760,7 +767,7 @@ namespace YamaEngine.Core
             Debug.WriteLine("[Bootstrap] 所有子系统已关闭");
         }
 
-        private void ShutdownRef<T>(ref T obj, string name) where T : class
+        private void ShutdownRef<T>(ref T obj, string name) where T : class?
         {
             if (obj != null)
             {
@@ -890,6 +897,7 @@ namespace YamaEngine.Core
         /// <returns>格式化的诊断信息字符串</returns>
         public string StartupDiagnostics()
         {
+            var config = m_Config!;
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("╔══════════════════════════════════════════════════════════════╗");
             sb.AppendLine("║          yama引擎 (YamaEngine) 启动诊断报告              ║");
@@ -898,19 +906,19 @@ namespace YamaEngine.Core
 
             // 引擎配置概要
             sb.AppendLine("【引擎配置】");
-            sb.AppendLine($"  图形API:        {m_Config.GraphicsAPI}");
-            sb.AppendLine($"  窗口分辨率:     {m_Config.WindowWidth} x {m_Config.WindowHeight}");
-            sb.AppendLine($"  全屏:           {m_Config.Fullscreen}");
-            var vsyncText = m_Config.VSyncMode == 0 ? "关闭" : m_Config.VSyncMode == 1 ? "半垂直同步" : "开启";
+            sb.AppendLine($"  图形API:        {config.GraphicsAPI}");
+            sb.AppendLine($"  窗口分辨率:     {config.WindowWidth} x {config.WindowHeight}");
+            sb.AppendLine($"  全屏:           {config.Fullscreen}");
+            var vsyncText = config.VSyncMode == 0 ? "关闭" : config.VSyncMode == 1 ? "半垂直同步" : "开启";
             sb.AppendLine($"  垂直同步:       {vsyncText}");
-            sb.AppendLine($"  MicroCluster:         {(m_Config.EnableMicroCluster ? "启用" : "禁用")}");
-            sb.AppendLine($"  ProbeField:          {(m_Config.EnableProbeField ? "启用" : "禁用")}");
-            sb.AppendLine($"  音频:           {(m_Config.EnableAudio ? "启用" : "禁用")}");
-            sb.AppendLine($"  物理引擎:       {m_Config.PhysicsEngine}");
-            sb.AppendLine($"  脚本后端:       {m_Config.ScriptBackend}");
-            sb.AppendLine($"  自适应画质:     {(m_Config.EnableAdaptiveQuality ? "启用" : "禁用")}");
-            sb.AppendLine($"  神经超分辨率:   {(m_Config.EnableNeuralSuperResolution ? "启用" : "禁用")}");
-            sb.AppendLine($"  调试层:         {(m_Config.EnableDebugLayer ? "启用" : "禁用")}");
+            sb.AppendLine($"  MicroCluster:         {(config.EnableMicroCluster ? "启用" : "禁用")}");
+            sb.AppendLine($"  ProbeField:          {(config.EnableProbeField ? "启用" : "禁用")}");
+            sb.AppendLine($"  音频:           {(config.EnableAudio ? "启用" : "禁用")}");
+            sb.AppendLine($"  物理引擎:       {config.PhysicsEngine}");
+            sb.AppendLine($"  脚本后端:       {config.ScriptBackend}");
+            sb.AppendLine($"  自适应画质:     {(config.EnableAdaptiveQuality ? "启用" : "禁用")}");
+            sb.AppendLine($"  神经超分辨率:   {(config.EnableNeuralSuperResolution ? "启用" : "禁用")}");
+            sb.AppendLine($"  调试层:         {(config.EnableDebugLayer ? "启用" : "禁用")}");
             sb.AppendLine();
 
             // GPU信息
@@ -955,17 +963,17 @@ namespace YamaEngine.Core
 
             // 性能建议
             sb.AppendLine("【性能建议】");
-            if (m_Config.EnableProbeField && !m_RHIDevice?.SupportsRayTracing == true)
+            if (config.EnableProbeField && !m_RHIDevice?.SupportsRayTracing == true)
                 sb.AppendLine("  ! ProbeField已启用但GPU不支持光线追踪，请考虑关闭ProbeField以提升性能");
-            if (m_Config.EnableMicroCluster && !m_RHIDevice?.SupportsMeshShader == true)
+            if (config.EnableMicroCluster && !m_RHIDevice?.SupportsMeshShader == true)
                 sb.AppendLine("  ! MicroCluster已启用但GPU不支持Mesh Shader，请考虑关闭MicroCluster");
-            if (m_Config.WindowWidth > 2560 || m_Config.WindowHeight > 1440)
+            if (config.WindowWidth > 2560 || config.WindowHeight > 1440)
                 sb.AppendLine("  * 高分辨率渲染建议启用超分辨率以维持帧率");
-            if (m_Config.PhysicsEngine == PhysicsEngineType.PhysX)
+            if (config.PhysicsEngine == PhysicsEngineType.PhysX)
                 sb.AppendLine("  * PhysX物理引擎需要额外安装PhysX运行时库");
-            if (m_Config.ScriptBackend == ScriptBackend.Python)
+            if (config.ScriptBackend == ScriptBackend.Python)
                 sb.AppendLine("  * Python脚本后端会增加启动时间，考虑使用Lua或IL后端以获得更好性能");
-            if (m_Config.EnableDebugLayer)
+            if (config.EnableDebugLayer)
                 sb.AppendLine("  * 调试层已启用，发布版本建议关闭以获得最佳性能");
             sb.AppendLine();
 
@@ -990,46 +998,46 @@ namespace YamaEngine.Core
         // ====================================================================
 
         /// <summary>获取RHI设备</summary>
-        public RHIDevice GetRHIDevice() => m_RHIDevice;
+        public RHIDevice? GetRHIDevice() => m_RHIDevice;
 
         /// <summary>获取交换链</summary>
-        public SwapChain GetSwapChain() => m_SwapChain;
+        public SwapChain? GetSwapChain() => m_SwapChain;
 
         /// <summary>获取渲染图</summary>
-        public RenderGraph GetRenderGraph() => m_RenderGraph;
+        public RenderGraph? GetRenderGraph() => m_RenderGraph;
 
         /// <summary>获取场景渲染器</summary>
-        public SceneRendererReal GetSceneRenderer() => m_SceneRenderer;
+        public SceneRendererReal? GetSceneRenderer() => m_SceneRenderer;
 
         /// <summary>获取世界渲染器</summary>
-        public WorldRenderer GetWorldRenderer() => m_WorldRenderer;
+        public WorldRenderer? GetWorldRenderer() => m_WorldRenderer;
 
         /// <summary>获取世界渲染管线</summary>
-        public WorldRenderPipeline GetWorldRenderPipeline() => m_WorldRenderPipeline;
+        public WorldRenderPipeline? GetWorldRenderPipeline() => m_WorldRenderPipeline;
 
         /// <summary>获取材质库</summary>
-        public MaterialLibrary GetMaterialLibrary() => m_MaterialLibrary;
+        public MaterialLibrary? GetMaterialLibrary() => m_MaterialLibrary;
 
         /// <summary>获取地形渲染器</summary>
-        public TerrainRenderer GetTerrainRenderer() => m_TerrainRenderer;
+        public TerrainRenderer? GetTerrainRenderer() => m_TerrainRenderer;
 
         /// <summary>获取音频系统</summary>
-        public AudioSystem GetAudioSystem() => m_AudioSystem;
+        public AudioSystem? GetAudioSystem() => m_AudioSystem;
 
         /// <summary>获取物理系统</summary>
-        public PhysicsSystem GetPhysicsSystem() => m_PhysicsSystem;
+        public PhysicsSystem? GetPhysicsSystem() => m_PhysicsSystem;
 
         /// <summary>获取输入系统</summary>
-        public InputSystem GetInputSystem() => m_InputSystem;
+        public InputSystem? GetInputSystem() => m_InputSystem;
 
         /// <summary>获取UI系统</summary>
-        public UISystem GetUISystem() => m_UISystem;
+        public UISystem? GetUISystem() => m_UISystem;
 
         /// <summary>获取脚本引擎</summary>
-        public ScriptEngine GetScriptEngine() => m_ScriptEngine;
+        public ScriptEngine? GetScriptEngine() => m_ScriptEngine;
 
         /// <summary>获取游戏实例</summary>
-        public GameInstance GetGameInstance() => m_GameInstance;
+        public GameInstance? GetGameInstance() => m_GameInstance;
 
         /// <summary>获取所有子系统信息</summary>
         public IReadOnlyList<SubsystemInfo> GetSubsystemInfos() => m_SubsystemInfos.AsReadOnly();

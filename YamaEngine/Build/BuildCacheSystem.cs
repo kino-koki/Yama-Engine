@@ -355,7 +355,11 @@ namespace YamaEngine.Build
 
                 SaveIndex();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // 缓存索引合并失败: 记录, 不影响构建主流程。
+                System.Diagnostics.Debug.WriteLine($"[BuildCache] 合并缓存索引失败: {ex.Message}");
+            }
         }
 
         // ── 内部方法 ──
@@ -376,7 +380,12 @@ namespace YamaEngine.Build
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // 索引损坏: 记录并清空重建 (不静默)。
+                System.Diagnostics.Debug.WriteLine($"[BuildCache] 加载缓存索引失败: {ex.Message}");
+                _entries.Clear();
+            }
         }
 
         private void SaveIndex()
@@ -389,7 +398,11 @@ namespace YamaEngine.Build
                         new JsonSerializerOptions { WriteIndented = true });
                     File.WriteAllText(_indexFilePath, json, Encoding.UTF8);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // 索引写入失败: 记录, 缓存索引丢失但不影响构建。
+                    System.Diagnostics.Debug.WriteLine($"[BuildCache] 保存缓存索引失败: {ex.Message}");
+                }
             }
         }
 

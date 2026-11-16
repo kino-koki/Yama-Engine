@@ -454,9 +454,10 @@ namespace YamaEngine.Editor
                 string backupPath = path + ".bak";
                 File.Copy(path, backupPath, overwrite: true);
             }
-            catch
+            catch (Exception ex)
             {
-                // 备份失败不应阻止保存
+                // 备份失败不应阻止保存: 记录以便排查。
+                System.Diagnostics.Debug.WriteLine($"[EditorScene] 创建备份 {path}.bak 失败: {ex.Message}");
             }
         }
 

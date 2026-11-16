@@ -32,7 +32,7 @@ namespace YamaEngine.RHI
         public readonly ulong Hash;
         public RHIPipelineStateKey(ulong hash) => Hash = hash;
         public bool Equals(RHIPipelineStateKey other) => Hash == other.Hash;
-        public override bool Equals(object obj) => obj is RHIPipelineStateKey k && Equals(k);
+        public override bool Equals(object? obj) => obj is RHIPipelineStateKey k && Equals(k);
         public override int GetHashCode() => (int)Hash;
         public static bool operator ==(RHIPipelineStateKey a, RHIPipelineStateKey b) => a.Hash == b.Hash;
         public static bool operator !=(RHIPipelineStateKey a, RHIPipelineStateKey b) => a.Hash != b.Hash;
@@ -64,16 +64,16 @@ namespace YamaEngine.RHI
     public class RHIPipelineStateDesc
     {
         // shaders
-        public RHIShader VertexShader;
-        public RHIShader PixelShader;
-        public RHIShader GeometryShader;
-        public RHIShader HullShader;
-        public RHIShader DomainShader;
-        public RHIShader MeshShader;
-        public RHIShader AmplificationShader;
+        public RHIShader? VertexShader;
+        public RHIShader? PixelShader;
+        public RHIShader? GeometryShader;
+        public RHIShader? HullShader;
+        public RHIShader? DomainShader;
+        public RHIShader? MeshShader;
+        public RHIShader? AmplificationShader;
 
         // input layout
-        public RHIInputElement[] InputElements;
+        public RHIInputElement[]? InputElements;
 
         // primitive topology
         public RHIPrimitiveTopology Topology = RHIPrimitiveTopology.TriangleList;
@@ -93,7 +93,7 @@ namespace YamaEngine.RHI
         // blend
         public bool AlphaToCoverageEnable = false;
         public bool IndependentBlendEnable = false;
-        public RHIRenderTargetBlend[] RenderTargetBlends;
+        public RHIRenderTargetBlend[]? RenderTargetBlends;
 
         // depth stencil
         public bool DepthEnable = true;
@@ -104,26 +104,26 @@ namespace YamaEngine.RHI
         public RHIStencilOpDesc BackFace;
 
         // render targets
-        public RHIFormat[] RTVFormats;
+        public RHIFormat[]? RTVFormats;
         public RHIFormat DSVFormat = RHIFormat.Unknown;
         public uint SampleCount = 1;
         public uint SampleMask = 0xFFFFFFFF;
 
         // misc
-        public RHIRootSignature RootSignature;
-        public string Name;
+        public RHIRootSignature? RootSignature;
+        public string? Name;
 
         // ── 高层兼容属性（渲染层以这些命名/类型构造描述；与上方字段语义一致）──
         /// <summary>光栅化状态（高层 RHIRasterizerState 兼容）。</summary>
-        public RHIRasterizerState RasterizerState;
+        public RHIRasterizerState? RasterizerState;
         /// <summary>深度模板状态（高层 RHIDepthStencilState 兼容）。</summary>
-        public RHIDepthStencilState DepthStencilState;
+        public RHIDepthStencilState? DepthStencilState;
         /// <summary>输入布局（高层 RHIInputLayoutDesc 兼容）。</summary>
-        public RHIInputLayoutDesc[] InputLayout;
+        public RHIInputLayoutDesc[]? InputLayout;
         /// <summary>渲染目标格式（高层 RHIPixelFormat 兼容）。</summary>
-        public RHIPixelFormat[] RenderTargetFormats;
+        public RHIPixelFormat[]? RenderTargetFormats;
         /// <summary>深度模板格式（高层 RHIPixelFormat 兼容）。</summary>
-        public RHIPixelFormat DepthStencilFormat;
+        public RHIPixelFormat? DepthStencilFormat;
         /// <summary>图元拓扑（底层命名兼容别名）。</summary>
         public RHIPrimitiveTopology PrimitiveTopology
         {
@@ -229,8 +229,8 @@ namespace YamaEngine.RHI
     internal sealed class PipelineStateEntry
     {
         public RHIPipelineStateKey Key;
-        public RHIPipeline Pipeline;
-        public RHIPipelineStateDesc Desc;
+        public RHIPipeline Pipeline = null!;
+        public RHIPipelineStateDesc Desc = null!;
         public DateTime CreatedAt;
         public long LastUsedFrame;
         public int UseCount;
@@ -310,7 +310,7 @@ namespace YamaEngine.RHI
                     return true;
                 }
             }
-            pipeline = null;
+            pipeline = null!;
             return false;
         }
 
@@ -411,7 +411,7 @@ namespace YamaEngine.RHI
                 DomainShader = desc.DomainShader,
                 MeshShader = desc.MeshShader,
                 AmplificationShader = desc.AmplificationShader,
-                InputElements = desc.InputElements,
+                InputElements = desc.InputElements!,
                 Topology = desc.Topology,
                 FillMode = desc.FillMode,
                 CullMode = desc.CullMode,
@@ -423,14 +423,14 @@ namespace YamaEngine.RHI
                 ConservativeRaster = desc.ConservativeRaster,
                 AlphaToCoverageEnable = desc.AlphaToCoverageEnable,
                 IndependentBlendEnable = desc.IndependentBlendEnable,
-                RenderTargetBlends = desc.RenderTargetBlends,
+                RenderTargetBlends = desc.RenderTargetBlends!,
                 DepthEnable = desc.DepthEnable,
                 DepthWriteEnable = desc.DepthWriteEnable,
                 DepthFunc = desc.DepthFunc,
                 StencilEnable = desc.StencilEnable,
                 FrontFace = desc.FrontFace,
                 BackFace = desc.BackFace,
-                RTVFormats = desc.RTVFormats,
+                RTVFormats = desc.RTVFormats!,
                 DSVFormat = desc.DSVFormat,
                 SampleCount = (int)desc.SampleCount,
                 SampleMask = (int)desc.SampleMask,

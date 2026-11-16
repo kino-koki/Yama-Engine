@@ -28,7 +28,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class AnimParameter
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public AnimParameterType Type { get; set; }
 
         public bool BoolValue { get; set; }
@@ -118,7 +118,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class TransitionCondition
     {
-        public string ParameterName { get; set; }
+        public string ParameterName { get; set; } = string.Empty;
         public ConditionOperator Operator { get; set; }
         public float ThresholdFloat { get; set; }
         public int ThresholdInt { get; set; }
@@ -266,7 +266,7 @@ namespace YamaEngine.Animation
         public bool TargetStartsFromZero { get; set; } = true;
 
         /// <summary>Custom keyframe curve for Curve transition type (time 0..1 → alpha 0..1).</summary>
-        public List<FloatKeyframe> CustomCurve { get; set; }
+        public List<FloatKeyframe>? CustomCurve { get; set; }
 
         /// <summary>Exit time condition: transition fires when source state reaches this normalized time (0..1). -1 = no exit time.</summary>
         public float ExitTime { get; set; } = -1f;
@@ -416,20 +416,20 @@ namespace YamaEngine.Animation
     public class AnimStateReal
     {
         public string Name { get; set; } = "State";
-        public BlendNode Node { get; set; }
+        public BlendNode? Node { get; set; }
         public List<AnimTransitionReal> Transitions { get; } = new List<AnimTransitionReal>();
         public List<AnimConduit> Conduits { get; } = new List<AnimConduit>();
 
         /// <summary>If set, this state is a nested state machine (for hierarchical FSMs).</summary>
-        public AnimStateMachineReal NestedStateMachine { get; set; }
+        public AnimStateMachineReal? NestedStateMachine { get; set; }
 
         /// <summary>Whether this state is a nested state machine.</summary>
         public bool IsNestedStateMachine => NestedStateMachine != null;
 
         // Event callbacks
-        public Action OnEnter { get; set; }
-        public Action OnExit { get; set; }
-        public Action<float> OnUpdate { get; set; }
+        public Action? OnEnter { get; set; }
+        public Action? OnExit { get; set; }
+        public Action<float>? OnUpdate { get; set; }
 
         /// <summary>Playback time within this state.</summary>
         public float CurrentTime { get; set; }
@@ -463,11 +463,11 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Evaluate the pose for this state.</summary>
-        public SkeletonPose Evaluate(BlendContext context)
+        public SkeletonPose? Evaluate(BlendContext context)
         {
             if (IsNestedStateMachine)
             {
-                NestedStateMachine.Tick(context.DeltaTime);
+                NestedStateMachine!.Tick(context.DeltaTime);
                 return NestedStateMachine.GetCurrentPose(context.Skeleton);
             }
 
@@ -538,9 +538,9 @@ namespace YamaEngine.Animation
     /// </summary>
     public class ParallelStateEntry
     {
-        public AnimStateReal State { get; set; }
+        public AnimStateReal? State { get; set; }
         public float Weight { get; set; } = 1f;
-        public BoneMask Mask { get; set; }
+        public BoneMask? Mask { get; set; }
     }
 
     // ========================================================================
@@ -563,7 +563,7 @@ namespace YamaEngine.Animation
         public int PreviousStateIndex { get; set; } = -1;
 
         /// <summary>The currently active transition (null if none).</summary>
-        public AnimTransitionReal CurrentTransition { get; private set; }
+        public AnimTransitionReal? CurrentTransition { get; private set; }
 
         /// <summary>Parallel states that run concurrently with the main state.</summary>
         public List<ParallelStateEntry> ParallelStates { get; } = new List<ParallelStateEntry>();
@@ -578,8 +578,8 @@ namespace YamaEngine.Animation
         private BlendContext _context = new BlendContext();
 
         /// <summary>Cached poses for source and target during transition.</summary>
-        private SkeletonPose _sourcePose;
-        private SkeletonPose _targetPose;
+        private SkeletonPose? _sourcePose;
+        private SkeletonPose? _targetPose;
 
         public AnimStateMachineReal() { }
 
@@ -602,7 +602,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get the current state, or null if not initialized.</summary>
-        public AnimStateReal GetCurrentState()
+        public AnimStateReal? GetCurrentState()
         {
             return (CurrentStateIndex >= 0 && CurrentStateIndex < States.Count)
                 ? States[CurrentStateIndex]
@@ -610,7 +610,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get the previous state, or null.</summary>
-        public AnimStateReal GetPreviousState()
+        public AnimStateReal? GetPreviousState()
         {
             return (PreviousStateIndex >= 0 && PreviousStateIndex < States.Count)
                 ? States[PreviousStateIndex]
@@ -683,7 +683,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get a parameter by name. Returns null if not found.</summary>
-        public AnimParameter GetParameter(string name)
+        public AnimParameter? GetParameter(string name)
         {
             return Parameters.TryGetValue(name, out var p) ? p : null;
         }
@@ -711,7 +711,7 @@ namespace YamaEngine.Animation
             {
                 state?.Reset();
                 state?.Exit();
-                state.CurrentTime = 0f;
+                if (state != null) state.CurrentTime = 0f;
             }
             CurrentTransition = null;
             _sourcePose = null;
@@ -750,7 +750,7 @@ namespace YamaEngine.Animation
 
             // Step 1: Advance current state's time (if not in transition, or if source keeps advancing)
             bool inTransition = CurrentTransition != null;
-            if (!inTransition || CurrentTransition.SourceKeepsAdvancing)
+            if (!inTransition || CurrentTransition!.SourceKeepsAdvancing)
             {
                 currentState.Advance(deltaTime);
             }
@@ -758,7 +758,7 @@ namespace YamaEngine.Animation
             // Step 2: Check for transition conditions (only if not already transitioning)
             if (!inTransition)
             {
-                AnimTransitionReal triggered = CheckTransitions(currentState);
+                AnimTransitionReal? triggered = CheckTransitions(currentState);
                 if (triggered != null)
                 {
                     StartTransition(triggered);
@@ -785,7 +785,7 @@ namespace YamaEngine.Animation
             // Step 5: Advance nested state machines
             if (currentState.IsNestedStateMachine)
             {
-                currentState.NestedStateMachine.Tick(deltaTime);
+                currentState.NestedStateMachine!.Tick(deltaTime);
             }
         }
 
@@ -797,7 +797,7 @@ namespace YamaEngine.Animation
         /// Check all transitions from the current state. Returns the first
         /// transition whose conditions are met, or null if none.
         /// </summary>
-        private AnimTransitionReal CheckTransitions(AnimStateReal currentState)
+        private AnimTransitionReal? CheckTransitions(AnimStateReal currentState)
         {
             // Check global conduits first
             foreach (var conduit in GlobalConduits)
@@ -951,7 +951,7 @@ namespace YamaEngine.Animation
         /// is the blended pose between source and target. Otherwise, it's the
         /// current state's pose.
         /// </summary>
-        public SkeletonPose GetCurrentPose(Skeleton skeleton)
+        public SkeletonPose? GetCurrentPose(Skeleton skeleton)
         {
             if (skeleton == null) return null;
 
@@ -972,7 +972,7 @@ namespace YamaEngine.Animation
                 // Apply parallel states if enabled
                 if (UseParallelStates && ParallelStates.Count > 0)
                 {
-                    blended = ApplyParallelStates(blended, skeleton);
+                    blended = ApplyParallelStates(blended, skeleton)!;
                 }
 
                 return blended;
@@ -987,10 +987,10 @@ namespace YamaEngine.Animation
             ctx.Skeleton = skeleton;
             ctx.CurrentTime = state.CurrentTime;
 
-            SkeletonPose pose = state.Evaluate(ctx);
+            SkeletonPose? pose = state.Evaluate(ctx);
 
             // Apply parallel states if enabled
-            if (UseParallelStates && ParallelStates.Count > 0)
+            if (UseParallelStates && ParallelStates.Count > 0 && pose != null)
             {
                 pose = ApplyParallelStates(pose, skeleton);
             }
@@ -999,7 +999,7 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Apply parallel states by blending their poses onto the base.</summary>
-        private SkeletonPose ApplyParallelStates(SkeletonPose basePose, Skeleton skeleton)
+        private SkeletonPose? ApplyParallelStates(SkeletonPose basePose, Skeleton skeleton)
         {
             if (basePose == null) return null;
             var result = basePose.Clone();
@@ -1013,7 +1013,7 @@ namespace YamaEngine.Animation
                 ctx.CurrentTime = ps.State.CurrentTime;
                 ctx.DeltaTime = 0f; // Already advanced in Tick
 
-                SkeletonPose psPose = ps.State.Evaluate(ctx);
+                SkeletonPose? psPose = ps.State.Evaluate(ctx);
                 if (psPose == null) continue;
 
                 float weight = Math.Clamp(ps.Weight, 0f, 1f);

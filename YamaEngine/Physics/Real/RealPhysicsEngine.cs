@@ -28,6 +28,9 @@ namespace YamaEngine.Physics.Real
         public int BodyCount => _rigidbodies.Count;
         public int ColliderCount => _colliders.Count;
         public int ConstraintCount => _constraints.Count;
+
+        // 诊断用：暴露当前步的接触列表（只读）。
+        public System.Collections.Generic.IReadOnlyList<Contact> Contacts => _contactManager.Contacts;
         
         public RealPhysicsEngine(PhysicsSettings settings)
         {
@@ -76,6 +79,11 @@ namespace YamaEngine.Physics.Real
             if (body != null)
             {
                 collider.AttachToBody(body);
+                // 碰撞体未显式指定材质时，继承所属刚体的材质。
+                // 否则 ContactManager.CalculateContactProperties 读到 null，
+                // 退回默认 mu=0.5，导致测试在 Rigidbody 上设置的静/动摩擦失效
+                // （见 PhysicsRealismTests.TestStaticFrictionHoldsBelowThreshold）。
+                collider.Material ??= body.Material;
             }
             
             _colliders.Add(collider);
@@ -158,9 +166,16 @@ namespace YamaEngine.Physics.Real
                     // Semi-Implicit Euler: 先更新速度，再预测位置
                     body.Velocity += (body.Force / body.Mass) * deltaTime;
                     body.AngularVelocity += Vector3.TransformNormal(body.Torque, body.InverseInertiaTensor) * deltaTime;
-                    
+
                     body.PredictedPosition = body.Position + body.Velocity * deltaTime;
                     body.PredictedRotation = QuaternionHelper.Integrate(body.Orientation, body.AngularVelocity, deltaTime);
+
+                    // 力已积分进速度，立即清零。ApplyForce/ApplyForces 都是累加语义，
+                    // 若留到 UpdatePositions 再清，则下一步 PredictPositions 会先把上一步
+                    // 残留的 Force 再积分一次（重力 + 用户力双倍累加），导致施加的水平力
+                    // 叠加超过 μmg，静摩擦失效（见 PhysicsRealismTests.TestStaticFrictionHoldsBelowThreshold）。
+                    body.Force = Vector3.Zero;
+                    body.Torque = Vector3.Zero;
                 }
                 else
                 {
@@ -174,7 +189,7 @@ namespace YamaEngine.Physics.Real
         {
             // 宽相位检测
             var potentialPairs = _broadPhase.FindPotentialCollisions(_colliders);
-            
+
             // 窄相位检测
             foreach (var pair in potentialPairs)
             {
@@ -193,19 +208,24 @@ namespace YamaEngine.Physics.Real
         {
             // 预热碰撞约束
             _contactManager.WarmStart(_solverIterations);
-            
+
             // 多次迭代求解约束
             for (int i = 0; i < _solverIterations; i++)
             {
                 // 求解碰撞约束
                 _contactManager.SolveContacts(deltaTime);
-                
+
                 // 求解用户约束
                 foreach (var constraint in _constraints)
                 {
                     constraint.Solve(deltaTime);
                 }
             }
+
+            // 注：Baumgarte bias 在 SolveSingleContact 内通过速度冲量直接做位置修正（原始方案）。
+            // split impulse（迭代外独立位置修正）实验再次失败：位置修正与一帧滞后的碰撞检测
+            // 冲突——修正把盒抬出接触（contacts=0），下帧法向无支撑被重力抛起，摩擦间歇失效。
+            // 见 ContactManager.SolveContacts 阶段 2 注释与 tools/NanRepro 诊断。
         }
 
         private void UpdatePositions(float deltaTime)
@@ -214,12 +234,22 @@ namespace YamaEngine.Physics.Real
             {
                 if (!body.IsStatic && !body.IsSleeping)
                 {
-                    body.Position = body.PredictedPosition;
-                    body.Orientation = body.PredictedRotation;
-                    
-                    // 清除累积的力
+                    // 用求解修正后的速度重新积分位置。
+                    // 旧实现直接写 PredictedPosition（在求解前由旧速度算出），
+                    // 且本步 ApplyForces 施加的重力从未被清零，下一步又被累加，
+                    // 导致：(1) 法向冲量永远落不到位置上 → 穿透持续下落；
+                    //      (2) 重力每步被双倍累加 → 提前接触、更早爆 NaN。
+                    body.Position += body.Velocity * deltaTime;
+                    body.Orientation = QuaternionHelper.Integrate(body.Orientation, body.AngularVelocity, deltaTime);
+
+                    // 清除累积的力（必须在本步积分完成后，避免下步重力双倍累加）
                     body.Force = Vector3.Zero;
                     body.Torque = Vector3.Zero;
+                }
+                else
+                {
+                    body.Position = body.PredictedPosition;
+                    body.Orientation = body.PredictedRotation;
                 }
             }
         }

@@ -930,13 +930,20 @@ namespace YamaEngine.Rendering
         /// <summary>每帧更新：收集、混合、写回。</summary>
         public void Update(float dt, EntityComponentSystem ecs)
         {
-            if (ecs == null) return;
-
-            // 1. 确定摄像机位置
-            Vector3 camPos = _cameraPosition;
-            if (!_cameraPositionValid)
+            // 1. 确定摄像机位置：优先用显式注入的位置；否则需要 ecs 解析主摄像机
+            Vector3 camPos;
+            if (_cameraPositionValid)
+            {
+                camPos = _cameraPosition;
+            }
+            else if (ecs != null)
             {
                 camPos = ResolveMainCameraPosition(ecs);
+            }
+            else
+            {
+                // 没有注入摄像机、也没有 ecs 可查：无摄像机语境，跳过混合
+                return;
             }
 
             // 2. 清空并重建当前帧激活列表
@@ -951,32 +958,35 @@ namespace YamaEngine.Rendering
             }
 
             // 2b. 实体挂载的体积
-            var entities = ecs.QueryWithComponents<TransformComponent, PostProcessVolumeComponent>();
-            foreach (var entityId in entities)
+            if (ecs != null)
             {
-                var comp = ecs.GetComponent<PostProcessVolumeComponent>(entityId);
-                if (!comp.Enabled || comp.Volume == null) continue;
-                var vol = comp.Volume;
-                if (!vol.IsEnabled) continue;
-
-                // 从实体变换同步中心/朝向
-                if (comp.SyncFromTransform)
+                var entities = ecs.QueryWithComponents<TransformComponent, PostProcessVolumeComponent>();
+                foreach (var entityId in entities)
                 {
-                    var tf = ecs.GetComponent<TransformComponent>(entityId);
-                    vol.Center = tf.Position;
-                    vol.Orientation = tf.Rotation;
-                    // 可选：用缩放放大盒体半尺寸（仅当形状为 Box 时）
-                    if (vol.Shape == VolumeShape.Box)
-                    {
-                        vol.HalfExtents = new Vector3(
-                            Math.Abs(tf.Scale.X) * vol.HalfExtents.X,
-                            Math.Abs(tf.Scale.Y) * vol.HalfExtents.Y,
-                            Math.Abs(tf.Scale.Z) * vol.HalfExtents.Z);
-                    }
-                }
+                    var comp = ecs.GetComponent<PostProcessVolumeComponent>(entityId);
+                    if (!comp.Enabled || comp.Volume == null) continue;
+                    var vol = comp.Volume;
+                    if (!vol.IsEnabled) continue;
 
-                float w = vol.ComputeWeight(camPos) * Math.Clamp(comp.WeightScale, 0.0f, 1.0f);
-                if (w > 0.0f) _frameStack.Add(vol, w);
+                    // 从实体变换同步中心/朝向
+                    if (comp.SyncFromTransform)
+                    {
+                        var tf = ecs.GetComponent<TransformComponent>(entityId);
+                        vol.Center = tf.Position;
+                        vol.Orientation = tf.Rotation;
+                        // 可选：用缩放放大盒体半尺寸（仅当形状为 Box 时）
+                        if (vol.Shape == VolumeShape.Box)
+                        {
+                            vol.HalfExtents = new Vector3(
+                                Math.Abs(tf.Scale.X) * vol.HalfExtents.X,
+                                Math.Abs(tf.Scale.Y) * vol.HalfExtents.Y,
+                                Math.Abs(tf.Scale.Z) * vol.HalfExtents.Z);
+                        }
+                    }
+
+                    float w = vol.ComputeWeight(camPos) * Math.Clamp(comp.WeightScale, 0.0f, 1.0f);
+                    if (w > 0.0f) _frameStack.Add(vol, w);
+                }
             }
 
             // 3. 混合并写回后处理栈

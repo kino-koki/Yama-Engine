@@ -90,13 +90,13 @@ namespace YamaEngine.GameFramework
         public float WaveTimer { get; set; }
 
         /// <summary>波次开始事件。(波次编号, 敌人数)</summary>
-        public event Action<int, int> OnWaveStarted;
+        public event Action<int, int>? OnWaveStarted;
 
         /// <summary>波次完成事件。(波次编号)</summary>
-        public event Action<int> OnWaveCompleted;
+        public event Action<int>? OnWaveCompleted;
 
         /// <summary>所有波次完成事件。</summary>
-        public event Action OnAllWavesCompleted;
+        public event Action? OnAllWavesCompleted;
 
         /// <summary>添加波次配置。</summary>
         public void AddWave(WaveConfig config)
@@ -105,7 +105,7 @@ namespace YamaEngine.GameFramework
         }
 
         /// <summary>开始下一波。</summary>
-        public WaveConfig StartNextWave()
+        public WaveConfig? StartNextWave()
         {
             if (CurrentWaveIndex + 1 >= Waves.Count)
             {
@@ -144,7 +144,7 @@ namespace YamaEngine.GameFramework
         }
 
         /// <summary>获取当前波次配置。</summary>
-        public WaveConfig GetCurrentWave()
+        public WaveConfig? GetCurrentWave()
         {
             return CurrentWaveIndex >= 0 && CurrentWaveIndex < Waves.Count
                 ? Waves[CurrentWaveIndex] : null;
@@ -179,7 +179,7 @@ namespace YamaEngine.GameFramework
         // ── 单例 ──────────────────────────────────────────────────────────
 
         /// <summary>全局 GameMode 实例。</summary>
-        public static GameMode Instance { get; internal set; }
+        public static GameMode? Instance { get; internal set; }
 
         // ── 类型引用 (默认类) ────────────────────────────────────────────
 
@@ -193,16 +193,16 @@ namespace YamaEngine.GameFramework
         public Type DefaultGameStateType { get; set; } = typeof(GameState);
 
         /// <summary>默认 HUD 类。</summary>
-        public Type DefaultHUDType { get; set; }
+        public Type? DefaultHUDType { get; set; }
 
         /// <summary>默认 PlayerState 类。</summary>
-        public Type DefaultPlayerStateType { get; set; }
+        public Type? DefaultPlayerStateType { get; set; }
 
         /// <summary>默认 AI Controller 类。</summary>
-        public Type DefaultAIControllerType { get; set; } = typeof(AIController);
+        public Type? DefaultAIControllerType { get; set; } = typeof(AIController);
 
         /// <summary>默认 Pawn 工厂委托 (可用于自定义默认 Pawn 的创建)。</summary>
-        public Func<Pawn> DefaultPawnFactory { get; set; }
+        public Func<Pawn>? DefaultPawnFactory { get; set; }
 
         // ── 匹配状态 ──────────────────────────────────────────────────────
 
@@ -210,7 +210,7 @@ namespace YamaEngine.GameFramework
         public MatchState CurrentMatchState { get; private set; } = MatchState.Waiting;
 
         /// <summary>匹配状态变化事件。</summary>
-        public event Action<MatchState, MatchState> OnMatchStateChanged;
+        public event Action<MatchState, MatchState>? OnMatchStateChanged;
 
         // ── 游戏结果 ──────────────────────────────────────────────────────
 
@@ -224,10 +224,10 @@ namespace YamaEngine.GameFramework
         public bool MatchHasEnded => CurrentMatchState == MatchState.Ended;
 
         /// <summary>胜利条件委托。</summary>
-        public Func<bool> WinCondition { get; set; }
+        public Func<bool>? WinCondition { get; set; }
 
         /// <summary>失败条件委托。</summary>
-        public Func<bool> LoseCondition { get; set; }
+        public Func<bool>? LoseCondition { get; set; }
 
         /// <summary>计时器 (秒)。</summary>
         public float GameTimer { get; set; }
@@ -248,7 +248,7 @@ namespace YamaEngine.GameFramework
         // ── 引用 ──────────────────────────────────────────────────────────
 
         /// <summary>当前 GameState (由 GameMode 创建)。</summary>
-        public GameState GameState { get; private set; }
+        public GameState? GameState { get; private set; }
 
         /// <summary>所有 PlayerStart 出生点。</summary>
         public readonly List<PlayerStart> PlayerStarts = new List<PlayerStart>();
@@ -257,7 +257,7 @@ namespace YamaEngine.GameFramework
         public readonly Dictionary<string, Pawn> PlayerPawns = new Dictionary<string, Pawn>();
 
         /// <summary>HUD 引用 (如实现)。</summary>
-        public Actor HUD { get; set; }
+        public Actor? HUD { get; set; }
 
         // ── 模式配置 (供具体模式派生类使用) ───────────────────────────────
 
@@ -303,16 +303,16 @@ namespace YamaEngine.GameFramework
         // ── 事件 ──────────────────────────────────────────────────────────
 
         /// <summary>玩家登录事件。(PlayerController)</summary>
-        public event Action<PlayerController> OnPlayerLoggedIn;
+        public event Action<PlayerController>? OnPlayerLoggedIn;
 
         /// <summary>玩家登出事件。(PlayerController)</summary>
-        public event Action<PlayerController> OnPlayerLoggedOut;
+        public event Action<PlayerController>? OnPlayerLoggedOut;
 
         /// <summary>游戏胜利事件。</summary>
-        public event Action OnGameVictory;
+        public event Action? OnGameVictory;
 
         /// <summary>游戏失败事件。</summary>
-        public event Action OnGameDefeat;
+        public event Action? OnGameDefeat;
 
         // ════════════════════════════════════════════════════════════════════
         // 生命周期
@@ -365,7 +365,7 @@ namespace YamaEngine.GameFramework
         {
             base.OnEndPlay();
             EndMatch("World shutting down");
-            Instance = Instance == this ? null : Instance;
+            if (Instance == this) Instance = null;
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -463,7 +463,7 @@ namespace YamaEngine.GameFramework
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>预登录检查 (可用于踢人/IP 限制等)。返回 null 表示允许, 字符串为拒绝原因。</summary>
-        public virtual string PreLogin(string connection)
+        public virtual string? PreLogin(string connection)
         {
             // 可在这里做 IP 过滤、人数限制等
             if (GameState != null && GameState.PlayerCount >= 4)
@@ -472,9 +472,9 @@ namespace YamaEngine.GameFramework
         }
 
         /// <summary>玩家登录。创建并初始化 PlayerController。</summary>
-        public virtual PlayerController Login(string playerId, string playerName = null)
+        public virtual PlayerController? Login(string playerId, string? playerName = null)
         {
-            string rejectReason = PreLogin(playerId);
+            string? rejectReason = PreLogin(playerId);
             if (rejectReason != null)
             {
                 System.Diagnostics.Debug.WriteLine($"Login rejected for {playerId}: {rejectReason}");
@@ -482,7 +482,7 @@ namespace YamaEngine.GameFramework
             }
 
             // 创建 PlayerController
-            PlayerController controller = Activator.CreateInstance(DefaultPlayerControllerType) as PlayerController;
+            PlayerController? controller = Activator.CreateInstance(DefaultPlayerControllerType) as PlayerController;
             if (controller == null)
             {
                 controller = new PlayerController();
@@ -544,17 +544,17 @@ namespace YamaEngine.GameFramework
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>为 Controller 生成默认 Pawn。</summary>
-        public virtual Pawn SpawnDefaultPawnFor(PlayerController controller)
+        public virtual Pawn? SpawnDefaultPawnFor(PlayerController controller)
         {
             if (controller == null) return null;
 
             // 选择出生点
-            PlayerStart start = ChoosePlayerStart(controller);
+            PlayerStart? start = ChoosePlayerStart(controller);
             Vector3 spawnLocation = start?.GetSpawnLocation() ?? Vector3.Zero;
             Quaternion spawnRotation = start?.GetSpawnRotation() ?? Quaternion.Identity;
 
             // 创建 Pawn
-            Pawn pawn = Activator.CreateInstance(DefaultPawnType) as Pawn;
+            Pawn? pawn = Activator.CreateInstance(DefaultPawnType) as Pawn;
             if (pawn == null) return null;
 
             pawn.Name = $"{controller.PlayerName}_Pawn";
@@ -592,7 +592,7 @@ namespace YamaEngine.GameFramework
             }
 
             // 选择出生点
-            PlayerStart start = ChoosePlayerStart(controller);
+            PlayerStart? start = ChoosePlayerStart(controller);
 
             // 创建新 Pawn
             SpawnDefaultPawnFor(controller);
@@ -609,13 +609,12 @@ namespace YamaEngine.GameFramework
             {
                 controller.PossessedPawn.Position = start.GetSpawnLocation();
                 controller.PossessedPawn.Rotation = start.GetSpawnRotation();
+                start.Claim(controller.PlayerName, controller.PossessedPawn);
             }
-
-            start.Claim(controller.PlayerName, controller.PossessedPawn);
         }
 
         /// <summary>选择最佳 PlayerStart (基于优先级/未占用/标签)。</summary>
-        public virtual PlayerStart ChoosePlayerStart(PlayerController controller)
+        public virtual PlayerStart? ChoosePlayerStart(PlayerController controller)
         {
             if (PlayerStarts.Count == 0) return null;
 
@@ -645,8 +644,9 @@ namespace YamaEngine.GameFramework
                 if (WaveManager.WaveTimer <= 0f)
                 {
                     WaveManager.StartNextWave();
-                    if (WaveManager.GetCurrentWave() != null)
-                        OnWaveStarted(WaveManager.GetCurrentWave());
+                    var currentWave = WaveManager.GetCurrentWave();
+                    if (currentWave != null)
+                        OnWaveStarted(currentWave);
                 }
             }
         }

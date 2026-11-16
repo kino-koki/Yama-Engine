@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using YamaEngine.UI;
 
 namespace YamaEngine.VisualScript
 {
@@ -397,6 +398,15 @@ namespace YamaEngine.VisualScript
         /// <summary>节点自定义数据（扩展用，JSON 存储）。</summary>
         public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
 
+        /// <summary>所属图引用（运行时设置，不参与序列化）。</summary>
+        [JsonIgnore]
+        public NodeGraph? OwnerGraph { get; internal set; }
+
+        /// <summary>当前激活的执行输出引脚（分支/门控节点在 Execute 时选定）。
+        /// null = 未约束（默认激活全部执行输出）；空列表 = 不激活任何执行输出。</summary>
+        [JsonIgnore]
+        internal List<Guid>? ActiveExecPinIds { get; set; }
+
         /// <summary>节点创建时间戳。</summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -479,7 +489,343 @@ namespace YamaEngine.VisualScript
         /// </summary>
         public virtual void Execute(Dictionary<Guid, object?> context)
         {
-            // 默认空实现
+            var graph = OwnerGraph;
+            if (graph == null) return;
+
+            // 重置执行输出约束（null = 默认激活全部执行输出）
+            ActiveExecPinIds = null;
+
+            switch (NodeType)
+            {
+                // ── 纯数据节点：复用 NodeScriptNodeExecutor 求值 ──
+                case "Add":
+                case "Subtract":
+                case "Multiply":
+                case "Divide":
+                case "Modulo":
+                case "Power":
+                case "Sqrt":
+                case "Abs":
+                case "Negate":
+                case "Sign":
+                case "Sin":
+                case "Cos":
+                case "Tan":
+                case "Atan2":
+                case "Round":
+                case "Ceil":
+                case "Floor":
+                case "Fract":
+                case "Min":
+                case "Max":
+                case "Clamp":
+                case "Lerp":
+                case "InverseLerp":
+                case "MapRange":
+                case "Vector3Add":
+                case "Vector3Subtract":
+                case "Vector3Scale":
+                case "Vector3Lerp":
+                case "CrossProduct":
+                case "DotProduct":
+                case "Normalize":
+                case "Vector3Length":
+                case "Vector3Distance":
+                case "BreakVector3":
+                case "MakeVector3":
+                case "AND":
+                case "OR":
+                case "NOT":
+                case "XOR":
+                case "NAND":
+                case "NOR":
+                case "Equal":
+                case "NotEqual":
+                case "Greater":
+                case "Less":
+                case "GreaterEqual":
+                case "LessEqual":
+                case "ApproxEqual":
+                case "StringEqual":
+                case "NameEqual":
+                case "EnumEqual":
+                case "Select":
+                case "ToFloat":
+                case "ToInt":
+                case "ToBool":
+                case "ToString":
+                case "ToColor":
+                case "ToVector3":
+                case "ToRotator":
+                case "ToQuaternion":
+                    EvaluatePure(graph);
+                    break;
+
+                // ── 图变量读取 ──
+                case "GetVariable":
+                {
+                    var name = Metadata.GetValueOrDefault("VariableName", "var");
+                    var value = graph.GetVariableValue(name);
+                    SetOutput(graph, "Value", value);
+                    break;
+                }
+
+                // ── 图变量写入 ──
+                case "SetVariable":
+                {
+                    var name = Metadata.GetValueOrDefault("VariableName", "var");
+                    var value = GetInputValue("Value", graph, context);
+                    graph.SetVariableValue(name, value);
+                    SetOutput(graph, "Output", value);
+                    break;
+                }
+
+                // ── 条件分支 ──
+                case "Branch":
+                {
+                    var cond = ToBool(GetInputValue("Condition", graph, context));
+                    ActiveExecPinIds = new List<Guid>();
+                    var chosen = cond ? GetOutputPin("True") : GetOutputPin("False");
+                    if (chosen != null) ActiveExecPinIds.Add(chosen.Id);
+                    break;
+                }
+
+                // ── 字符串打印 ──
+                case "PrintString":
+                {
+                    var text = ToString(GetInputValue("String", graph, context));
+                    graph.RuntimeLog.Add(text);
+                    SetOutput(graph, "Then", null);
+                    break;
+                }
+
+                // ── DoOnce ──
+                case "DoOnce":
+                {
+                    ActiveExecPinIds = new List<Guid>();
+                    var wasFired = graph.RuntimeFired.Contains(Id);
+                    SetOutput(graph, "IsFirst", !wasFired);
+                    if (!wasFired)
+                    {
+                        graph.RuntimeFired.Add(Id);
+                        var exec = GetOutputPin("Exec");
+                        if (exec != null) ActiveExecPinIds.Add(exec.Id);
+                    }
+                    break;
+                }
+
+                // ── DoN ──
+                case "DoN":
+                {
+                    ActiveExecPinIds = new List<Guid>();
+                    var n = ToInt(GetInputValue("N", graph, context), 1);
+                    var counter = graph.RuntimeCounters.GetValueOrDefault(Id, 0);
+                    SetOutput(graph, "Counter", counter);
+                    if (counter < n)
+                    {
+                        graph.RuntimeCounters[Id] = counter + 1;
+                        var exec = GetOutputPin("Exec");
+                        if (exec != null) ActiveExecPinIds.Add(exec.Id);
+                    }
+                    break;
+                }
+
+                // ── FlipFlop ──
+                case "FlipFlop":
+                {
+                    ActiveExecPinIds = new List<Guid>();
+                    var flip = graph.RuntimeCounters.GetValueOrDefault(Id, 0) % 2 == 0;
+                    graph.RuntimeCounters[Id] = graph.RuntimeCounters.GetValueOrDefault(Id, 0) + 1;
+                    SetOutput(graph, "Is A", flip);
+                    var pin = flip ? GetOutputPin("A") : GetOutputPin("B");
+                    if (pin != null) ActiveExecPinIds.Add(pin.Id);
+                    break;
+                }
+
+                // ── Sequence：顺序执行全部 Then 输出 ──
+                case "Sequence":
+                {
+                    ActiveExecPinIds = new List<Guid>();
+                    foreach (var pin in OutputPins.Where(p => p.DataType == GraphPinDataType.Exec))
+                        ActiveExecPinIds.Add(pin.Id);
+                    break;
+                }
+
+                // ── 延迟：确定性执行，立即穿过 ──
+                case "Delay":
+                {
+                    ActiveExecPinIds = new List<Guid>();
+                    var pin = GetOutputPin("Then") ?? GetOutputPin("Exec");
+                    if (pin != null) ActiveExecPinIds.Add(pin.Id);
+                    break;
+                }
+
+                // ── 其余节点：默认激活全部执行输出（ActiveExecPinIds 保持 null） ──
+                case "EventBeginPlay":
+                case "EventTick":
+                case "CustomEvent":
+                case "TimerEvent":
+                case "GetKeyEvent":
+                case "Continue":
+                case "ForLoop":
+                case "WhileLoop":
+                case "DoWhile":
+                case "ForEachLoop":
+                case "MultiGate":
+                case "Gate":
+                case "CallFunction":
+                case "Function":
+                case "SpawnActor":
+                case "DestroyActor":
+                case "ApplyDamage":
+                case "SetActorLocation":
+                case "SetActorRotation":
+                case "SetTimer":
+                case "SetGameState":
+                case "SetMember":
+                case "ArrayAdd":
+                case "ArrayRemove":
+                case "ArrayMap":
+                case "ArrayFilter":
+                case "ArraySort":
+                case "ArrayFind":
+                case "Break":
+                case "BreakArray":
+                case "BreakTransform":
+                case "Demux":
+                case "Multiplexer":
+                case "Switch_Enum":
+                case "Switch_Int":
+                case "Switch_Name":
+                case "Switch_String":
+                default:
+                {
+                    // 默认激活所有执行输出引脚（沿执行流继续）；ActiveExecPinIds 已为 null
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 内部执行包装：标记求值状态以防止递归环。
+        /// </summary>
+        internal void RunExecute(Dictionary<Guid, object?> context)
+        {
+            var graph = OwnerGraph;
+            if (graph == null)
+            {
+                Execute(context);
+                return;
+            }
+            if (graph.RuntimeEvaluating.Contains(Id)) return;
+            graph.RuntimeEvaluating.Add(Id);
+            try { Execute(context); }
+            finally { graph.RuntimeEvaluating.Remove(Id); }
+        }
+
+        /// <summary>
+        /// 获取节点当前应激活的执行输出引脚（默认全部执行输出）。
+        /// <para>Branch/DoOnce/DoN/FlipFlop 等节点在 Execute 时选定具体引脚。</para>
+        /// </summary>
+        public IEnumerable<GraphPin> GetActiveExecOutputs()
+        {
+            var execPins = OutputPins.Where(p => p.DataType == GraphPinDataType.Exec).ToList();
+            if (ActiveExecPinIds == null) return execPins;
+            return execPins.Where(p => ActiveExecPinIds.Contains(p.Id));
+        }
+
+        /// <summary>
+        /// 读取输入引脚的值：优先沿连接解析源节点输出，其次使用默认值，最后回退到外部上下文。
+        /// </summary>
+        public object? GetInputValue(string pinName, NodeGraph? graph, Dictionary<Guid, object?> context)
+        {
+            graph ??= OwnerGraph;
+            var pin = GetInputPin(pinName);
+            if (pin == null || graph == null) return null;
+
+            // 沿连接解析源输出值（纯节点若尚未求值则先求值）
+            foreach (var connId in pin.ConnectionIds)
+            {
+                var conn = graph.GetConnection(connId);
+                if (conn == null) continue;
+                var srcNode = graph.GetNode(conn.SourceNodeId);
+                var srcPin = srcNode?.GetPin(conn.SourcePinId);
+                if (srcNode == null || srcPin == null) continue;
+
+                if (!graph.RuntimePinValues.ContainsKey(srcPin.Id))
+                {
+                    srcNode.OwnerGraph = graph;
+                    srcNode.RunExecute(context);
+                }
+                var srcValue = graph.GetPinValue(srcPin.Id);
+                if (srcValue != null) return srcValue;
+            }
+
+            // 默认值
+            if (!string.IsNullOrEmpty(pin.DefaultValue))
+                return NodeGraph.ParseDefaultValue(pin.DefaultValue, pin.DataType);
+
+            // 外部上下文（按引脚 ID 或节点 ID）
+            if (context != null)
+            {
+                if (context.TryGetValue(pin.Id, out var byPin)) return byPin;
+                if (context.TryGetValue(Id, out var byNode)) return byNode;
+            }
+            return null;
+        }
+
+        /// <summary>写入输出引脚值到图运行时缓存。</summary>
+        public void SetOutput(NodeGraph graph, string pinName, object? value)
+        {
+            var pin = GetOutputPin(pinName);
+            if (pin != null) graph.SetPinValue(pin.Id, value);
+        }
+
+        private void EvaluatePure(NodeGraph graph)
+        {
+            var inputs = new Dictionary<string, object?>();
+            foreach (var pin in InputPins.Where(p => p.DataType != GraphPinDataType.Exec))
+            {
+                inputs[pin.Name] = GetInputValue(pin.Name, graph, null);
+            }
+            var outputs = NodeScriptNodeExecutor.Evaluate(this, inputs);
+            foreach (var kvp in outputs)
+            {
+                SetOutput(graph, kvp.Key, kvp.Value);
+            }
+        }
+
+        // 类型转换辅助（运行时容错）
+        private static float ToFloat(object? value, float fallback = 0f)
+        {
+            if (value == null) return fallback;
+            try { return Convert.ToSingle(value); }
+            catch { return fallback; }
+        }
+
+        private static int ToInt(object? value, int fallback = 0)
+        {
+            if (value == null) return fallback;
+            try { return Convert.ToInt32(value); }
+            catch { return fallback; }
+        }
+
+        private static bool ToBool(object? value, bool fallback = false)
+        {
+            if (value == null) return fallback;
+            try { return Convert.ToBoolean(value); }
+            catch
+            {
+                return value is string s
+                    ? (s.Equals("true", StringComparison.OrdinalIgnoreCase) || s == "1")
+                    : fallback;
+            }
+        }
+
+        private static string ToString(object? value)
+        {
+            if (value == null) return string.Empty;
+            return value is string s ? s : value.ToString() ?? string.Empty;
         }
 
         /// <summary>
@@ -880,11 +1226,147 @@ namespace YamaEngine.VisualScript
         /// <summary>图的自定义元数据。</summary>
         public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
 
+        // ───── 运行时状态（不参与序列化） ─────
+
+        /// <summary>运行时引脚值缓存（pinId → value）。</summary>
+        [JsonIgnore]
+        public Dictionary<Guid, object?> RuntimePinValues { get; } = new Dictionary<Guid, object?>();
+
+        /// <summary>运行时图变量值缓存（variableId → value）。</summary>
+        [JsonIgnore]
+        public Dictionary<Guid, object?> RuntimeVariableValues { get; } = new Dictionary<Guid, object?>();
+
+        /// <summary>运行时输出日志（PrintString 捕获）。</summary>
+        [JsonIgnore]
+        public List<string> RuntimeLog { get; } = new List<string>();
+
+        /// <summary>正在求值的节点集合（防递归环）。</summary>
+        [JsonIgnore]
+        internal HashSet<Guid> RuntimeEvaluating { get; } = new HashSet<Guid>();
+
+        /// <summary>已触发过的节点（DoOnce/DoN 状态）。</summary>
+        [JsonIgnore]
+        internal HashSet<Guid> RuntimeFired { get; } = new HashSet<Guid>();
+
+        /// <summary>节点计数器（DoN/ForLoop 状态）。</summary>
+        [JsonIgnore]
+        internal Dictionary<Guid, int> RuntimeCounters { get; } = new Dictionary<Guid, int>();
+
+        /// <summary>运行时帧索引。</summary>
+        [JsonIgnore]
+        public int RuntimeFrame { get; set; }
+
+        /// <summary>清空所有运行时状态（值缓存、日志、计数、触发标记）。</summary>
+        public void ResetRuntime()
+        {
+            RuntimePinValues.Clear();
+            RuntimeVariableValues.Clear();
+            RuntimeLog.Clear();
+            RuntimeEvaluating.Clear();
+            RuntimeFired.Clear();
+            RuntimeCounters.Clear();
+            RuntimeFrame = 0;
+        }
+
+        /// <summary>读取引脚运行时值。</summary>
+        public object? GetPinValue(Guid pinId)
+        {
+            return RuntimePinValues.TryGetValue(pinId, out var v) ? v : null;
+        }
+
+        /// <summary>写入引脚运行时值。</summary>
+        public void SetPinValue(Guid pinId, object? value)
+        {
+            RuntimePinValues[pinId] = value;
+        }
+
+        /// <summary>读取图变量当前值（未写入时回退到变量默认值）。</summary>
+        public object? GetVariableValue(string name)
+        {
+            var variable = GetVariable(name);
+            if (variable == null) return null;
+            if (RuntimeVariableValues.TryGetValue(variable.Id, out var v)) return v;
+            if (!string.IsNullOrEmpty(variable.DefaultValue))
+                return ParseDefaultValue(variable.DefaultValue, variable.DataType);
+            return null;
+        }
+
+        /// <summary>写入图变量当前值。</summary>
+        public void SetVariableValue(string name, object? value)
+        {
+            var variable = GetVariable(name);
+            if (variable == null) return;
+            RuntimeVariableValues[variable.Id] = value;
+        }
+
+        /// <summary>将引脚默认值字符串解析为强类型值。</summary>
+        public static object? ParseDefaultValue(string? text, GraphPinDataType type)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            switch (type)
+            {
+                case GraphPinDataType.Bool:
+                    if (bool.TryParse(text, out var b)) return b;
+                    return text == "1" || text.Equals("true", StringComparison.OrdinalIgnoreCase);
+                case GraphPinDataType.Int:
+                case GraphPinDataType.Byte:
+                    return int.TryParse(text, out var i) ? i : 0;
+                case GraphPinDataType.Float:
+                    return float.TryParse(text, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 0f;
+                case GraphPinDataType.Double:
+                    return double.TryParse(text, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0.0;
+                case GraphPinDataType.String:
+                case GraphPinDataType.Name:
+                    return text;
+                case GraphPinDataType.Vector3:
+                    return ParseVector3(text);
+                case GraphPinDataType.Vector2:
+                    return ParseVector2(text);
+                case GraphPinDataType.Color:
+                    return ParseColor(text);
+                default:
+                    return text;
+            }
+        }
+
+        private static Vector3 ParseVector3(string text)
+        {
+            var parts = text.Trim('(', ')', ' ', '[', ']').Split(',');
+            float[] v = { 0, 0, 0 };
+            for (int i = 0; i < Math.Min(3, parts.Length); i++)
+                v[i] = float.TryParse(parts[i].Trim(), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 0f;
+            return new Vector3(v[0], v[1], v[2]);
+        }
+
+        private static Vector2 ParseVector2(string text)
+        {
+            var parts = text.Trim('(', ')', ' ', '[', ']').Split(',');
+            float x = parts.Length > 0 && float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var fx) ? fx : 0f;
+            float y = parts.Length > 1 && float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var fy) ? fy : 0f;
+            return new Vector2(x, y);
+        }
+
+        private static Color ParseColor(string text)
+        {
+            var parts = text.Trim('(', ')', ' ', '[', ']').Split(',');
+            float[] c = { 1, 1, 1, 1 };
+            for (int i = 0; i < Math.Min(4, parts.Length); i++)
+                c[i] = float.TryParse(parts[i].Trim(), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 1f;
+            return new Color(c[0], c[1], c[2], c[3]);
+        }
+
         // ───── 节点操作 ─────
 
         /// <summary>添加节点到图中。</summary>
         public GraphNode AddNode(GraphNode node)
         {
+            node.OwnerGraph = this;
             Nodes.Add(node);
             return node;
         }
@@ -1073,7 +1555,8 @@ namespace YamaEngine.VisualScript
             {
                 if (node.IsEnabled && node.IsCompilable)
                 {
-                    node.Execute(context);
+                    node.OwnerGraph = this;
+                    node.RunExecute(context);
                 }
             }
         }
@@ -1108,10 +1591,11 @@ namespace YamaEngine.VisualScript
                     continue;
 
                 visited.Add(node.Id);
-                node.Execute(context);
+                node.OwnerGraph = this;
+                node.RunExecute(context);
 
-                // 沿执行流输出引脚找到下一个节点
-                foreach (var outputPin in node.OutputPins.Where(p => p.DataType == GraphPinDataType.Exec))
+                // 沿节点选定的执行输出引脚找到下一个节点
+                foreach (var outputPin in node.GetActiveExecOutputs())
                 {
                     foreach (var connId in outputPin.ConnectionIds)
                     {
@@ -1755,7 +2239,16 @@ namespace YamaEngine.VisualScript
                 PropertyNameCaseInsensitive = true,
                 Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
             };
-            return JsonSerializer.Deserialize<NodeGraph>(json, options);
+            var graph = JsonSerializer.Deserialize<NodeGraph>(json, options);
+            if (graph != null)
+            {
+                // 重新挂接 OwnerGraph（反序列化不会走 AddNode）
+                foreach (var node in graph.Nodes)
+                {
+                    node.OwnerGraph = graph;
+                }
+            }
+            return graph;
         }
 
         /// <summary>

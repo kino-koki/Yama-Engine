@@ -68,7 +68,7 @@ namespace YamaEngine.Animation
         public int LODBoneCount { get; set; } = -1;
 
         /// <summary>Skeleton reference.</summary>
-        public Skeleton Skeleton { get; set; }
+        public Skeleton? Skeleton { get; set; }
 
         /// <summary>Parameter values (shared with the graph instance).</summary>
         public Dictionary<string, float> Parameters { get; } = new Dictionary<string, float>();
@@ -77,7 +77,7 @@ namespace YamaEngine.Animation
         public Dictionary<string, bool> BoolParameters { get; } = new Dictionary<string, bool>();
 
         /// <summary>Per-frame node evaluation cache: node ID -> evaluated pose.</summary>
-        public Dictionary<int, SkeletonPose> NodeCache { get; } = new Dictionary<int, SkeletonPose>();
+        public Dictionary<int, SkeletonPose?> NodeCache { get; } = new Dictionary<int, SkeletonPose?>();
 
         /// <summary>Frame counter for cache invalidation.</summary>
         public int FrameCounter { get; set; }
@@ -125,14 +125,14 @@ namespace YamaEngine.Animation
 
         /// <summary>Get a cached pose for a node.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SkeletonPose GetCached(int nodeId)
+        public SkeletonPose? GetCached(int nodeId)
         {
             return NodeCache.TryGetValue(nodeId, out var pose) ? pose : null;
         }
 
         /// <summary>Store a pose in the cache for a node.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetCached(int nodeId, SkeletonPose pose)
+        public void SetCached(int nodeId, SkeletonPose? pose)
         {
             NodeCache[nodeId] = pose;
         }
@@ -148,7 +148,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class AnimGraphPin
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public int NodeId { get; set; }
         public int ConnectedNodeId { get; set; } = -1;
 
@@ -196,14 +196,14 @@ namespace YamaEngine.Animation
         /// Evaluate this node and return a SkeletonPose. The result is cached
         /// per frame in the context to avoid re-evaluation.
         /// </summary>
-        public SkeletonPose Evaluate(AnimGraphContext context)
+        public SkeletonPose? Evaluate(AnimGraphContext context)
         {
             // Check cache first
             if (context.IsCached(Id))
                 return context.GetCached(Id);
 
             // Evaluate this node
-            SkeletonPose pose = EvaluateInternal(context);
+            SkeletonPose? pose = EvaluateInternal(context);
 
             // Cache the result
             context.SetCached(Id, pose);
@@ -211,13 +211,13 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Internal evaluation logic (implemented by subclasses).</summary>
-        protected abstract SkeletonPose EvaluateInternal(AnimGraphContext context);
+        protected abstract SkeletonPose? EvaluateInternal(AnimGraphContext context);
 
         /// <summary>
         /// Get the pose from a connected input pin. If no connection, returns
         /// the skeleton's bind pose.
         /// </summary>
-        protected SkeletonPose GetInputPose(int pinIndex, AnimGraphContext context)
+        protected SkeletonPose? GetInputPose(int pinIndex, AnimGraphContext context)
         {
             if (pinIndex < 0 || pinIndex >= InputPins.Count) return null;
             int connectedId = InputPins[pinIndex].ConnectedNodeId;
@@ -239,7 +239,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class ClipGraphNode : AnimGraphNodeReal
     {
-        public AnimationClipReal Clip { get; set; }
+        public AnimationClipReal? Clip { get; set; }
         public float PlaybackSpeed { get; set; } = 1f;
         public float CurrentTime { get; set; }
         public bool Loop { get; set; } = true;
@@ -249,7 +249,7 @@ namespace YamaEngine.Animation
             NodeType = AnimGraphNodeRealType.Clip;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             if (Clip == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -292,7 +292,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class BlendSpace1DGraphNode : AnimGraphNodeReal
     {
-        public BlendSpace1D BlendSpace { get; set; }
+        public BlendSpace1D? BlendSpace { get; set; }
         public string ParameterName { get; set; } = "Speed";
 
         public BlendSpace1DGraphNode()
@@ -302,7 +302,7 @@ namespace YamaEngine.Animation
             BlendSpace.ParameterName = ParameterName;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             if (BlendSpace == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -335,7 +335,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class BlendSpace2DGraphNode : AnimGraphNodeReal
     {
-        public BlendSpace2D BlendSpace { get; set; }
+        public BlendSpace2D? BlendSpace { get; set; }
         public string ParameterX { get; set; } = "MoveX";
         public string ParameterY { get; set; } = "MoveY";
 
@@ -347,7 +347,7 @@ namespace YamaEngine.Animation
             BlendSpace.ParameterY = ParameterY;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             if (BlendSpace == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -380,14 +380,14 @@ namespace YamaEngine.Animation
     /// </summary>
     public class StateMachineGraphNode : AnimGraphNodeReal
     {
-        public AnimStateMachineReal StateMachine { get; set; }
+        public AnimStateMachineReal? StateMachine { get; set; }
 
         public StateMachineGraphNode()
         {
             NodeType = AnimGraphNodeRealType.StateMachine;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             if (StateMachine == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -407,14 +407,14 @@ namespace YamaEngine.Animation
         {
             foreach (var kv in context.Parameters)
             {
-                var param = StateMachine.GetParameter(kv.Key);
+                var param = StateMachine?.GetParameter(kv.Key);
                 if (param != null && param.Type == AnimParameterType.Float)
                     param.FloatValue = kv.Value;
             }
 
             foreach (var kv in context.BoolParameters)
             {
-                var param = StateMachine.GetParameter(kv.Key);
+                var param = StateMachine?.GetParameter(kv.Key);
                 if (param != null && param.Type == AnimParameterType.Bool)
                     param.BoolValue = kv.Value;
             }
@@ -436,7 +436,7 @@ namespace YamaEngine.Animation
     /// </summary>
     public class LayeredBlendGraphNode : AnimGraphNodeReal
     {
-        public LayeredBlendNode BlendNode { get; set; }
+        public LayeredBlendNode? BlendNode { get; set; }
 
         public LayeredBlendGraphNode()
         {
@@ -444,7 +444,7 @@ namespace YamaEngine.Animation
             BlendNode = new LayeredBlendNode();
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             if (BlendNode == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -475,8 +475,8 @@ namespace YamaEngine.Animation
     /// </summary>
     public class AdditiveBlendGraphNode : AnimGraphNodeReal
     {
-        public AdditiveBlendNode BlendNode { get; set; }
-        public string WeightParameter { get; set; }
+        public AdditiveBlendNode? BlendNode { get; set; }
+        public string? WeightParameter { get; set; }
 
         public AdditiveBlendGraphNode()
         {
@@ -484,7 +484,7 @@ namespace YamaEngine.Animation
             BlendNode = new AdditiveBlendNode();
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             if (BlendNode == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
@@ -529,22 +529,22 @@ namespace YamaEngine.Animation
         public SpringIKSolver SpringSolver { get; set; } = new SpringIKSolver();
 
         /// <summary>Parameter name for the IK target position (X, Y, Z as separate params or combined).</summary>
-        public string TargetXParam { get; set; }
-        public string TargetYParam { get; set; }
-        public string TargetZParam { get; set; }
+        public string? TargetXParam { get; set; }
+        public string? TargetYParam { get; set; }
+        public string? TargetZParam { get; set; }
 
         /// <summary>Parameter name for the IK weight.</summary>
-        public string WeightParam { get; set; }
+        public string? WeightParam { get; set; }
 
         public IKGraphNode()
         {
             NodeType = AnimGraphNodeRealType.IK;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             // Get the input pose (from pin 0)
-            SkeletonPose inputPose = GetInputPose(0, context);
+            SkeletonPose? inputPose = GetInputPose(0, context);
             if (inputPose == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
 
@@ -637,16 +637,16 @@ namespace YamaEngine.Animation
         public List<BoneTransformEntry> BoneTransforms { get; } = new List<BoneTransformEntry>();
 
         /// <summary>Parameter name for the overall weight.</summary>
-        public string WeightParam { get; set; }
+        public string? WeightParam { get; set; }
 
         public TransformBoneGraphNode()
         {
             NodeType = AnimGraphNodeRealType.TransformBone;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
-            SkeletonPose inputPose = GetInputPose(0, context);
+            SkeletonPose? inputPose = GetInputPose(0, context);
             if (inputPose == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
 
@@ -709,9 +709,9 @@ namespace YamaEngine.Animation
             NodeType = AnimGraphNodeRealType.Spline;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
-            SkeletonPose inputPose = GetInputPose(0, context);
+            SkeletonPose? inputPose = GetInputPose(0, context);
             if (inputPose == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
 
@@ -832,12 +832,12 @@ namespace YamaEngine.Animation
         public float BlendWeight { get; set; } = 1f;
 
         /// <summary>Parameter name for the blend weight.</summary>
-        public string BlendWeightParam { get; set; }
+        public string? BlendWeightParam { get; set; }
 
         // Runtime state: positions and velocities for each bone in the chain
-        private Vector3[] _positions;
-        private Vector3[] _velocities;
-        private float[] _restLengths;
+        private Vector3[]? _positions;
+        private Vector3[]? _velocities;
+        private float[]? _restLengths;
         private bool _initialized;
 
         public RagdollGraphNode()
@@ -845,9 +845,9 @@ namespace YamaEngine.Animation
             NodeType = AnimGraphNodeRealType.Ragdoll;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
-            SkeletonPose inputPose = GetInputPose(0, context);
+            SkeletonPose? inputPose = GetInputPose(0, context);
             if (inputPose == null || context.Skeleton == null || BoneChain.Count < 2)
                 return inputPose ?? context.Skeleton?.CreateBindPose();
 
@@ -880,6 +880,10 @@ namespace YamaEngine.Animation
                 _initialized = true;
             }
 
+            var positions = _positions!;
+            var velocities = _velocities!;
+            var restLengths = _restLengths!;
+
             // Physics simulation
             float dt = context.DeltaTime;
             if (dt > 0f)
@@ -887,32 +891,32 @@ namespace YamaEngine.Animation
                 // Apply gravity and integrate
                 for (int i = 1; i < n; i++) // Skip root (pinned)
                 {
-                    _velocities[i] += Gravity * dt;
-                    _velocities[i] *= (1f - Damping * dt);
-                    _positions[i] += _velocities[i] * dt;
+                    velocities[i] += Gravity * dt;
+                    velocities[i] *= (1f - Damping * dt);
+                    positions[i] += velocities[i] * dt;
                 }
 
                 // Pin the root to the animated position
-                _positions[0] = worldMats[BoneChain[0]].Translation;
-                _velocities[0] = Vector3.Zero;
+                positions[0] = worldMats[BoneChain[0]].Translation;
+                velocities[0] = Vector3.Zero;
 
                 // Satisfy distance constraints (position-based dynamics)
                 for (int iter = 0; iter < 5; iter++)
                 {
                     for (int i = 0; i < n - 1; i++)
                     {
-                        Vector3 delta = _positions[i + 1] - _positions[i];
+                        Vector3 delta = positions[i + 1] - positions[i];
                         float dist = delta.Length();
                         if (dist < 1e-8f) continue;
 
-                        float diff = (dist - _restLengths[i]) / dist;
+                        float diff = (dist - restLengths[i]) / dist;
                         float w0 = (i == 0) ? 0f : 0.5f;
                         float w1 = 0.5f;
                         float wSum = w0 + w1;
                         if (wSum < 1e-8f) continue;
 
-                        _positions[i] += delta * diff * (w0 / wSum);
-                        _positions[i + 1] -= delta * diff * (w1 / wSum);
+                        positions[i] += delta * diff * (w0 / wSum);
+                        positions[i + 1] -= delta * diff * (w1 / wSum);
                     }
                 }
             }
@@ -926,7 +930,7 @@ namespace YamaEngine.Animation
                 // Old direction (from animated pose)
                 Vector3 oldDir = worldMats[BoneChain[i + 1]].Translation - worldMats[boneIdx].Translation;
                 // New direction (from physics)
-                Vector3 newDir = _positions[i + 1] - _positions[i];
+                Vector3 newDir = positions[i + 1] - positions[i];
 
                 float oldLen = oldDir.Length();
                 float newLen = newDir.Length();
@@ -981,7 +985,7 @@ namespace YamaEngine.Animation
     public class PoseSnapshotGraphNode : AnimGraphNodeReal
     {
         /// <summary>The stored snapshot pose.</summary>
-        public SkeletonPose Snapshot { get; set; }
+        public SkeletonPose? Snapshot { get; set; }
 
         /// <summary>If true, capture a snapshot on the next evaluation.</summary>
         public bool CaptureRequested { get; set; }
@@ -993,16 +997,16 @@ namespace YamaEngine.Animation
         public float BlendWeight { get; set; }
 
         /// <summary>Parameter name for the blend weight.</summary>
-        public string BlendWeightParam { get; set; }
+        public string? BlendWeightParam { get; set; }
 
         public PoseSnapshotGraphNode()
         {
             NodeType = AnimGraphNodeRealType.PoseSnapshot;
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
-            SkeletonPose inputPose = GetInputPose(0, context);
+            SkeletonPose? inputPose = GetInputPose(0, context);
             if (inputPose == null || context.Skeleton == null)
                 return context.Skeleton?.CreateBindPose();
 
@@ -1064,7 +1068,7 @@ namespace YamaEngine.Animation
             InputPins.Add(new AnimGraphPin("Pose", -1));
         }
 
-        protected override SkeletonPose EvaluateInternal(AnimGraphContext context)
+        protected override SkeletonPose? EvaluateInternal(AnimGraphContext context)
         {
             return GetInputPose(0, context) ?? context.Skeleton?.CreateBindPose();
         }
@@ -1094,7 +1098,7 @@ namespace YamaEngine.Animation
         public int OutputNodeId { get; set; } = -1;
 
         /// <summary>The skeleton for this instance.</summary>
-        public Skeleton Skeleton { get; set; }
+        public Skeleton? Skeleton { get; set; }
 
         /// <summary>Float parameter values.</summary>
         public Dictionary<string, float> Parameters { get; } = new Dictionary<string, float>();
@@ -1106,7 +1110,7 @@ namespace YamaEngine.Animation
         private readonly AnimGraphContext _context = new AnimGraphContext();
 
         /// <summary>The last evaluated output pose.</summary>
-        public SkeletonPose CurrentPose { get; private set; }
+        public SkeletonPose? CurrentPose { get; private set; }
 
         /// <summary>Component (actor) world transform.</summary>
         public Matrix4x4 ComponentTransform { get; set; } = Matrix4x4.Identity;
@@ -1134,13 +1138,13 @@ namespace YamaEngine.Animation
         }
 
         /// <summary>Get a node by ID.</summary>
-        public AnimGraphNodeReal GetNode(int nodeId)
+        public AnimGraphNodeReal? GetNode(int nodeId)
         {
             return Nodes.TryGetValue(nodeId, out var node) ? node : null;
         }
 
         /// <summary>Get the output node.</summary>
-        public AnimGraphNodeReal GetOutputNode()
+        public AnimGraphNodeReal? GetOutputNode()
         {
             return OutputNodeId >= 0 ? GetNode(OutputNodeId) : null;
         }
@@ -1183,7 +1187,7 @@ namespace YamaEngine.Animation
         /// </summary>
         /// <param name="deltaTime">Delta time in seconds.</param>
         /// <returns>The evaluated output pose.</returns>
-        public SkeletonPose Tick(float deltaTime)
+        public SkeletonPose? Tick(float deltaTime)
         {
             if (Skeleton == null) return null;
 
@@ -1232,10 +1236,12 @@ namespace YamaEngine.Animation
         private SkeletonPose ApplyLOD(SkeletonPose pose, int boneCount)
         {
             var result = pose.Clone();
+            var bones = Skeleton?.Bones;
+            if (bones == null) return result;
             for (int i = boneCount; i < result.BoneCount; i++)
             {
                 result.BonePoses[i] = BonePose.FromTransform(
-                    Skeleton.Bones[i].RestTransform);
+                    bones[i].RestTransform);
             }
             return result;
         }
@@ -1243,7 +1249,7 @@ namespace YamaEngine.Animation
         /// <summary>
         /// Get the current output pose without re-evaluating.
         /// </summary>
-        public SkeletonPose GetCurrentPose()
+        public SkeletonPose? GetCurrentPose()
         {
             return CurrentPose ?? Skeleton?.CreateBindPose();
         }

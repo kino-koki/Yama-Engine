@@ -1256,8 +1256,91 @@ namespace YamaEngine.Physics
         public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance,
             Vector3 position, Quaternion rotation, out float t, out Vector3 normal)
         {
-            // 简化: 用两个球+cylinder
+            // 真实胶囊射线检测：转局部系（胶囊沿 Y 轴，中心在原点），
+            // 求交 (a) 无限圆柱段 [|y|<=HalfHeight] 与 (b) 两端半球 [球心 ±HalfHeight]，取最近命中。
             t = 0; normal = Vector3.Zero;
+
+            Quaternion invRot = Quaternion.Inverse(rotation);
+            Vector3 localOrigin = Vector3.Transform(origin - position, invRot);
+            Vector3 localDir = Vector3.Transform(direction, invRot);
+
+            float bestT = float.MaxValue;
+            Vector3 bestNormal = Vector3.Zero;
+            bool hit = false;
+
+            // ── (a) 无限圆柱 x²+z²=r²，命中后检查 |y|<=HalfHeight ──
+            float ox = localOrigin.X, oz = localOrigin.Z;
+            float dx = localDir.X, dz = localDir.Z;
+            float a = dx * dx + dz * dz;
+            if (a > 1e-8f) // 射线不平行于 Y 轴才可能交圆柱
+            {
+                float b = 2f * (ox * dx + oz * dz);
+                float c = ox * ox + oz * oz - Radius * Radius;
+                float disc = b * b - 4f * a * c;
+                if (disc >= 0)
+                {
+                    float sq = MathF.Sqrt(disc);
+                    float t0 = (-b - sq) / (2f * a);
+                    float t1 = (-b + sq) / (2f * a);
+                    foreach (float tc in stackalloc float[] { t0, t1 })
+                    {
+                        if (tc <= 0 || tc >= bestT) continue;
+                        float y = localOrigin.Y + localDir.Y * tc;
+                        if (MathF.Abs(y) <= HalfHeight)
+                        {
+                            // 圆柱侧面法线：径向朝外 (x, 0, z) 归一化
+                            Vector3 hp = localOrigin + localDir * tc;
+                            bestT = tc;
+                            bestNormal = Vector3.Normalize(new Vector3(hp.X, 0, hp.Z));
+                            hit = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // ── (b) 两端半球：球心 (0, ±HalfHeight, 0)，解析球求交 ──
+            foreach (float sign in stackalloc float[] { 1f, -1f })
+            {
+                Vector3 center = new Vector3(0, sign * HalfHeight, 0);
+                Vector3 oc = localOrigin - center;
+                float bb = 2f * Vector3.Dot(oc, localDir);
+                float cc = Vector3.Dot(oc, oc) - Radius * Radius;
+                float aa = Vector3.Dot(localDir, localDir);
+                float disc = bb * bb - 4f * aa * cc;
+                if (disc < 0) continue;
+                float sq = MathF.Sqrt(disc);
+                float ts0 = (-bb - sq) / (2f * aa);
+                float ts1 = (-bb + sq) / (2f * aa);
+                // CA2014：stackalloc 移出循环，固定 2 次迭代手动展开
+                if (ts0 > 0 && ts0 < bestT)
+                {
+                    Vector3 hp = localOrigin + localDir * ts0;
+                    if (sign * hp.Y >= HalfHeight - 1e-4f)
+                    {
+                        bestT = ts0;
+                        bestNormal = Vector3.Normalize(hp - center);
+                        hit = true;
+                    }
+                }
+                if (!hit && ts1 > 0 && ts1 < bestT)
+                {
+                    Vector3 hp = localOrigin + localDir * ts1;
+                    if (sign * hp.Y >= HalfHeight - 1e-4f)
+                    {
+                        bestT = ts1;
+                        bestNormal = Vector3.Normalize(hp - center);
+                        hit = true;
+                    }
+                }
+            }
+
+            if (hit && bestT <= maxDistance)
+            {
+                t = bestT;
+                normal = Vector3.Transform(bestNormal, rotation);
+                return true;
+            }
             return false;
         }
 
@@ -1733,14 +1816,15 @@ namespace YamaEngine.Physics
                     Vector3 v01 = new(x * CellSize, Heights[x, z + 1] * HeightScale, (z + 1) * CellSize);
                     Vector3 v11 = new((x + 1) * CellSize, Heights[x + 1, z + 1] * HeightScale, (z + 1) * CellSize);
 
-                    // 两个三角形
+                    // 两个三角形（绕序修正：从上方看逆时针，法线朝 +Y）
                     if (RayTriangleLocal(localOrigin, direction, v00, v10, v11, out float t1))
                     {
                         if (t1 < bestT) { bestT = t1; bestN = Vector3.Normalize(Vector3.Cross(v10 - v00, v11 - v00)); hit = true; }
                     }
-                    if (RayTriangleLocal(localOrigin, direction, v00, v11, v01, out float t2))
+                    // 第二个三角形：原 (v00,v11,v01) 绕序为顺时针（法线 -Y），交换后两顶点修正
+                    if (RayTriangleLocal(localOrigin, direction, v00, v01, v11, out float t2))
                     {
-                        if (t2 < bestT) { bestT = t2; bestN = Vector3.Normalize(Vector3.Cross(v11 - v00, v01 - v00)); hit = true; }
+                        if (t2 < bestT) { bestT = t2; bestN = Vector3.Normalize(Vector3.Cross(v01 - v00, v11 - v00)); hit = true; }
                     }
                 }
             }

@@ -1537,7 +1537,7 @@ namespace YamaEngine.Assets
             using (var fs = File.OpenRead(assetPath))
             {
                 content = new byte[fs.Length];
-                fs.Read(content, 0, content.Length);
+                fs.ReadExactly(content, 0, content.Length);
             }
 
             string hash;
@@ -1580,7 +1580,7 @@ namespace YamaEngine.Assets
             using (var fs = File.OpenRead(assetPath))
             {
                 content = new byte[fs.Length];
-                fs.Read(content, 0, content.Length);
+                fs.ReadExactly(content, 0, content.Length);
             }
 
             if (content.Length != expectedSignature.FileSize) return false;

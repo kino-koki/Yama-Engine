@@ -753,10 +753,38 @@ namespace YamaEngine.Assets
                 if (Path.IsPathRooted(tex.FilePath)) continue;
                 if (!string.IsNullOrEmpty(SourceDirectory))
                 {
-                    string resolved = Path.GetFullPath(Path.Combine(SourceDirectory, tex.FilePath));
+                    // 工业级防御: tex.FilePath 来自未受信模型数据, 可含 ../ 逃逸资产目录。
+                    // 旧实现仅拒绝绝对路径, ../ 仍可逃出 SourceDirectory 读取任意文件。
+                    string resolved = ResolveMaterialTexturePath(SourceDirectory, tex.FilePath);
                     tex.FilePath = resolved;
                 }
             }
+        }
+
+        /// <summary>
+        /// 解析模型纹理相对路径并确保不逃逸源目录。
+        /// 纹理路径来自未受信模型数据, 可含 ../ 逃逸资产目录读取任意文件。
+        /// </summary>
+        private static string ResolveMaterialTexturePath(string sourceDir, string relative)
+        {
+            if (string.IsNullOrEmpty(sourceDir) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("纹理路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"纹理路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(sourceDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"纹理路径逃逸出源目录, 拒绝: {relative}");
+
+            return full;
         }
     }
 
@@ -993,6 +1021,32 @@ namespace YamaEngine.Assets
         /// <inheritdoc/>
         public string SupportedFormat => "OBJ";
 
+        /// <summary>
+        /// 解析 OBJ 引用的相对路径并确保不逃逸资产目录。
+        /// OBJ/MTL 文本来自未受信文件, 可含 ../ 或绝对路径, 直接 Combine 会读到资产目录之外的任意文件。
+        /// </summary>
+        private static string ResolveObjSafePath(string baseDir, string relative)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("OBJ 引用路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"OBJ 引用路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"OBJ 引用路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
+        }
+
         /// <inheritdoc/>
         public InterchangeBaseNodeContainer Parse(string filePath)
         {
@@ -1042,7 +1096,8 @@ namespace YamaEngine.Assets
                         normals.Add(ParseVec3(rest));
                         break;
                     case "mtllib":
-                        LoadMtl(Path.Combine(Path.GetDirectoryName(filePath)!, rest), materials);
+                        // 工业级防御: rest 来自 OBJ 文本, 可含 ../ 或绝对路径逃逸资产目录。
+                        LoadMtl(ResolveObjSafePath(Path.GetDirectoryName(filePath) ?? string.Empty, rest), materials);
                         break;
                     case "usemtl":
                         pendingMtl = rest;
@@ -1264,6 +1319,9 @@ namespace YamaEngine.Assets
     /// </summary>
     public sealed class GlTFSourceParser : IInterchangeSourceParser
     {
+        /// <summary>单 buffer 最大字节数 (512MB), 防止伪造 byteLength 触发 OOM。</summary>
+        private const long MaxBufferBytes = 512L * 1024 * 1024;
+
         /// <inheritdoc/>
         public string SupportedFormat => "GLTF";
 
@@ -1311,6 +1369,12 @@ namespace YamaEngine.Assets
                 {
                     if (bi == 0 && filePath.EndsWith(".glb", StringComparison.OrdinalIgnoreCase)) { bi++; continue; }
                     long len = buf.GetProperty("byteLength").GetInt64();
+                    // 工业级防御: byteLength 来自未受信 JSON, 可为负或 2^63-1。
+                    // 旧实现直接 new byte[len] 会抛 NegativeArraySizeException 或 OOM。
+                    if (len < 0)
+                        throw new InvalidDataException($"glTF buffer byteLength 为负: {len}");
+                    if (len > MaxBufferBytes)
+                        throw new InvalidDataException($"glTF buffer byteLength 超限: {len} > {MaxBufferBytes}");
                     byte[] data;
                     if (buf.TryGetProperty("uri", out var uriEl))
                     {
@@ -1318,7 +1382,12 @@ namespace YamaEngine.Assets
                         if (uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
                             data = DecodeDataUri(uri);
                         else
-                            data = File.ReadAllBytes(Path.Combine(dir, uri));
+                        {
+                            // 工业级防御: uri 来自 glTF JSON, 可为 "../../" 或绝对路径,
+                            // Path.Combine 会让读取逃逸出模型目录 (任意文件读取/路径穿越)。
+                            // 解析为完整路径并校验仍位于模型目录内。
+                            data = File.ReadAllBytes(ResolveSafePath(dir, uri));
+                        }
                     }
                     else
                     {
@@ -1387,6 +1456,10 @@ namespace YamaEngine.Assets
                         foreach (var c in chEl.EnumerateArray())
                         {
                             int ci = c.GetInt32();
+                            // 工业级防御: children 索引来自未受信 JSON, 可为负或超界。
+                            // 旧实现直接 nodeUids[ci] 会抛 IndexOutOfRange。
+                            if (ci < 0 || ci >= nodeUids.Length)
+                                throw new InvalidDataException($"glTF child node index {ci} 越界 [0,{nodeUids.Length})");
                             var childNode = container.GetNode(nodeUids[ci]);
                             if (childNode != null)
                             {
@@ -1401,6 +1474,10 @@ namespace YamaEngine.Assets
                 if (root.TryGetProperty("scenes", out var scenesEl) && scenesEl.GetArrayLength() > 0)
                 {
                     int defaultScene = root.TryGetProperty("scene", out var sc) ? sc.GetInt32() : 0;
+                    int sceneCount = scenesEl.GetArrayLength();
+                    // 工业级防御: scene 索引来自未受信 JSON, 可为负或超界。
+                    if (defaultScene < 0 || defaultScene >= sceneCount)
+                        throw new InvalidDataException($"glTF scene index {defaultScene} 越界 [0,{sceneCount})");
                     var scene = scenesEl.EnumerateArray().ToList()[defaultScene];
                     var rootSceneNode = new InterchangeSceneNode
                     {
@@ -1413,6 +1490,9 @@ namespace YamaEngine.Assets
                         foreach (var rn in rootNodesEl.EnumerateArray())
                         {
                             int ri = rn.GetInt32();
+                            // 工业级防御: root node 索引来自未受信 JSON, 可为负或超界。
+                            if (ri < 0 || ri >= nodeUids.Length)
+                                throw new InvalidDataException($"glTF root node index {ri} 越界 [0,{nodeUids.Length})");
                             var child = container.GetNode(nodeUids[ri]);
                             if (child != null)
                             {
@@ -1430,15 +1510,24 @@ namespace YamaEngine.Assets
         private void ParseGlb(byte[] allBytes, out byte[] jsonBytes, out byte[] binBytes)
         {
             // 12 字节头：magic(u32) version(u32) length(u32)
+            if (allBytes == null || allBytes.Length < 12)
+                throw new InvalidDataException("GLB 数据过短 (<12 字节头)");
             uint magic = BitConverter.ToUInt32(allBytes, 0);
             if (magic != 0x46546C67) // 'glTF'
                 throw new InvalidDataException("非法的 GLB magic 标识");
             // 第一个 chunk：JSON
             int offset = 12;
+            // 工业级防御: chunkLen 来自文件, 无校验时 `new byte[chunkLen]` 可被
+            // 恶意文件声明巨值触发 OOM, 且 Array.Copy 越界抛非 InvalidDataException。
+            if (offset + 8 > allBytes.Length)
+                throw new InvalidDataException("GLB 缺少第一个 chunk 头");
             int chunkLen = (int)BitConverter.ToUInt32(allBytes, offset);
             uint chunkType = BitConverter.ToUInt32(allBytes, offset + 4);
             if (chunkType != 0x4E4F534A) // 'JSON'
                 throw new InvalidDataException("GLB 第一个 chunk 必须是 JSON");
+            if (chunkLen < 0 || chunkLen > allBytes.Length - (offset + 8))
+                throw new InvalidDataException(
+                    $"GLB JSON chunk 长度越界: {chunkLen}, 可用 {allBytes.Length - (offset + 8)} 字节");
             jsonBytes = new byte[chunkLen];
             Array.Copy(allBytes, offset + 8, jsonBytes, 0, chunkLen);
             offset += 8 + chunkLen;
@@ -1451,10 +1540,42 @@ namespace YamaEngine.Assets
                 uint binType = BitConverter.ToUInt32(allBytes, offset + 4);
                 if (binType == 0x004E4942) // 'BIN\0'
                 {
+                    // 工业级防御: 同上, binLen 无校验时 OOM/越界。
+                    if (binLen < 0 || binLen > allBytes.Length - (offset + 8))
+                        throw new InvalidDataException(
+                            $"GLB BIN chunk 长度越界: {binLen}, 可用 {allBytes.Length - (offset + 8)} 字节");
                     binBytes = new byte[binLen];
                     Array.Copy(allBytes, offset + 8, binBytes, 0, binLen);
                 }
             }
+        }
+
+        /// <summary>
+        /// 工业级防御: 解析模型引用的相对路径并确保不逃逸出模型目录。
+        /// uri 来自未受信 JSON, 可为 "../../" 或绝对路径 (路径穿越/任意文件读取)。
+        /// </summary>
+        private static string ResolveSafePath(string baseDir, string uri)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(uri))
+                throw new InvalidDataException("模型资源路径为空");
+
+            // 规范化分隔符, 防止 '\' 与 '/' 混用绕过前缀校验。
+            string normalized = uri.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"模型资源路径为绝对路径, 拒绝: {uri}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            // 校验解析后的完整路径仍位于 baseDir 内 (前缀分隔符边界)。
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"模型资源路径逃逸出目录, 拒绝: {uri}");
+
+            return full;
         }
 
         private InterchangeMaterialNode ParseMaterial(JsonElement m, int idx)
@@ -1576,9 +1697,14 @@ namespace YamaEngine.Assets
             int count = acc.GetProperty("count").GetInt32();
             if (!acc.TryGetProperty("bufferView", out var bvProp)) return Array.Empty<float>();
             int bvIdx = bvProp.GetInt32();
+            // 工业级防御: bvIdx/bufferIdx 来自 JSON, 无校验时索引越界抛非 InvalidDataException。
+            if (bvIdx < 0 || bvIdx >= bufferViews.Count)
+                throw new InvalidDataException($"GLB bufferView 索引越界: {bvIdx}");
             int byteOffset = acc.TryGetProperty("byteOffset", out var bo) ? bo.GetInt32() : 0;
             var bv = bufferViews[bvIdx];
             int bufferIdx = bv.GetProperty("buffer").GetInt32();
+            if (bufferIdx < 0 || bufferIdx >= buffers.Count)
+                throw new InvalidDataException($"GLB buffer 索引越界: {bufferIdx}");
             int bvOffset = bv.TryGetProperty("byteOffset", out var bvo) ? bvo.GetInt32() : 0;
             int byteStride = bv.TryGetProperty("byteStride", out var bs) ? bs.GetInt32() : 0;
 
@@ -1589,10 +1715,20 @@ namespace YamaEngine.Assets
             if (byteStride == 0) byteStride = elemSize;
             bool normalized = acc.TryGetProperty("normalized", out var nz) && nz.GetBoolean();
 
-            var result = new float[count * components];
+            // 工业级防御: count*components 可溢出为负或巨值导致 OOM。
+            if (count < 0 || components <= 0 || count > data.Length / Math.Max(compSize, 1))
+                throw new InvalidDataException($"GLB float accessor 数量越界: count={count}, components={components}");
+            long totalElems = (long)count * components;
+            if (totalElems > int.MaxValue)
+                throw new InvalidDataException($"GLB float accessor 元素总数过大: {totalElems}");
+
+            var result = new float[totalElems];
             for (int i = 0; i < count; i++)
             {
                 int p = start + i * byteStride;
+                // 工业级防御: 读前校验元素落在 data 范围内, 否则 ReadComponent 越界。
+                if (p < 0 || p + elemSize > data.Length)
+                    throw new InvalidDataException($"GLB float accessor 读取越界: p={p}, elem={elemSize}, data={data.Length}");
                 for (int c = 0; c < components; c++)
                 {
                     result[i * components + c] = ReadComponent(data, p + c * compSize, accIdx_componentType, normalized);
@@ -1608,9 +1744,14 @@ namespace YamaEngine.Assets
             int count = acc.GetProperty("count").GetInt32();
             if (!acc.TryGetProperty("bufferView", out var bvProp)) return Array.Empty<int>();
             int bvIdx = bvProp.GetInt32();
+            // 工业级防御: bvIdx/bufferIdx 来自 JSON, 无校验时索引越界。
+            if (bvIdx < 0 || bvIdx >= bufferViews.Count)
+                throw new InvalidDataException($"GLB bufferView 索引越界: {bvIdx}");
             int byteOffset = acc.TryGetProperty("byteOffset", out var bo) ? bo.GetInt32() : 0;
             var bv = bufferViews[bvIdx];
             int bufferIdx = bv.GetProperty("buffer").GetInt32();
+            if (bufferIdx < 0 || bufferIdx >= buffers.Count)
+                throw new InvalidDataException($"GLB buffer 索引越界: {bufferIdx}");
             int bvOffset = bv.TryGetProperty("byteOffset", out var bvo) ? bvo.GetInt32() : 0;
             int byteStride = bv.TryGetProperty("byteStride", out var bs) ? bs.GetInt32() : 0;
 
@@ -1619,10 +1760,17 @@ namespace YamaEngine.Assets
             int start = bvOffset + byteOffset;
             if (byteStride == 0) byteStride = compSize;
 
+            // 工业级防御: count 无校验时 new int[count] 可被巨值触发 OOM。
+            if (count < 0 || count > data.Length / Math.Max(compSize, 1))
+                throw new InvalidDataException($"GLB int accessor 数量越界: count={count}");
+
             var result = new int[count];
             for (int i = 0; i < count; i++)
             {
                 int p = start + i * byteStride;
+                // 工业级防御: 读前校验元素落在 data 范围内。
+                if (p < 0 || p + compSize > data.Length)
+                    throw new InvalidDataException($"GLB int accessor 读取越界: p={p}, comp={compSize}, data={data.Length}");
                 result[i] = (int)ReadComponent(data, p, componentType, false);
             }
             return result;
@@ -1782,7 +1930,11 @@ namespace YamaEngine.Assets
                         break;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // 纹理头部解析失败: 记录, 尺寸留 0 (工厂将回退或报错)。
+                System.Diagnostics.Debug.WriteLine($"[Interchange] 读取纹理尺寸 {path} 失败: {ex.Message}");
+            }
         }
 
         private static string ComputeFileHash(string filePath)

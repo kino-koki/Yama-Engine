@@ -65,6 +65,12 @@ namespace YamaEngine.Editor
         public CodeEditorPanel CodeEditor { get; }
         public TerrainEditorPanel TerrainEditor { get; }
         public ModelingPanel ModelingTool { get; }
+        public AudioSettingsPanel AudioSettings { get; }
+        public BlueprintEditorPanel BlueprintEditor { get; }
+        public AnimGraphEditorPanel AnimGraphEditor { get; }
+
+        /// <summary>编辑器音频桥（可注入，由宿主在创建窗口后设置；未设置时音频面板显示提示）。</summary>
+        public EditorAudioBridge? AudioBridge { get; set; }
 
         // ── 编辑器模式系统 ──
         public UnifiedEditorModeSystem ModeSystem { get; }
@@ -125,6 +131,9 @@ namespace YamaEngine.Editor
             CodeEditor = new CodeEditorPanel();
             TerrainEditor = new TerrainEditorPanel();
             ModelingTool = new ModelingPanel();
+            AudioSettings = new AudioSettingsPanel();
+            BlueprintEditor = new BlueprintEditorPanel();
+            AnimGraphEditor = new AnimGraphEditorPanel();
 
             // 创建编辑器模式系统
             ModeSystem = new UnifiedEditorModeSystem();
@@ -138,6 +147,9 @@ namespace YamaEngine.Editor
             _allPanels.Add(CodeEditor);
             _allPanels.Add(TerrainEditor);
             _allPanels.Add(ModelingTool);
+            _allPanels.Add(AudioSettings);
+            _allPanels.Add(BlueprintEditor);
+            _allPanels.Add(AnimGraphEditor);
 
             // 创建停靠空间
             DockSpace = new DockSpace(new Vector2(1280, 720));
@@ -157,6 +169,8 @@ namespace YamaEngine.Editor
                 Console = Console,
                 Editor = this
             };
+            // 注入音频桥（宿主可稍后设置 MainEditorWindow.AudioBridge 以启用音频设置面板）
+            _ctx.AudioBridge = AudioBridge;
         }
 
         /// <summary>初始化: 注册命令 / 快捷键 / 创建 SRV / 应用主题。</summary>

@@ -171,8 +171,18 @@ namespace YamaEngine.Assets
         private static int ParseIndex(string s, int count)
         {
             if (!int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out int idx)) return -1;
+            if (count <= 0) return -1;
             if (idx > 0) return idx - 1;            // 正数：1-based
-            if (idx < 0) return count + idx;          // 负数：相对末尾
+            if (idx < 0)
+            {
+                // 负数：相对末尾 (OBJ 规范: -1 为最后一个顶点)。
+                // 工业级防御: count + idx 可溢出为正值 (如 int.MinValue) → OOB。
+                // 用 long 计算并钳制到 [0, count)。
+                long resolved = (long)count + idx;
+                if (resolved < 0) return -1;        // 超出头部 → 无效
+                if (resolved >= count) return -1;   // 防御性 (理论不可达)
+                return (int)resolved;
+            }
             return -1;
         }
 
@@ -182,7 +192,16 @@ namespace YamaEngine.Assets
 
         private static void LoadMtlLib(string libName, string baseDir, Dictionary<string, ObjMaterial> materials)
         {
-            string mtlPath = Path.Combine(baseDir, libName);
+            // 工业级防御: libName 来自未受信文件, 可为绝对路径/../, 安全解析防路径穿越。
+            string mtlPath;
+            try
+            {
+                mtlPath = ResolveSafePath(baseDir, libName);
+            }
+            catch (InvalidDataException)
+            {
+                return; // 拒绝越界路径
+            }
             if (!File.Exists(mtlPath)) return;
 
             ObjMaterial? current = null;
@@ -250,10 +269,46 @@ namespace YamaEngine.Assets
                 if (!tokens[i].StartsWith("-"))
                 {
                     string p = tokens[i];
-                    return Path.IsPathRooted(p) ? p : Path.Combine(baseDir, p);
+                    // 工业级防御: 纹理路径来自未受信文件, 安全解析防路径穿越。
+                    // 统一走 ResolveSafePath: 其内部拒绝绝对路径 (IsPathRooted) 与 "../" 逃逸,
+                    // 并做前缀分隔符边界校验, 防止绝对路径或越界路径绕过检查。
+                    try
+                    {
+                        return ResolveSafePath(baseDir, p);
+                    }
+                    catch (InvalidDataException)
+                    {
+                        return string.Empty; // 拒绝越界路径
+                    }
                 }
             }
             return args;
+        }
+
+        /// <summary>
+        /// 工业级防御: 安全解析相对路径 (baseDir 下的相对路径)。
+        /// 拒绝绝对路径与 "../" 逃逸 (路径穿越), 前缀分隔符边界校验防前缀混淆。
+        /// </summary>
+        private static string ResolveSafePath(string baseDir, string relative)
+        {
+            if (string.IsNullOrEmpty(baseDir) || string.IsNullOrEmpty(relative))
+                throw new InvalidDataException("资产引用路径为空");
+
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(normalized))
+                throw new InvalidDataException($"资产引用路径为绝对路径, 拒绝: {relative}");
+
+            string baseFull = Path.GetFullPath(baseDir);
+            string full = Path.GetFullPath(Path.Combine(baseFull, normalized));
+
+            string basePrefix = baseFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? baseFull
+                : baseFull + Path.DirectorySeparatorChar;
+            if (!full.StartsWith(basePrefix, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(full, baseFull, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"资产引用路径逃逸出目录, 拒绝: {relative}");
+
+            return full;
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -391,7 +446,11 @@ namespace YamaEngine.Assets
 
         private static byte[] PackFloats(List<float> data)
         {
-            byte[] bytes = new byte[data.Count * sizeof(float)];
+            // 工业级防御: Count*4 用 long 计算防 int 溢出 (巨量列表 → new byte[负] 非诊断性异常)。
+            long byteCount = (long)data.Count * sizeof(float);
+            if (byteCount > int.MaxValue || byteCount > 1024L * 1024 * 1024)
+                throw new InvalidDataException($"FBX 浮点数组过大: {data.Count} 元素");
+            byte[] bytes = new byte[(int)byteCount];
             Buffer.BlockCopy(data.ToArray(), 0, bytes, 0, bytes.Length);
             return bytes;
         }
@@ -400,13 +459,21 @@ namespace YamaEngine.Assets
         {
             if (use32)
             {
-                byte[] bytes = new byte[indices.Count * sizeof(uint)];
+                // 工业级防御: Count*4 用 long 计算防 int 溢出。
+                long byteCount = (long)indices.Count * sizeof(uint);
+                if (byteCount > int.MaxValue || byteCount > 1024L * 1024 * 1024)
+                    throw new InvalidDataException($"FBX 索引数组过大: {indices.Count} 元素");
+                byte[] bytes = new byte[(int)byteCount];
                 Buffer.BlockCopy(indices.ToArray(), 0, bytes, 0, bytes.Length);
                 return bytes;
             }
             else
             {
-                byte[] bytes = new byte[indices.Count * sizeof(ushort)];
+                // 工业级防御: Count*2 用 long 计算防 int 溢出。
+                long byteCount = (long)indices.Count * sizeof(ushort);
+                if (byteCount > int.MaxValue || byteCount > 1024L * 1024 * 1024)
+                    throw new InvalidDataException($"FBX 索引数组过大: {indices.Count} 元素");
+                byte[] bytes = new byte[(int)byteCount];
                 for (int i = 0; i < indices.Count; i++)
                 {
                     ushort v = (ushort)indices[i];

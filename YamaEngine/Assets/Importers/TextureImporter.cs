@@ -240,6 +240,18 @@ namespace YamaEngine.Assets.Importers
     {
         private readonly List<string> _messages = new();
 
+        /// <summary>单条边最大像素 (16384 足以覆盖所有合法游戏纹理)。</summary>
+        private const uint MaxPngDimension = 16384;
+
+        /// <summary>像素总数上限 (64M), 防止 width*height 分配巨量内存。</summary>
+        private const long MaxPngPixels = 64L * 1024 * 1024;
+
+        /// <summary>通用纹理单边最大像素 (KTX/GIF/PSD/JPEG/BMP/TGA/TIFF/HDR 共用)。</summary>
+        private const int MaxTextureDimension = 16384;
+
+        /// <summary>通用纹理像素预算 (64M 像素, 约 256MB RGBA8), 防 OOM。</summary>
+        private const long MaxTexturePixels = 64L * 1024 * 1024;
+
         /// <summary>导入单个纹理文件。</summary>
         public ImportedTexture Import(string filePath, TextureImportOptions? options = null)
         {
@@ -418,13 +430,30 @@ namespace YamaEngine.Assets.Importers
                 if (offset + 8 > data.Length) break;
 
                 uint chunkLength = ReadUInt32BigEndian(data, offset);
+
+                // 工业级防御: chunkLength 来自文件字节。未校验即 (int) 强转可回绕为负,
+                // 并使 ArraySegment/Array.Copy/new byte[] 越界或分配巨量内存。
+                long chunkRemaining = (long)data.Length - (offset + 8);
+                if (chunkLength > chunkRemaining)
+                    throw new InvalidDataException(
+                        $"PNG chunk corrupt: length {chunkLength} exceeds remaining {chunkRemaining} file bytes.");
+
                 string chunkType = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
                 int chunkDataOffset = offset + 8;
 
                 if (chunkType == "IHDR")
                 {
-                    width = (int)ReadUInt32BigEndian(data, chunkDataOffset);
-                    height = (int)ReadUInt32BigEndian(data, chunkDataOffset + 4);
+                    uint uWidth = ReadUInt32BigEndian(data, chunkDataOffset);
+                    uint uHeight = ReadUInt32BigEndian(data, chunkDataOffset + 4);
+
+                    // 尺寸须为正数, 且像素总数不得溢出并超过合理上限 (防 width*height*4 回绕/OOM)。
+                    if (uWidth == 0 || uHeight == 0 || uWidth > MaxPngDimension || uHeight > MaxPngDimension)
+                        throw new InvalidDataException($"PNG corrupt: invalid dimensions {uWidth}x{uHeight}.");
+                    if ((long)uWidth * (long)uHeight > MaxPngPixels)
+                        throw new InvalidDataException($"PNG corrupt: pixel count {uWidth}x{uHeight} exceeds limit.");
+
+                    width = (int)uWidth;
+                    height = (int)uHeight;
                     bitDepth = data[chunkDataOffset + 8];
                     colorType = data[chunkDataOffset + 9];
                     compressionMethod = data[chunkDataOffset + 10];
@@ -495,13 +524,25 @@ namespace YamaEngine.Assets.Importers
             }
 
             // 解除过滤并提取像素
-            int bytesPerPixel = (bitDepth * channels + 7) / 8;
-            int bytesPerRow = (width * bitDepth * channels + 7) / 8;
-            int expectedSize = (bytesPerRow + 1) * height; // 每行有 1 字节过滤类型
+            // 工业级防御: 行字节数与总字节数用 long 计算, 防 int 乘法回绕导致
+            // 解压数据长度校验被绕过 (expectedSize 回绕为小值 → 接受截断的 IDAT)。
+            long bytesPerPixelL = (bitDepth * channels + 7) / 8;
+            long bytesPerRowL = (width * (long)bitDepth * channels + 7) / 8;
+            if (bytesPerRowL > int.MaxValue)
+                throw new InvalidDataException($"PNG corrupt: row byte count {bytesPerRowL} overflows.");
+            int bytesPerPixel = (int)bytesPerPixelL;
+            int bytesPerRow = (int)bytesPerRowL;
+            long expectedSizeL = (bytesPerRowL + 1) * height;
+            if (expectedSizeL > int.MaxValue)
+                throw new InvalidDataException($"PNG corrupt: decompressed size {expectedSizeL} overflows.");
+            int expectedSize = (int)expectedSizeL;
 
             if (decompressed.Length < expectedSize)
             {
-                _messages.Add($"PNG: 解压数据不足 ({decompressed.Length} < {expectedSize})");
+                // 工业级防御: 解压数据不足说明 IDAT 被截断/损坏。
+                // 旧实现仅记日志并返回部分解码的纹理 (下半部分全黑), 属于静默接受损坏数据。
+                throw new InvalidDataException(
+                    $"PNG corrupt: decompressed {decompressed.Length} bytes < required {expectedSize} bytes.");
             }
 
             // 创建 RGBA 输出
@@ -663,6 +704,11 @@ namespace YamaEngine.Assets.Importers
                 }
             }
 
+            if (width == 0 || height == 0 || width > MaxTextureDimension || height > MaxTextureDimension)
+                throw new InvalidDataException($"JPEG 非法像素尺寸 {width}x{height}");
+            if ((long)width * (long)height > MaxTexturePixels)
+                throw new InvalidDataException($"JPEG 像素总数 {width * height} 超过上限 {MaxTexturePixels}");
+
             texture.Width = width;
             texture.Height = height;
             texture.Channels = components;
@@ -713,18 +759,30 @@ namespace YamaEngine.Assets.Importers
             uint compression = BitConverter.ToUInt32(data, 30);
             int dataOffset = BitConverter.ToInt32(data, 10);
 
-            texture.Width = Math.Abs(width);
-            texture.Height = Math.Abs(height);
+            // 校验像素尺寸: 非零、非 int.MinValue(会 Math.Abs 溢出)、单边上限、像素预算。
+            if (width == 0 || height == 0 || width == int.MinValue || height == int.MinValue)
+                throw new InvalidDataException($"BMP 非法像素尺寸 {width}x{height}");
+            int absW = Math.Abs(width), absH = Math.Abs(height);
+            if (absW > MaxTextureDimension || absH > MaxTextureDimension)
+                throw new InvalidDataException($"BMP 非法像素尺寸 {absW}x{absH}");
+            if ((long)absW * (long)absH > MaxTexturePixels)
+                throw new InvalidDataException($"BMP 像素总数 {absW * absH} 超过上限 {MaxTexturePixels}");
+
+            texture.Width = absW;
+            texture.Height = absH;
             texture.BitsPerChannel = bitsPerPixel / 4 * 8; // 估算
             texture.Channels = bitsPerPixel == 32 ? 4 : 3;
             texture.HasAlpha = bitsPerPixel == 32;
             texture.PixelData = new byte[texture.Width * texture.Height * 4];
 
             bool topDown = height < 0;
-            height = Math.Abs(height);
+            height = absH;
 
             int bytesPerPixel = bitsPerPixel / 8;
-            int rowSize = ((bitsPerPixel * width + 31) / 32) * 4; // 行大小（4 字节对齐）
+            // 行大小（4 字节对齐）: 用 long 防 bitsPerPixel*width 溢出。
+            long rowSizeL = ((long)bitsPerPixel * absW + 31) / 32 * 4;
+            if (rowSizeL > int.MaxValue) throw new InvalidDataException($"BMP 行大小溢出: {rowSizeL}");
+            int rowSize = (int)rowSizeL;
 
             _messages.Add($"BMP: {width}x{height}, {bitsPerPixel}bit, compression={compression}");
 
@@ -733,25 +791,27 @@ namespace YamaEngine.Assets.Importers
                 for (int y = 0; y < height; y++)
                 {
                     int srcY = topDown ? y : (height - 1 - y);
-                    int rowOffset = dataOffset + srcY * rowSize;
+                    // 用 long 防 dataOffset + srcY*rowSize 溢出为负导致负索引。
+                    long rowOffsetL = (long)dataOffset + (long)srcY * rowSize;
+                    if (rowOffsetL < 0 || rowOffsetL > data.Length - 4) continue;
+                    int rowOffset = (int)rowOffsetL;
 
                     for (int x = 0; x < width; x++)
                     {
-                        int srcIdx = rowOffset + x * bytesPerPixel;
+                        long srcIdxL = rowOffsetL + (long)x * bytesPerPixel;
+                        if (srcIdxL < 0 || srcIdxL + 2 >= data.Length) continue;
+                        int srcIdx = (int)srcIdxL;
                         int dstIdx = (y * width + x) * 4;
 
-                        if (srcIdx + 2 < data.Length)
-                        {
-                            // BMP 使用 BGR 顺序
-                            texture.PixelData[dstIdx + 2] = data[srcIdx];     // B → R
-                            texture.PixelData[dstIdx + 1] = data[srcIdx + 1]; // G
-                            texture.PixelData[dstIdx] = data[srcIdx + 2];     // R → B
+                        // BMP 使用 BGR 顺序
+                        texture.PixelData[dstIdx + 2] = data[srcIdx];     // B → R
+                        texture.PixelData[dstIdx + 1] = data[srcIdx + 1]; // G
+                        texture.PixelData[dstIdx] = data[srcIdx + 2];     // R → B
 
-                            if (bitsPerPixel == 32 && srcIdx + 3 < data.Length)
-                                texture.PixelData[dstIdx + 3] = data[srcIdx + 3];
-                            else
-                                texture.PixelData[dstIdx + 3] = 255;
-                        }
+                        if (bitsPerPixel == 32 && srcIdx + 3 < data.Length)
+                            texture.PixelData[dstIdx + 3] = data[srcIdx + 3];
+                        else
+                            texture.PixelData[dstIdx + 3] = 255;
                     }
                 }
             }
@@ -844,6 +904,11 @@ namespace YamaEngine.Assets.Importers
             byte pixelDepth = data[16];
             byte imageDescriptor = data[17];
 
+            if (width == 0 || height == 0 || width > MaxTextureDimension || height > MaxTextureDimension)
+                throw new InvalidDataException($"TGA 非法像素尺寸 {width}x{height}");
+            if ((long)width * (long)height > MaxTexturePixels)
+                throw new InvalidDataException($"TGA 像素总数 {width * height} 超过上限 {MaxTexturePixels}");
+
             texture.Width = width;
             texture.Height = height;
             texture.BitsPerChannel = pixelDepth / 4 * 8;
@@ -859,10 +924,18 @@ namespace YamaEngine.Assets.Importers
             if (colorMapType == 1)
             {
                 int mapEntrySize = colorMapDepth / 8;
-                colorMap = new byte[colorMapLength * mapEntrySize];
-                Array.Copy(data, 18 + idLength, colorMap, 0,
-                    Math.Min(colorMap.Length, data.Length - 18 - idLength));
-                dataOffset += colorMapLength * mapEntrySize;
+                if (mapEntrySize <= 0)
+                    throw new InvalidDataException($"TGA 颜色表项大小非法: {colorMapDepth} bit");
+                long mapBytes = (long)colorMapLength * mapEntrySize;
+                // 工业级防御: 颜色表字节数必须完整落在文件内。
+                // 旧实现 Math.Min 静默只拷贝一部分且 dataOffset 仍按全长前移, 导致后续像素索引整体错位。
+                long available = data.Length - (18 + idLength);
+                if (mapBytes > available)
+                    throw new InvalidDataException(
+                        $"TGA 颜色表 {mapBytes} 字节超过文件剩余 {available} 字节");
+                colorMap = new byte[mapBytes];
+                Array.Copy(data, 18 + idLength, colorMap, 0, (int)mapBytes);
+                dataOffset += (int)mapBytes;
             }
 
             bool topToBottom = (imageDescriptor & 0x20) != 0;
@@ -991,6 +1064,11 @@ namespace YamaEngine.Assets.Importers
                 Name = Path.GetFileNameWithoutExtension(filePath)
             };
 
+            // 工业级防御: TIFF 至少 8 字节头 (字节序 + Magic + IFD 偏移)。
+            // 旧实现空/过短文件直接 data[0] 抛 IndexOutOfRangeException。
+            if (data.Length < 8)
+                throw new InvalidDataException($"TIFF 文件过小: {data.Length} 字节");
+
             // 检测字节序
             bool isLittleEndian = data[0] == 0x49; // 'I' = 小端, 'M' = 大端
 
@@ -1000,6 +1078,9 @@ namespace YamaEngine.Assets.Importers
                 throw new InvalidDataException($"无效的 TIFF Magic: {magic}");
 
             uint ifdOffset = ReadUInt32(data, 4, isLittleEndian);
+            // 工业级防御: IFD 偏移必须落在文件内 (至少含 2 字节计数)。
+            if (ifdOffset > data.Length - 2)
+                throw new InvalidDataException($"TIFF IFD 偏移越界: {ifdOffset}");
 
             // 解析 IFD（Image File Directory）
             int width = 0, height = 0;
@@ -1011,6 +1092,9 @@ namespace YamaEngine.Assets.Importers
             int rowsPerStrip = 0;
 
             int ifdCount = ReadUInt16(data, (int)ifdOffset, isLittleEndian);
+            // 工业级防御: IFD 条目数必须完整落在文件内 (每条 12 字节)。
+            if ((long)ifdCount * 12 + 2 > data.Length - ifdOffset)
+                throw new InvalidDataException($"TIFF IFD 条目数越界: {ifdCount}");
 
             for (int i = 0; i < ifdCount; i++)
             {
@@ -1033,6 +1117,11 @@ namespace YamaEngine.Assets.Importers
                     case 279: stripByteCounts = (int)value; break;
                 }
             }
+
+            if (width <= 0 || height <= 0 || width > MaxTextureDimension || height > MaxTextureDimension)
+                throw new InvalidDataException($"TIFF 非法像素尺寸 {width}x{height}");
+            if ((long)width * (long)height > MaxTexturePixels)
+                throw new InvalidDataException($"TIFF 像素总数 {width * height} 超过上限 {MaxTexturePixels}");
 
             texture.Width = width;
             texture.Height = height;
@@ -1131,17 +1220,27 @@ namespace YamaEngine.Assets.Importers
                 var parts = resolutionLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length >= 4)
                 {
-                    height = int.Parse(parts[1]);
-                    width = int.Parse(parts[3]);
+                    if (!int.TryParse(parts[1], out height) || !int.TryParse(parts[3], out width))
+                        throw new InvalidDataException($"HDR 分辨率行无效: '{resolutionLine}'");
                 }
             }
+
+            // 尺寸防御: 非法/超限尺寸会导致 width*height 分配巨量内存或 int 溢出 (OOM 向量)。
+            if (width <= 0 || height <= 0 ||
+                width > MaxTextureDimension || height > MaxTextureDimension)
+                throw new InvalidDataException($"HDR 尺寸非法: {width}x{height}");
+
+            // 像素预算: 用 long 计算防 int 乘法溢出, 超过预算即拒绝。
+            long hdrPixels = (long)width * (long)height;
+            if (hdrPixels > MaxTexturePixels)
+                throw new InvalidDataException($"HDR 尺寸过大: {width}x{height} ({hdrPixels} 像素 > {MaxTexturePixels} 上限)");
 
             texture.Width = width;
             texture.Height = height;
             texture.Channels = 4; // RGBE
             texture.HasAlpha = false;
-            texture.PixelData = new byte[width * height * 4]; // RGBE 原始数据
-            texture.HDRPixelData = new float[width * height * 3]; // RGB 浮点数据
+            texture.PixelData = new byte[hdrPixels * 4]; // RGBE 原始数据 (long 计算, 不溢出)
+            texture.HDRPixelData = new float[hdrPixels * 3]; // RGB 浮点数据
 
             _messages.Add($"HDR: {width}x{height}");
 
@@ -1157,8 +1256,9 @@ namespace YamaEngine.Assets.Importers
             }
 
             // 读取 RGBE 像素数据（可能使用游程编码）
-            int pixelCount = width * height;
-            int[] rgbe = new int[pixelCount * 4];
+            // 直接写入 texture.PixelData (byte), 无需冗余 int[] 中间缓冲 (省 4 倍像素数内存)。
+            int pixelCount = (int)hdrPixels;
+            byte[] rgbe = texture.PixelData;
 
             // 检查是否使用 RLE 编码（新版 RGBE）
             if (dataOffset + 4 < data.Length &&
@@ -1236,12 +1336,6 @@ namespace YamaEngine.Assets.Importers
                     texture.HDRPixelData[i * 3 + 1] = 0;
                     texture.HDRPixelData[i * 3 + 2] = 0;
                 }
-
-                // 存储 RGBE 原始数据
-                texture.PixelData[i * 4] = (byte)r;
-                texture.PixelData[i * 4 + 1] = (byte)g;
-                texture.PixelData[i * 4 + 2] = (byte)b;
-                texture.PixelData[i * 4 + 3] = (byte)e;
             }
 
             return texture;
@@ -1350,6 +1444,11 @@ namespace YamaEngine.Assets.Importers
             uint numberOfFaces = BitConverter.ToUInt32(data, 48);
             uint numberOfMipmapLevels = BitConverter.ToUInt32(data, 52);
 
+            if (pixelWidth == 0 || pixelHeight == 0 || pixelWidth > (uint)MaxTextureDimension || pixelHeight > (uint)MaxTextureDimension)
+                throw new InvalidDataException($"KTX{(isKtx2 ? "2" : "")} 非法像素尺寸 {pixelWidth}x{pixelHeight}");
+            if ((long)pixelWidth * (long)pixelHeight > MaxTexturePixels)
+                throw new InvalidDataException($"KTX{(isKtx2 ? "2" : "")} 像素总数 {pixelWidth * pixelHeight} 超过上限 {MaxTexturePixels}");
+
             texture.Width = (int)pixelWidth;
             texture.Height = (int)pixelHeight;
             texture.HasMipmaps = numberOfMipmapLevels > 1;
@@ -1400,6 +1499,11 @@ namespace YamaEngine.Assets.Importers
             ushort height = BitConverter.ToUInt16(data, 8);
             byte packed = data[10];
             byte bgColorIndex = data[11];
+
+            if (width == 0 || height == 0 || width > MaxTextureDimension || height > MaxTextureDimension)
+                throw new InvalidDataException($"GIF 非法像素尺寸 {width}x{height}");
+            if ((long)width * (long)height > MaxTexturePixels)
+                throw new InvalidDataException($"GIF 像素总数 {width * height} 超过上限 {MaxTexturePixels}");
 
             texture.Width = width;
             texture.Height = height;
@@ -1466,6 +1570,11 @@ namespace YamaEngine.Assets.Importers
             uint width = ReadUInt32BigEndian(data, 18);
             ushort depth = ReadUInt16BigEndian(data, 22);
             ushort colorMode = ReadUInt16BigEndian(data, 24);
+
+            if (width == 0 || height == 0 || width > (uint)MaxTextureDimension || height > (uint)MaxTextureDimension)
+                throw new InvalidDataException($"PSD 非法像素尺寸 {width}x{height}");
+            if ((long)width * (long)height > MaxTexturePixels)
+                throw new InvalidDataException($"PSD 像素总数 {width * height} 超过上限 {MaxTexturePixels}");
 
             texture.Width = (int)width;
             texture.Height = (int)height;

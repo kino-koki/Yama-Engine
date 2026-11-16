@@ -43,7 +43,7 @@ namespace YamaEngine.PluginSystem
 
         public bool IsPreRelease => !string.IsNullOrEmpty(PreRelease);
 
-        public SemanticVersion(int major, int minor, int patch, string preRelease = null, string build = null)
+        public SemanticVersion(int major, int minor, int patch, string? preRelease = null, string? build = null)
         {
             if (major < 0 || minor < 0 || patch < 0)
                 throw new ArgumentException("版本号组件不能为负数。");
@@ -60,7 +60,7 @@ namespace YamaEngine.PluginSystem
             throw new FormatException($"版本格式错误: '{version}'");
         }
 
-        public static bool TryParse(string version, out SemanticVersion result)
+        public static bool TryParse(string? version, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SemanticVersion? result)
         {
             result = null;
             if (string.IsNullOrWhiteSpace(version)) return false;
@@ -85,7 +85,7 @@ namespace YamaEngine.PluginSystem
             return true;
         }
 
-        public int CompareTo(SemanticVersion other)
+        public int CompareTo(SemanticVersion? other)
         {
             if (other is null) return 1;
             int c = Major.CompareTo(other.Major); if (c != 0) return c;
@@ -97,40 +97,40 @@ namespace YamaEngine.PluginSystem
             return string.Compare(PreRelease, other.PreRelease, StringComparison.Ordinal);
         }
 
-        public bool Equals(SemanticVersion other) =>
+        public bool Equals(SemanticVersion? other) =>
             other != null && Major == other.Major && Minor == other.Minor &&
             Patch == other.Patch && PreRelease == other.PreRelease;
 
-        public override bool Equals(object obj) => Equals(obj as SemanticVersion);
+        public override bool Equals(object? obj) => Equals(obj as SemanticVersion);
         public override int GetHashCode() => HashCode.Combine(Major, Minor, Patch, PreRelease);
         public override string ToString() =>
             $"{Major}.{Minor}.{Patch}" +
             (string.IsNullOrEmpty(PreRelease) ? "" : $"-{PreRelease}") +
             (string.IsNullOrEmpty(Build) ? "" : $"+{Build}");
 
-        public static bool operator ==(SemanticVersion a, SemanticVersion b) =>
+        public static bool operator ==(SemanticVersion? a, SemanticVersion? b) =>
             a is null ? b is null : a.Equals(b);
-        public static bool operator !=(SemanticVersion a, SemanticVersion b) => !(a == b);
-        public static bool operator <(SemanticVersion a, SemanticVersion b) =>
+        public static bool operator !=(SemanticVersion? a, SemanticVersion? b) => !(a == b);
+        public static bool operator <(SemanticVersion? a, SemanticVersion? b) =>
             a is null ? b is not null : a.CompareTo(b) < 0;
-        public static bool operator >(SemanticVersion a, SemanticVersion b) =>
+        public static bool operator >(SemanticVersion? a, SemanticVersion? b) =>
             a is not null && a.CompareTo(b) > 0;
-        public static bool operator <=(SemanticVersion a, SemanticVersion b) =>
+        public static bool operator <=(SemanticVersion? a, SemanticVersion? b) =>
             a is null || a.CompareTo(b) <= 0;
-        public static bool operator >=(SemanticVersion a, SemanticVersion b) =>
+        public static bool operator >=(SemanticVersion? a, SemanticVersion? b) =>
             a is null ? b is null : a.CompareTo(b) >= 0;
     }
 
     /// <summary>版本范围匹配 (支持 *, ^1.2, ~1.2.3, >=1.0 &lt;2.0 等)。</summary>
     public sealed class VersionRange
     {
-        public SemanticVersion Min { get; }
-        public SemanticVersion Max { get; }
+        public SemanticVersion? Min { get; }
+        public SemanticVersion? Max { get; }
         public bool MinInclusive { get; }
         public bool MaxInclusive { get; }
         public bool MatchAny { get; }
 
-        private VersionRange(SemanticVersion min, SemanticVersion max, bool minInc, bool maxInc, bool any)
+        private VersionRange(SemanticVersion? min, SemanticVersion? max, bool minInc, bool maxInc, bool any)
         {
             Min = min; Max = max; MinInclusive = minInc; MaxInclusive = maxInc; MatchAny = any;
         }
@@ -167,7 +167,7 @@ namespace YamaEngine.PluginSystem
             }
 
             // Range: >=1.0 <2.0
-            string minStr = null, maxStr = null;
+            string? minStr = null, maxStr = null;
             bool minInc = false, maxInc = false;
 
             var tokens = range.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
@@ -180,8 +180,8 @@ namespace YamaEngine.PluginSystem
                 else if (tok.StartsWith("==")) { minStr = tok.Substring(2); minInc = true; maxStr = minStr; maxInc = true; }
             }
 
-            SemanticVersion min = minStr != null ? SemanticVersion.Parse(minStr) : null;
-            SemanticVersion max = maxStr != null ? SemanticVersion.Parse(maxStr) : null;
+            SemanticVersion? min = minStr != null ? SemanticVersion.Parse(minStr) : null;
+            SemanticVersion? max = maxStr != null ? SemanticVersion.Parse(maxStr) : null;
             return new VersionRange(min, max, minInc, maxInc, false);
         }
 
@@ -278,7 +278,7 @@ namespace YamaEngine.PluginSystem
     /// <summary>插件权限。</summary>
     public sealed class PluginPermission
     {
-        public string PluginId { get; set; }
+        public string PluginId { get; set; } = string.Empty;
         public PluginPermissionFlags Granted { get; set; } = PluginPermissionFlags.None;
         public PluginPermissionFlags Requested { get; set; } = PluginPermissionFlags.None;
         public List<string> AllowedPaths { get; } = new List<string>();
@@ -318,7 +318,7 @@ namespace YamaEngine.PluginSystem
             return false;
         }
 
-        public bool CanAccessNetwork(string domain = null)
+        public bool CanAccessNetwork(string? domain = null)
         {
             if (!HasPermission(PluginPermissionFlags.NetworkAccess)) return false;
             if (string.IsNullOrEmpty(domain)) return true;
@@ -430,7 +430,7 @@ namespace YamaEngine.PluginSystem
 
             string json = File.ReadAllText(path);
             var desc = JsonSerializer.Deserialize<PluginDescriptor>(json, JsonOpts) ?? new PluginDescriptor();
-            desc.PluginPath = Path.GetDirectoryName(path);
+            desc.PluginPath = Path.GetDirectoryName(path) ?? string.Empty;
             desc.PluginId = string.IsNullOrEmpty(desc.PluginId) ? desc.Info.Name : desc.PluginId;
 
             if (string.IsNullOrEmpty(desc.EntryDll))
@@ -440,7 +440,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>保存描述符到 .plugin.json。</summary>
-        public void SaveToFile(string path = null)
+        public void SaveToFile(string? path = null)
         {
             path ??= Path.Combine(PluginPath, "plugin.json");
             string json = JsonSerializer.Serialize(this, JsonOpts);
@@ -448,7 +448,7 @@ namespace YamaEngine.PluginSystem
         }
 
         /// <summary>尝试加载描述符 (不抛异常)。</summary>
-        public static bool TryLoadFromFile(string path, out PluginDescriptor descriptor)
+        public static bool TryLoadFromFile(string path, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PluginDescriptor? descriptor)
         {
             descriptor = null;
             try
@@ -470,15 +470,15 @@ namespace YamaEngine.PluginSystem
     {
         private readonly ConcurrentDictionary<string, object> _values = new ConcurrentDictionary<string, object>();
         private readonly Dictionary<string, object> _defaults = new Dictionary<string, object>();
-        private string _filePath;
-        private FileSystemWatcher _watcher;
+        private string? _filePath;
+        private FileSystemWatcher? _watcher;
         private readonly object _lock = new object();
 
         public string PluginId { get; }
         public bool AutoReload { get; set; } = true;
-        public event Action<PluginConfig> OnReloaded;
+        public event Action<PluginConfig>? OnReloaded;
 
-        public PluginConfig(string pluginId, string filePath = null, Dictionary<string, object> defaults = null)
+        public PluginConfig(string pluginId, string? filePath = null, Dictionary<string, object>? defaults = null)
         {
             PluginId = pluginId;
             _filePath = filePath;
@@ -487,7 +487,7 @@ namespace YamaEngine.PluginSystem
                     _defaults[kv.Key] = kv.Value;
         }
 
-        public T Get<T>(string key, T defaultValue = default)
+        public T Get<T>(string key, T defaultValue = default!)
         {
             if (_values.TryGetValue(key, out var val))
             {
@@ -502,9 +502,9 @@ namespace YamaEngine.PluginSystem
             return defaultValue;
         }
 
-        public void Set<T>(string key, T value)
+        public void Set<T>(string key, T? value)
         {
-            _values[key] = value;
+            _values[key] = value!;
         }
 
         public bool Has(string key) => _values.ContainsKey(key) || _defaults.ContainsKey(key);
@@ -529,11 +529,11 @@ namespace YamaEngine.PluginSystem
                         {
                             _values[kv.Key] = kv.Value.ValueKind switch
                             {
-                                JsonValueKind.String => kv.Value.GetString(),
+                                JsonValueKind.String => kv.Value.GetString()!,
                                 JsonValueKind.Number => kv.Value.TryGetInt32(out int i) ? (object)i : kv.Value.GetDouble(),
                                 JsonValueKind.True => true,
                                 JsonValueKind.False => false,
-                                _ => kv.Value.GetRawText()
+                                _ => kv.Value.GetRawText()!
                             };
                         }
                     }
@@ -567,8 +567,9 @@ namespace YamaEngine.PluginSystem
         public void StartWatching()
         {
             if (!AutoReload || string.IsNullOrEmpty(_filePath) || !File.Exists(_filePath)) return;
-            string dir = Path.GetDirectoryName(_filePath);
+            string? dir = Path.GetDirectoryName(_filePath);
             string name = Path.GetFileName(_filePath);
+            if (dir is null) return;
             _watcher = new FileSystemWatcher(dir, name)
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
@@ -609,16 +610,16 @@ namespace YamaEngine.PluginSystem
     {
         public string PluginId { get; }
         public PluginLogLevel Level { get; set; } = PluginLogLevel.Info;
-        public string LogDirectory { get; set; }
+        public string LogDirectory { get; set; } = string.Empty;
         public bool LogToFile { get; set; } = true;
         public bool LogToConsole { get; set; } = true;
 
         private readonly object _lock = new object();
-        private StreamWriter _fileWriter;
+        private StreamWriter? _fileWriter;
         private DateTime _fileDate;
         private readonly List<PluginLogLevel> _levelFilter = new List<PluginLogLevel>();
 
-        public PluginLogger(string pluginId, string logDir = null)
+        public PluginLogger(string pluginId, string? logDir = null)
         {
             PluginId = pluginId;
             LogDirectory = logDir ?? Path.Combine(AppContext.BaseDirectory, "Logs", "Plugins");
@@ -706,7 +707,7 @@ namespace YamaEngine.PluginSystem
     {
         PluginInfo Info { get; }
         PluginState State { get; }
-        PluginDescriptor Descriptor { get; }
+        PluginDescriptor? Descriptor { get; }
 
         void OnLoad(PluginContext context);
         void OnUnload();
@@ -721,15 +722,15 @@ namespace YamaEngine.PluginSystem
     public sealed class PluginContext
     {
         public PluginDescriptor Descriptor { get; }
-        public PluginConfig Config { get; internal set; }
-        public PluginLogger Logger { get; internal set; }
-        public PluginPermission Permission { get; internal set; }
-        public PluginLoadContext LoadContext { get; internal set; }
-        public PluginManager Manager { get; internal set; }
+        public PluginConfig? Config { get; internal set; }
+        public PluginLogger? Logger { get; internal set; }
+        public PluginPermission? Permission { get; internal set; }
+        public PluginLoadContext? LoadContext { get; internal set; }
+        public PluginManager? Manager { get; internal set; }
 
         // 服务定位器快捷方式
-        public T GetService<T>() where T : class => Manager?.GetService<T>();
-        public object GetService(Type serviceType) => Manager?.GetService(serviceType);
+        public T? GetService<T>() where T : class => Manager?.GetService<T>();
+        public object? GetService(Type serviceType) => Manager?.GetService(serviceType);
 
         // 事件总线快捷方式
         public void Subscribe<T>(Action<T> handler) where T : PluginEvent
@@ -748,12 +749,12 @@ namespace YamaEngine.PluginSystem
     {
         public abstract PluginInfo Info { get; }
         public PluginState State { get; internal set; } = PluginState.Unloaded;
-        public PluginDescriptor Descriptor { get; internal set; }
+        public PluginDescriptor? Descriptor { get; internal set; }
 
-        protected PluginContext Context { get; private set; }
-        protected PluginConfig Config => Context?.Config;
-        protected PluginLogger Logger => Context?.Logger;
-        protected PluginPermission Permission => Context?.Permission;
+        protected PluginContext? Context { get; private set; }
+        protected PluginConfig Config => Context?.Config!;
+        protected PluginLogger Logger => Context?.Logger!;
+        protected PluginPermission Permission => Context?.Permission!;
 
         private float _accumulatedTime;
         private int _updateCount;
@@ -823,7 +824,7 @@ namespace YamaEngine.PluginSystem
             _resolver = new AssemblyDependencyResolver(pluginPath);
 
             // Add plugin directory as probing path
-            string pluginDir = Path.GetDirectoryName(pluginPath);
+            string? pluginDir = Path.GetDirectoryName(pluginPath);
             if (!string.IsNullOrEmpty(pluginDir))
                 _probingPaths.Add(pluginDir);
         }
@@ -837,7 +838,7 @@ namespace YamaEngine.PluginSystem
         protected override Assembly Load(AssemblyName assemblyName)
         {
             // 1. Try resolver (deps.json)
-            string assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+            string? assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
             if (assemblyPath != null)
             {
                 var asm = LoadFromAssemblyPath(assemblyPath);
@@ -858,12 +859,12 @@ namespace YamaEngine.PluginSystem
             }
 
             // 3. Return null to fall back to default context (shared assemblies)
-            return null;
+            return null!;
         }
 
         protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
         {
-            string libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+            string? libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
             if (libraryPath != null)
                 return LoadUnmanagedDllFromPath(libraryPath);
             return IntPtr.Zero;
@@ -899,15 +900,15 @@ namespace YamaEngine.PluginSystem
     /// <summary>已加载的插件实例容器。</summary>
     internal sealed class LoadedPlugin
     {
-        public PluginDescriptor Descriptor { get; set; }
-        public IPlugin Instance { get; set; }
-        public PluginContext Context { get; set; }
-        public PluginLoadContext LoadContext { get; set; }
+        public PluginDescriptor Descriptor { get; set; } = null!;
+        public IPlugin? Instance { get; set; }
+        public PluginContext? Context { get; set; }
+        public PluginLoadContext? LoadContext { get; set; }
         public PluginState State { get => Instance?.State ?? PluginState.Unloaded; }
-        public Assembly Assembly { get; set; }
+        public Assembly? Assembly { get; set; }
         public DateTime LoadTime { get; set; }
         public List<string> LoadErrors { get; } = new List<string>();
-        public WeakReference UnloadReference { get; set; }
+        public WeakReference? UnloadReference { get; set; }
 
         public override string ToString() => $"{Descriptor?.Info?.Name} [{State}]";
     }
@@ -933,8 +934,8 @@ namespace YamaEngine.PluginSystem
         public SemanticVersion EngineVersion { get; set; } = new SemanticVersion(1, 0, 0);
 
         // 子系统引用 (延迟设置)
-        public PluginEventBus EventBus { get; set; }
-        public PluginServiceRegistry ServiceRegistry { get; set; }
+        public PluginEventBus? EventBus { get; set; }
+        public PluginServiceRegistry? ServiceRegistry { get; set; }
 
         // 配置
         public string PluginsRootDirectory { get; set; } = Path.Combine(AppContext.BaseDirectory, "Plugins");
@@ -947,11 +948,11 @@ namespace YamaEngine.PluginSystem
         private readonly PluginLogger _logger = new PluginLogger("PluginManager");
 
         // 事件
-        public event Action<IPlugin> OnPluginLoaded;
-        public event Action<IPlugin> OnPluginUnloaded;
-        public event Action<IPlugin> OnPluginActivated;
-        public event Action<IPlugin> OnPluginDeactivated;
-        public event Action<string, Exception> OnPluginError;
+        public event Action<IPlugin>? OnPluginLoaded;
+        public event Action<IPlugin>? OnPluginUnloaded;
+        public event Action<IPlugin>? OnPluginActivated;
+        public event Action<IPlugin>? OnPluginDeactivated;
+        public event Action<string, Exception>? OnPluginError;
 
         private PluginManager()
         {
@@ -1175,7 +1176,7 @@ namespace YamaEngine.PluginSystem
                     loaded.Assembly = loaded.LoadContext.LoadPluginAssembly(descriptor.EntryDll);
 
                     // 查找入口类型
-                    Type entryType = null;
+                    Type? entryType = null;
                     if (!string.IsNullOrEmpty(descriptor.EntryClass))
                         entryType = loaded.Assembly.GetType(descriptor.EntryClass);
 
@@ -1200,7 +1201,7 @@ namespace YamaEngine.PluginSystem
                     }
 
                     // 创建实例
-                    var instance = (IPlugin)Activator.CreateInstance(entryType);
+                    var instance = (IPlugin)Activator.CreateInstance(entryType)!;
 
                     // 创建上下文
                     var context = new PluginContext(descriptor)
@@ -1281,11 +1282,13 @@ namespace YamaEngine.PluginSystem
 
                     // 停用
                     loaded.Instance?.OnDeactivate();
-                    OnPluginDeactivated?.Invoke(loaded.Instance);
+                    if (loaded.Instance != null)
+                        OnPluginDeactivated?.Invoke(loaded.Instance);
 
                     // 卸载
                     loaded.Instance?.OnUnload();
-                    OnPluginUnloaded?.Invoke(loaded.Instance);
+                    if (loaded.Instance != null)
+                        OnPluginUnloaded?.Invoke(loaded.Instance);
 
                     // 停止配置监视
                     loaded.Context?.Config?.StopWatching();
@@ -1348,7 +1351,8 @@ namespace YamaEngine.PluginSystem
             {
                 if (loaded.State == PluginState.Active) return true;
                 loaded.Instance?.OnActivate();
-                OnPluginActivated?.Invoke(loaded.Instance);
+                if (loaded.Instance != null)
+                    OnPluginActivated?.Invoke(loaded.Instance);
                 return true;
             }
 
@@ -1368,7 +1372,8 @@ namespace YamaEngine.PluginSystem
             if (_plugins.TryGetValue(pluginId, out var loaded))
             {
                 loaded.Instance?.OnDeactivate();
-                OnPluginDeactivated?.Invoke(loaded.Instance);
+                if (loaded.Instance != null)
+                    OnPluginDeactivated?.Invoke(loaded.Instance);
                 return true;
             }
             return false;
@@ -1401,14 +1406,14 @@ namespace YamaEngine.PluginSystem
         #region 查询
 
         /// <summary>获取已加载的插件。</summary>
-        public IPlugin GetPlugin(string pluginId)
+        public IPlugin? GetPlugin(string pluginId)
         {
             return _plugins.TryGetValue(pluginId, out var loaded) ? loaded.Instance : null;
         }
 
         /// <summary>获取所有已加载插件。</summary>
         public IEnumerable<IPlugin> GetLoadedPlugins() =>
-            _plugins.Values.Select(l => l.Instance).Where(p => p != null);
+            _plugins.Values.Select(l => l.Instance).Where(p => p != null)!;
 
         /// <summary>获取插件状态。</summary>
         public PluginState GetPluginState(string pluginId)
@@ -1432,22 +1437,22 @@ namespace YamaEngine.PluginSystem
         #region 服务定位
 
         /// <summary>获取服务。</summary>
-        public T GetService<T>() where T : class
+        public T? GetService<T>() where T : class
         {
             return ServiceRegistry?.GetService<T>();
         }
 
         /// <summary>获取服务。</summary>
-        public object GetService(Type serviceType)
+        public object? GetService(Type serviceType)
         {
             return ServiceRegistry?.GetService(serviceType);
         }
 
         /// <summary>注册服务。</summary>
-        public void RegisterService<TInterface, TImplementation>(TImplementation instance = null)
+        public void RegisterService<TInterface, TImplementation>(TImplementation? instance = null)
             where TImplementation : class, TInterface, new()
         {
-            ServiceRegistry?.Register<TInterface, TImplementation>(instance);
+            ServiceRegistry?.Register<TInterface, TImplementation>(instance!);
         }
 
         #endregion

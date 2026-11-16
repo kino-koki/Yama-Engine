@@ -123,7 +123,7 @@ yama引擎采用分层架构，从底层 RHI 到上层编辑器。**全部托管
 
 ```
 YamaEditor.sln
-├── YamaEngine (Library, net8.0)         ← 编译通过（0 错误）
+├── YamaEngine (Library, net10.0)         ← 编译通过（0 错误）
 │   ├── Silk.NET.Vulkan (2.22.0)
 │   ├── ImGui.NET (1.90.8.1)
 │   ├── Vortice.Mathematics (1.9.3)

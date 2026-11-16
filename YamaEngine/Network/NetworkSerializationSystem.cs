@@ -267,10 +267,15 @@ namespace YamaEngine.Network
         public byte[] ReadBytes(int count)
         {
             PadToByte();
-            byte[] result = new byte[count];
             int bytePos = _bitPosition >> 3;
-            if (bytePos + count <= _buffer.Length)
-                Array.Copy(_buffer, bytePos, result, 0, count);
+            // 工业级防御: count 来自未受信网络字节。
+            // `bytePos + count > _buffer.Length` 在 count 为巨值时溢出为负绕过检查,
+            // 导致 `new byte[count]` OOM。用无溢出的 `count > _buffer.Length - bytePos` 替代。
+            if (count < 0 || count > _buffer.Length - bytePos)
+                throw new InvalidDataException(
+                    $"Network data corrupt: bit-unpacker byte count {count} exceeds buffer {_buffer.Length - bytePos}.");
+            byte[] result = new byte[count];
+            Array.Copy(_buffer, bytePos, result, 0, count);
             _bitPosition += count * 8;
             return result;
         }
@@ -564,6 +569,11 @@ namespace YamaEngine.Network
         private const byte FragmentTypeAck = 1;
         private const byte FlagLastFragment = 0x01;
 
+        // 单条消息最大分片数。对端可伪造 totalFrags=65535 触发 OOM
+        // (65535 片 × 1192B ≈ 78MB/消息, ×MaxPendingMessages=32 ≈ 2.5GB)。
+        // 与 NetworkFramingReal(MaxFragmentsPerMessage=4096) 对齐, 超出即视为损坏数据。
+        private const int MaxFragmentsPerMessage = 4096;
+
         private ushort _nextMessageId;
         private readonly Dictionary<ushort, PendingReassembly> _pendingReassembly
             = new Dictionary<ushort, PendingReassembly>();
@@ -625,7 +635,14 @@ namespace YamaEngine.Network
             ushort fragIndex = ReadUShort(packet, 4);
             ushort totalFrags = ReadUShort(packet, 6);
 
+            // 工业级防御: fragIndex/totalFrags 来自未受信网络字节。
+            // 若不校验, `pending.ReceivedFragments[fragIndex]` 写前越界触发
+            // IndexOutOfRangeException, 攻击者可构造 fragIndex>totalFrags 稳定 DoS。
+            // totalFrags 无上限会导致 new byte[totalFrags][] 巨量分配 (OOM 向量), 上限对齐 4096。
+            if (totalFrags == 0 || totalFrags > MaxFragmentsPerMessage || fragIndex >= totalFrags) return null;
+
             int payloadLen = length - 8;
+            if (payloadLen < 0) return null;
 
             if (!_pendingReassembly.TryGetValue(msgId, out var pending))
             {

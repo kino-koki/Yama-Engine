@@ -46,9 +46,9 @@ namespace YamaEngine.AI
     {
         public string Key { get; }
         public GOAPValueType ValueType { get; }
-        public object DefaultValue { get; }
+        public object? DefaultValue { get; }
 
-        public GOAPStateKey(string key, GOAPValueType valueType, object defaultValue = null)
+        public GOAPStateKey(string key, GOAPValueType valueType, object? defaultValue = null)
         {
             Key = key;
             ValueType = valueType;
@@ -72,7 +72,7 @@ namespace YamaEngine.AI
         private readonly Dictionary<string, object> _values = new Dictionary<string, object>();
 
         /// <summary>获取值。</summary>
-        public T GetValue<T>(string key)
+        public T? GetValue<T>(string key)
         {
             if (_values.TryGetValue(key, out var val))
             {
@@ -177,7 +177,7 @@ namespace YamaEngine.AI
         public Dictionary<string, object> Effects { get; } = new Dictionary<string, object>();
 
         /// <summary>目标 Actor（可选）。</summary>
-        public YamaEngine.GameFramework.Actor TargetActor { get; set; }
+        public YamaEngine.GameFramework.Actor? TargetActor { get; set; }
 
         /// <summary>检查是否在范围内（用于移动到目标后再执行）。</summary>
         public virtual bool IsInRange(GOAPAgent agent) => true;
@@ -286,7 +286,7 @@ namespace YamaEngine.AI
             _cooldown += deltaTime;
             if (_cooldown >= CooldownTime)
             {
-                agent.PerformAttack?.Invoke(TargetActor);
+                agent.PerformAttack?.Invoke(TargetActor!);
                 _cooldown = 0f;
                 return true;
             }
@@ -341,7 +341,7 @@ namespace YamaEngine.AI
     {
         public string ItemName { get; set; } = "";
         public string EffectKey { get; set; } = "";
-        public object EffectValue { get; set; }
+        public object? EffectValue { get; set; }
 
         public GOAPAction_UseItem()
         {
@@ -355,7 +355,7 @@ namespace YamaEngine.AI
         public override bool Execute(GOAPAgent agent, float deltaTime)
         {
             if (!string.IsNullOrEmpty(EffectKey))
-                agent.WorldState.SetValue(EffectKey, EffectValue);
+                agent.WorldState.SetValue(EffectKey, EffectValue!);
             agent.WorldState.SetValue("Has" + ItemName, false);
             agent.OnItemUsed?.Invoke(ItemName);
             return true;
@@ -520,7 +520,7 @@ namespace YamaEngine.AI
         public float LastPlanningTimeMs { get; private set; }
 
         /// <summary>规划行动序列。返回 null 表示无法规划。</summary>
-        public Queue<GOAPAction> Plan(GOAPState worldState, List<GOAPAction> availableActions,
+        public Queue<GOAPAction>? Plan(GOAPState worldState, List<GOAPAction> availableActions,
             Dictionary<string, object> goalState)
         {
             if (worldState == null || availableActions == null || goalState == null)
@@ -621,7 +621,7 @@ namespace YamaEngine.AI
             var node = goalNode;
             while (node.Parent != null)
             {
-                var action = (GOAPAction)Activator.CreateInstance(node.Action.GetType());
+                var action = (GOAPAction)Activator.CreateInstance(node.Action!.GetType())!;
                 // 复制属性
                 action.TargetActor = node.Action.TargetActor;
                 plan.Push(action);
@@ -633,14 +633,14 @@ namespace YamaEngine.AI
 
         private sealed class PlannerNode
         {
-            public GOAPAction Action { get; }
-            public PlannerNode Parent { get; }
+            public GOAPAction? Action { get; }
+            public PlannerNode? Parent { get; }
             public GOAPState State { get; }
             public float GCost { get; }
             public float HCost { get; set; }
             public float FCost => GCost + HCost;
 
-            public PlannerNode(GOAPAction action, PlannerNode parent, GOAPState state, float gCost)
+            public PlannerNode(GOAPAction? action, PlannerNode? parent, GOAPState state, float gCost)
             {
                 Action = action;
                 Parent = parent;
@@ -669,13 +669,13 @@ namespace YamaEngine.AI
         public List<GOAPGoal> Goals { get; } = new List<GOAPGoal>();
 
         /// <summary>当前行动计划。</summary>
-        public Queue<GOAPAction> CurrentPlan { get; private set; }
+        public Queue<GOAPAction>? CurrentPlan { get; private set; }
 
         /// <summary>当前正在执行的行动。</summary>
-        public GOAPAction CurrentAction { get; private set; }
+        public GOAPAction? CurrentAction { get; private set; }
 
         /// <summary>当前活跃目标。</summary>
-        public GOAPGoal ActiveGoal { get; private set; }
+        public GOAPGoal? ActiveGoal { get; private set; }
 
         /// <summary>规划器。</summary>
         public GOAPPlanner Planner { get; } = new GOAPPlanner();
@@ -684,25 +684,25 @@ namespace YamaEngine.AI
         public Vector3 OwnerPosition { get; set; }
 
         /// <summary>移动回调。</summary>
-        public Action<Vector3> MoveTo { get; set; }
+        public Action<Vector3>? MoveTo { get; set; }
 
         /// <summary>攻击回调。</summary>
-        public Action<YamaEngine.GameFramework.Actor> PerformAttack { get; set; }
+        public Action<YamaEngine.GameFramework.Actor>? PerformAttack { get; set; }
 
         /// <summary>物品拾取回调。</summary>
-        public Action<string> OnItemPickedUp { get; set; }
+        public Action<string>? OnItemPickedUp { get; set; }
 
         /// <summary>物品使用回调。</summary>
-        public Action<string> OnItemUsed { get; set; }
+        public Action<string>? OnItemUsed { get; set; }
 
         /// <summary>门交互回调。</summary>
-        public Action<bool> OnDoorInteracted { get; set; }
+        public Action<bool>? OnDoorInteracted { get; set; }
 
         /// <summary>治疗回调。</summary>
-        public Action<float> OnHealed { get; set; }
+        public Action<float>? OnHealed { get; set; }
 
         /// <summary>装弹回调。</summary>
-        public Action OnReloaded { get; set; }
+        public Action? OnReloaded { get; set; }
 
         // ── 缓存 ──────────────────────────────────────────────────
 
@@ -797,9 +797,9 @@ namespace YamaEngine.AI
         }
 
         /// <summary>选择最高优先级的未满足目标。</summary>
-        private GOAPGoal SelectBestGoal()
+        private GOAPGoal? SelectBestGoal()
         {
-            GOAPGoal best = null;
+            GOAPGoal? best = null;
             float bestPriority = float.MinValue;
 
             foreach (var goal in Goals)

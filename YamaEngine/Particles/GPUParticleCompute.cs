@@ -1440,12 +1440,17 @@ namespace YamaEngine.Particles
 
             // 2) Bitonic 排序网络
             cmd.SetPipelineState(_sortPSO!);
+            // CA2014：stackalloc 移出循环，避免每次迭代累积栈分配
+            Span<uint> cb = stackalloc uint[4];
             for (int size = 2; size <= n; size *= 2)
             {
                 for (int stride = size; stride > 1; stride /= 2)
                 {
                     uint dir = (uint)((ascending ? 1 : 0) ^ (((size & n) != 0) ? 1 : 0));
-                    Span<uint> cb = stackalloc uint[4] { (uint)n, (uint)stride, dir, 0 };
+                    cb[0] = (uint)n;
+                    cb[1] = (uint)stride;
+                    cb[2] = dir;
+                    cb[3] = 0;
                     unsafe
                     {
                         fixed (uint* p = cb)

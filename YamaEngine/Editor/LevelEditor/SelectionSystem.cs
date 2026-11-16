@@ -311,8 +311,8 @@ namespace YamaEngine.Editor.LevelEditor
         public Guid HoveredId;
 
         /// <summary>轮廓线渲染纹理 (中间缓冲)。</summary>
-        private RHITexture _outlineBuffer;
-        private RHITexture _depthCopy;
+        private RHITexture? _outlineBuffer;
+        private RHITexture? _depthCopy;
         private int _lastWidth;
         private int _lastHeight;
 
@@ -682,9 +682,9 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>目标对象 ID。</summary>
         public Guid TargetId;
         /// <summary>目标组件类型 (null=显示对象本身)。</summary>
-        public string ComponentType;
+        public string? ComponentType;
         /// <summary>属性路径 (支持嵌套: Transform.Position.X)。</summary>
-        public string PropertyPath;
+        public string? PropertyPath;
         /// <summary>是否请求聚焦到该属性。</summary>
         public bool FocusProperty;
     }
@@ -820,7 +820,7 @@ namespace YamaEngine.Editor.LevelEditor
         }
 
         /// <summary>获取 Active SceneObject。</summary>
-        public SceneObject GetActiveObject()
+        public SceneObject? GetActiveObject()
         {
             if (ActiveId == Guid.Empty) return null;
             return _assets.SceneObjects.Find(o => o.Id == ActiveId);
@@ -936,14 +936,14 @@ namespace YamaEngine.Editor.LevelEditor
     public sealed class EnhancedSelectionSystem : IDisposable
     {
         private readonly AssetDatabase _assets;
-        private readonly RHIDevice _device;
+        private readonly RHIDevice? _device;
         private bool _disposed;
 
         // ── 子系统 ──
         public readonly SelectionListManager ListManager;
         public readonly SelectionFilter Filter = new();
         public readonly SelectionHighlight Highlight = new();
-        public readonly OutlineRenderer OutlineRenderer;
+        public readonly OutlineRenderer? OutlineRenderer;
         public readonly SelectionHistory History = new();
         public readonly ObjectVisibilityState Visibility = new();
         public readonly OutlinerSync OutlinerSync = new();
@@ -981,7 +981,7 @@ namespace YamaEngine.Editor.LevelEditor
         /// <summary>选中 ID 列表 (只读)。</summary>
         public IReadOnlyList<Guid> SelectedIds => ListManager.SelectedIds;
 
-        public EnhancedSelectionSystem(AssetDatabase assets, RHIDevice device = null)
+        public EnhancedSelectionSystem(AssetDatabase assets, RHIDevice? device = null)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _device = device;

@@ -106,15 +106,18 @@ namespace YamaEngine.AI
 
         private void GenerateV(int n)
         {
+            // i=0 顶点；i=1,2 第一对翼(row=1)；i=3,4 第二对翼(row=2)...
+            // row=(i+1)/2 整数除法保证每对翼共享同一 row，side 交替 ±1 实现 X 对称。
+            // 旧实现 half=i/2 使 i=1 退化为 half=0（与顶点重合），破坏对称性（off-by-one bug）。
             for (int i = 0; i < n; i++)
             {
-                int half = i / 2;
+                int row = (i + 1) / 2;
                 int side = (i % 2 == 0) ? -1 : 1;
                 if (i == 0) side = 0;
                 Slots.Add(new FormationSlot
                 {
                     Index = i,
-                    LocalPosition = new Vector3(side * half * Spacing, 0, -half * Spacing),
+                    LocalPosition = new Vector3(side * row * Spacing, 0, -row * Spacing),
                     LocalRotation = 0
                 });
             }
@@ -122,15 +125,16 @@ namespace YamaEngine.AI
 
         private void GenerateInvertedV(int n)
         {
+            // 与 GenerateV 同构，仅 Z 方向取正（翼向后展开）。同样修复 half=i/2 的 off-by-one。
             for (int i = 0; i < n; i++)
             {
-                int half = i / 2;
+                int row = (i + 1) / 2;
                 int side = (i % 2 == 0) ? -1 : 1;
                 if (i == 0) side = 0;
                 Slots.Add(new FormationSlot
                 {
                     Index = i,
-                    LocalPosition = new Vector3(side * half * Spacing, 0, half * Spacing),
+                    LocalPosition = new Vector3(side * row * Spacing, 0, row * Spacing),
                     LocalRotation = 0
                 });
             }

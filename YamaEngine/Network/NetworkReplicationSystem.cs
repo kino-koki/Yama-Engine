@@ -147,13 +147,13 @@ namespace YamaEngine.Network
     public class PropertyMetadata
     {
         /// <summary>属性信息</summary>
-        public PropertyInfo PropertyInfo { get; set; }
+        public PropertyInfo PropertyInfo { get; set; } = null!;
 
         /// <summary>网络属性配置</summary>
-        public NetworkPropertyAttribute Attribute { get; set; }
+        public NetworkPropertyAttribute Attribute { get; set; } = null!;
 
         /// <summary>上次同步的值</summary>
-        public object LastSyncedValue { get; set; }
+        public object? LastSyncedValue { get; set; }
 
         /// <summary>上次同步的时间</summary>
         public long LastSyncTime { get; set; }
@@ -172,19 +172,19 @@ namespace YamaEngine.Network
     public class NetworkObjectMetadata
     {
         /// <summary>类型</summary>
-        public Type Type { get; set; }
+        public Type Type { get; set; } = null!;
 
         /// <summary>类型ID</summary>
         public ushort TypeId { get; set; }
 
         /// <summary>网络对象属性</summary>
-        public NetworkObjectAttribute Attribute { get; set; }
+        public NetworkObjectAttribute Attribute { get; set; } = null!;
 
         /// <summary>需要同步的属性列表</summary>
         public List<PropertyMetadata> Properties { get; set; } = new List<PropertyMetadata>();
 
         /// <summary>工厂函数</summary>
-        public Func<INetworkObject> Factory { get; set; }
+        public Func<INetworkObject> Factory { get; set; } = null!;
 
         /// <summary>是否按距离相关性</summary>
         public bool RelevanceByDistance => Attribute?.RelevanceByDistance ?? false;
@@ -199,13 +199,13 @@ namespace YamaEngine.Network
     public class NetworkObjectInstance
     {
         /// <summary>对象</summary>
-        public INetworkObject Object { get; set; }
+        public INetworkObject Object { get; set; } = null!;
 
         /// <summary>元数据</summary>
-        public NetworkObjectMetadata Metadata { get; set; }
+        public NetworkObjectMetadata Metadata { get; set; } = null!;
 
         /// <summary>属性值缓存</summary>
-        public Dictionary<int, object> PropertyValueCache { get; set; } = new Dictionary<int, object>();
+        public Dictionary<int, object?> PropertyValueCache { get; set; } = new Dictionary<int, object?>();
 
         /// <summary>上次全量同步时间</summary>
         public long LastFullSyncTime { get; set; }
@@ -445,7 +445,11 @@ namespace YamaEngine.Network
 
         public byte[] ReadBytes(int count)
         {
-            if (_position + count > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            // 工业级防御: count 来自未受信网络字节, 可为 int.MaxValue。
+            // 用 `count > Remaining` (无溢出) 替代 `_position + count > _length` (会溢出为负绕过检查)。
+            // 否则 `new byte[count]` 触发 OOM 崩溃。
+            if (count < 0) throw new InvalidOperationException("读取长度不能为负");
+            if (count > Remaining) throw new InvalidOperationException("读取超出缓冲区范围");
             var result = new byte[count];
             System.Buffer.BlockCopy(_buffer, _position, result, 0, count);
             _position += count;
@@ -454,7 +458,9 @@ namespace YamaEngine.Network
 
         public int ReadInt32()
         {
-            if (_position + 4 > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            // 工业级防御: `_position + 4 > _length` 可因 _position 巨大而溢出为负绕过检查。
+            // 用 `4 > _length - _position` (无溢出) 替代。
+            if (4 > _length - _position) throw new InvalidOperationException("读取超出缓冲区范围");
             int value = BitConverter.ToInt32(_buffer, _position);
             _position += 4;
             return value;
@@ -462,7 +468,7 @@ namespace YamaEngine.Network
 
         public uint ReadUInt32()
         {
-            if (_position + 4 > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            if (4 > _length - _position) throw new InvalidOperationException("读取超出缓冲区范围");
             uint value = BitConverter.ToUInt32(_buffer, _position);
             _position += 4;
             return value;
@@ -470,7 +476,7 @@ namespace YamaEngine.Network
 
         public short ReadInt16()
         {
-            if (_position + 2 > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            if (2 > _length - _position) throw new InvalidOperationException("读取超出缓冲区范围");
             short value = BitConverter.ToInt16(_buffer, _position);
             _position += 2;
             return value;
@@ -478,7 +484,7 @@ namespace YamaEngine.Network
 
         public ushort ReadUInt16()
         {
-            if (_position + 2 > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            if (2 > _length - _position) throw new InvalidOperationException("读取超出缓冲区范围");
             ushort value = BitConverter.ToUInt16(_buffer, _position);
             _position += 2;
             return value;
@@ -486,7 +492,7 @@ namespace YamaEngine.Network
 
         public float ReadSingle()
         {
-            if (_position + 4 > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            if (4 > _length - _position) throw new InvalidOperationException("读取超出缓冲区范围");
             float value = BitConverter.ToSingle(_buffer, _position);
             _position += 4;
             return value;
@@ -494,7 +500,7 @@ namespace YamaEngine.Network
 
         public double ReadDouble()
         {
-            if (_position + 8 > _length) throw new InvalidOperationException("读取超出缓冲区范围");
+            if (8 > _length - _position) throw new InvalidOperationException("读取超出缓冲区范围");
             double value = BitConverter.ToDouble(_buffer, _position);
             _position += 8;
             return value;
@@ -547,7 +553,7 @@ namespace YamaEngine.Network
             return new System.Numerics.Quaternion(ReadSingle(), ReadSingle(), ReadSingle(), ReadSingle());
         }
 
-        public byte[] ReadByteArray()
+        public byte[]? ReadByteArray()
         {
             int length = ReadInt32();
             if (length == 0) return null;
@@ -640,7 +646,7 @@ namespace YamaEngine.Network
         private readonly Dictionary<uint, DateTime> _pendingObjectRequests = new Dictionary<uint, DateTime>();
 
         // 已注册的属性变化回调
-        private readonly Dictionary<uint, Dictionary<int, List<Action<object>>>> _propertyCallbacks = new Dictionary<uint, Dictionary<int, List<Action<object>>>>();
+        private readonly Dictionary<uint, Dictionary<int, List<Action<object?>>>> _propertyCallbacks = new Dictionary<uint, Dictionary<int, List<Action<object?>>>>();
 
         // 是否已释放
         private bool _disposed;
@@ -652,19 +658,19 @@ namespace YamaEngine.Network
         private long _totalBytesSynced;
 
         // 同步线程
-        private Thread _syncThread;
+        private Thread? _syncThread;
         private volatile bool _running;
 
         // ==================== 事件 ====================
 
         /// <summary>对象被创建时触发</summary>
-        public event Action<INetworkObject> OnObjectSpawned;
+        public event Action<INetworkObject>? OnObjectSpawned;
 
         /// <summary>对象被销毁时触发</summary>
-        public event Action<INetworkObject> OnObjectDespawned;
+        public event Action<INetworkObject>? OnObjectDespawned;
 
         /// <summary>属性更新时触发</summary>
-        public event Action<uint, int, object> OnPropertyChanged;
+        public event Action<uint, int, object?>? OnPropertyChanged;
 
         // ==================== 构造函数 ====================
 
@@ -860,10 +866,10 @@ namespace YamaEngine.Network
         /// <param name="networkId">网络ID</param>
         public void Despawn(uint networkId)
         {
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -891,7 +897,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 获取网络对象
         /// </summary>
-        public INetworkObject GetObject(uint networkId)
+        public INetworkObject? GetObject(uint networkId)
         {
             lock (_objectLock)
             {
@@ -960,10 +966,10 @@ namespace YamaEngine.Network
         /// <param name="propertyIndex">属性索引</param>
         public void MarkDirty(uint networkId, int propertyIndex)
         {
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -992,10 +998,10 @@ namespace YamaEngine.Network
         /// </summary>
         public void MarkAllDirty(uint networkId)
         {
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -1010,17 +1016,17 @@ namespace YamaEngine.Network
         /// <summary>
         /// 注册属性变化回调
         /// </summary>
-        public void RegisterPropertyCallback(uint networkId, int propertyIndex, Action<object> callback)
+        public void RegisterPropertyCallback(uint networkId, int propertyIndex, Action<object?> callback)
         {
             lock (_objectLock)
             {
                 if (!_propertyCallbacks.TryGetValue(networkId, out var dict))
                 {
-                    _propertyCallbacks[networkId] = dict = new Dictionary<int, List<Action<object>>>();
+                    _propertyCallbacks[networkId] = dict = new Dictionary<int, List<Action<object?>>>();
                 }
                 if (!dict.TryGetValue(propertyIndex, out var list))
                 {
-                    dict[propertyIndex] = list = new List<Action<object>>();
+                    dict[propertyIndex] = list = new List<Action<object?>>();
                 }
                 list.Add(callback);
             }
@@ -1209,7 +1215,7 @@ namespace YamaEngine.Network
             writer.WriteUInt32(networkId);
             writer.WriteInt16((short)updates.Count);
 
-            NetworkObjectInstance instance = null;
+            NetworkObjectInstance? instance = null;
             lock (_objectLock)
             {
                 _networkObjects.TryGetValue(networkId, out instance);
@@ -1256,7 +1262,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 数据包接收事件
         /// </summary>
-        private void OnPacketReceived(object sender, PacketReceivedEventArgs e)
+        private void OnPacketReceived(object? sender, PacketReceivedEventArgs e)
         {
             if (e.Packet.Type != PacketType.Data) return;
             if (e.Packet.Payload == null || e.Packet.Payload.Length == 0) return;
@@ -1316,7 +1322,7 @@ namespace YamaEngine.Network
             }
 
             // 查找类型
-            NetworkObjectMetadata metadata;
+            NetworkObjectMetadata? metadata;
             lock (_objectLock)
             {
                 if (!_typeMetadata.TryGetValue(typeId, out metadata))
@@ -1383,10 +1389,10 @@ namespace YamaEngine.Network
         {
             var networkId = reader.ReadUInt32();
 
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -1406,10 +1412,10 @@ namespace YamaEngine.Network
             var networkId = reader.ReadUInt32();
             var propCount = reader.ReadInt16();
 
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     // 对象不存在, 请求创建
                     RequestObject(networkId);
@@ -1444,10 +1450,10 @@ namespace YamaEngine.Network
         {
             var networkId = reader.ReadUInt32();
 
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -1476,10 +1482,10 @@ namespace YamaEngine.Network
             var networkId = reader.ReadUInt32();
             var newOwnerId = reader.ReadInt32();
 
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -1504,10 +1510,10 @@ namespace YamaEngine.Network
 
             var networkId = reader.ReadUInt32();
 
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     // 对象不存在, 回复空消息
                     return;
@@ -1559,16 +1565,16 @@ namespace YamaEngine.Network
         /// <summary>
         /// 触发属性变化回调
         /// </summary>
-        private void TriggerPropertyCallbacks(uint networkId, int propertyIndex, object value)
+        private void TriggerPropertyCallbacks(uint networkId, int propertyIndex, object? value)
         {
-            List<Action<object>> callbacks = null;
+            List<Action<object?>>? callbacks = null;
             lock (_objectLock)
             {
                 if (_propertyCallbacks.TryGetValue(networkId, out var dict))
                 {
                     if (dict.TryGetValue(propertyIndex, out var list))
                     {
-                        callbacks = new List<Action<object>>(list);
+                        callbacks = new List<Action<object?>>(list);
                     }
                 }
             }
@@ -1591,7 +1597,7 @@ namespace YamaEngine.Network
 
         // ==================== 连接事件 ====================
 
-        private void OnConnected(object sender, ConnectionEventArgs e)
+        private void OnConnected(object? sender, ConnectionEventArgs e)
         {
             if (_isServer)
             {
@@ -1604,7 +1610,7 @@ namespace YamaEngine.Network
             }
         }
 
-        private void OnDisconnected(object sender, ConnectionEventArgs e)
+        private void OnDisconnected(object? sender, ConnectionEventArgs e)
         {
             if (_isServer)
             {
@@ -1657,10 +1663,10 @@ namespace YamaEngine.Network
         {
             if (!_isServer) return;
 
-            NetworkObjectInstance instance;
+            NetworkObjectInstance? instance;
             lock (_objectLock)
             {
-                if (!_networkObjects.TryGetValue(networkId, out instance))
+                if (!_networkObjects.TryGetValue(networkId, out instance) || instance is null)
                 {
                     return;
                 }
@@ -1685,7 +1691,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 写入值
         /// </summary>
-        private void WriteValue(NetworkWriter writer, object value, Type type)
+        private void WriteValue(NetworkWriter writer, object? value, Type type)
         {
             if (value == null)
             {
@@ -1764,7 +1770,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 读取值
         /// </summary>
-        private object ReadValue(NetworkReader reader, Type type)
+        private object? ReadValue(NetworkReader reader, Type type)
         {
             bool isNull = reader.ReadByte() == 0;
             if (isNull) return type.IsValueType ? Activator.CreateInstance(type) : null;
@@ -1832,7 +1838,7 @@ namespace YamaEngine.Network
         /// <summary>
         /// 判断两个值是否相等
         /// </summary>
-        private bool ValuesEqual(object a, object b, float threshold)
+        private bool ValuesEqual(object? a, object? b, float threshold)
         {
             if (a == null && b == null) return true;
             if (a == null || b == null) return false;
@@ -1939,7 +1945,7 @@ namespace YamaEngine.Network
     {
         public uint NetworkId;
         public int PropertyIndex;
-        public object Value;
+        public object? Value;
         public long Timestamp;
     }
 }

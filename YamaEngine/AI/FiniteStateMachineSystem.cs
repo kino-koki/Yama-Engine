@@ -42,11 +42,11 @@ namespace YamaEngine.AI
     public sealed class Transition<T>
     {
         /// <summary>源状态名称。</summary>
-        public string FromState { get; set; }
+        public string? FromState { get; set; }
         /// <summary>目标状态名称。</summary>
-        public string ToState { get; set; }
+        public string? ToState { get; set; }
         /// <summary>转换条件。</summary>
-        public TransitionCondition<T> Condition { get; set; }
+        public TransitionCondition<T>? Condition { get; set; }
         /// <summary>优先级（数值越小优先级越高）。</summary>
         public int Priority { get; set; } = 0;
         /// <summary>是否一次性（触发后自动删除）。</summary>
@@ -54,14 +54,14 @@ namespace YamaEngine.AI
         /// <summary>是否已触发（用于一次性转换）。</summary>
         internal bool _triggered = false;
         /// <summary>转换时回调。</summary>
-        public Action<T> OnTransition { get; set; }
+        public Action<T>? OnTransition { get; set; }
 
         /// <summary>转换名称（调试用）。</summary>
         public string TransitionName { get; set; } = "";
 
         public Transition() { }
 
-        public Transition(string from, string to, TransitionCondition<T> condition, int priority = 0)
+        public Transition(string from, string to, TransitionCondition<T>? condition, int priority = 0)
         {
             FromState = from;
             ToState = to;
@@ -100,11 +100,11 @@ namespace YamaEngine.AI
         public HashSet<string> Tags { get; } = new HashSet<string>();
 
         /// <summary>进入状态回调。</summary>
-        public Action<T> OnEnter { get; set; }
+        public Action<T>? OnEnter { get; set; }
         /// <summary>更新状态回调（每帧）。</summary>
-        public Action<T, float> OnUpdate { get; set; }
+        public Action<T, float>? OnUpdate { get; set; }
         /// <summary>退出状态回调。</summary>
-        public Action<T> OnExit { get; set; }
+        public Action<T>? OnExit { get; set; }
 
         /// <summary>内部转换列表。</summary>
         public List<Transition<T>> Transitions { get; } = new List<Transition<T>>();
@@ -119,7 +119,7 @@ namespace YamaEngine.AI
         private float _duration = 0f;
 
         /// <summary>内嵌的子状态机（用于层级状态机）。</summary>
-        public StateMachine<T> SubStateMachine { get; set; }
+        public StateMachine<T>? SubStateMachine { get; set; }
 
         public State() { }
 
@@ -194,7 +194,7 @@ namespace YamaEngine.AI
             new List<Transition<T>>();
 
         /// <summary>当前状态。</summary>
-        private State<T> _currentState;
+        private State<T>? _currentState;
         /// <summary>初始状态名称。</summary>
         public string InitialState { get; set; } = "";
 
@@ -209,21 +209,21 @@ namespace YamaEngine.AI
         public string CurrentStateName => _currentState?.StateName ?? "";
 
         /// <summary>当前状态。</summary>
-        public State<T> CurrentState => _currentState;
+        public State<T>? CurrentState => _currentState;
 
         /// <summary>是否正在运行。</summary>
         public bool IsRunning { get; private set; }
 
         /// <summary>状态变更回调。</summary>
-        public Action<string, string, T> OnStateChanged { get; set; }
+        public Action<string, string, T>? OnStateChanged { get; set; }
 
         /// <summary>转换回调（转换发生时）。</summary>
-        public Action<Transition<T>, T> OnTransition { get; set; }
+        public Action<Transition<T>, T>? OnTransition { get; set; }
 
         public StateMachine() { }
 
         /// <summary>添加状态。</summary>
-        public State<T> AddState(State<T> state)
+        public State<T>? AddState(State<T>? state)
         {
             if (state == null) return null;
             _states[state.StateName] = state;
@@ -233,14 +233,14 @@ namespace YamaEngine.AI
         }
 
         /// <summary>创建并添加状态。</summary>
-        public State<T> AddState(string name)
+        public State<T>? AddState(string name)
         {
             var state = new State<T>(name);
             return AddState(state);
         }
 
         /// <summary>添加转换。</summary>
-        public Transition<T> AddTransition(Transition<T> transition)
+        public Transition<T>? AddTransition(Transition<T>? transition)
         {
             if (transition != null)
                 _transitions.Add(transition);
@@ -248,7 +248,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>创建并添加转换。</summary>
-        public Transition<T> AddTransition(string from, string to, TransitionCondition<T> condition,
+        public Transition<T> AddTransition(string from, string to, TransitionCondition<T>? condition,
             int priority = 0, bool isOneShot = false)
         {
             var transition = new Transition<T>(from, to, condition, priority)
@@ -269,7 +269,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取状态。</summary>
-        public State<T> GetState(string name)
+        public State<T>? GetState(string name)
         {
             _states.TryGetValue(name, out var state);
             return state;
@@ -374,9 +374,9 @@ namespace YamaEngine.AI
         }
 
         /// <summary>查找最佳转换。</summary>
-        internal Transition<T> FindBestTransition(string currentStateName, T context)
+        internal Transition<T>? FindBestTransition(string? currentStateName, T context)
         {
-            Transition<T> best = null;
+            Transition<T>? best = null;
             int bestPriority = int.MaxValue;
 
             foreach (var transition in _transitions)
@@ -407,7 +407,8 @@ namespace YamaEngine.AI
         {
             transition.OnTransition?.Invoke(context);
             OnTransition?.Invoke(transition, context);
-            ForceState(transition.ToState, context);
+            if (!string.IsNullOrEmpty(transition.ToState))
+                ForceState(transition.ToState, context);
         }
 
         /// <summary>清除所有一次性转换的触发状态。</summary>
@@ -444,7 +445,7 @@ namespace YamaEngine.AI
         public bool IsRunning { get; private set; }
 
         /// <summary>状态变更回调。</summary>
-        public Action<string, string, string, T> OnChildStateChanged { get; set; }
+        public Action<string, string, string, T>? OnChildStateChanged { get; set; }
 
         /// <summary>添加子状态机。</summary>
         public void AddMachine(string name, StateMachine<T> machine)
@@ -463,7 +464,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取子状态机。</summary>
-        public StateMachine<T> GetMachine(string name)
+        public StateMachine<T>? GetMachine(string name)
         {
             foreach (var m in _machines)
                 if (m.Name == name) return m.Machine;
@@ -517,7 +518,7 @@ namespace YamaEngine.AI
         public StateMachine<T> RootStateMachine { get; protected set; } = new StateMachine<T>();
 
         /// <summary>上下文类型。</summary>
-        private T _context;
+        private T _context = default!;
 
         /// <summary>是否正在运行。</summary>
         public bool IsRunning => RootStateMachine.IsRunning;
@@ -526,24 +527,24 @@ namespace YamaEngine.AI
         public string CurrentRootStateName => RootStateMachine.CurrentStateName;
 
         /// <summary>全局状态变更回调。</summary>
-        public Action<string, string, string> OnStateChanged { get; set; }
+        public Action<string?, string?, string?>? OnStateChanged { get; set; }
 
         public HierarchicalStateMachine() { }
 
         /// <summary>添加顶层状态。</summary>
-        public State<T> AddRootState(State<T> state)
+        public State<T>? AddRootState(State<T> state)
         {
             return RootStateMachine.AddState(state);
         }
 
         /// <summary>创建并添加顶层状态。</summary>
-        public State<T> AddRootState(string name)
+        public State<T>? AddRootState(string name)
         {
             return RootStateMachine.AddState(name);
         }
 
         /// <summary>添加顶层转换。</summary>
-        public Transition<T> AddRootTransition(Transition<T> transition)
+        public Transition<T>? AddRootTransition(Transition<T> transition)
         {
             return RootStateMachine.AddTransition(transition);
         }
@@ -556,8 +557,8 @@ namespace YamaEngine.AI
         }
 
         /// <summary>为指定状态设置子状态机。</summary>
-        public StateMachine<T> SetSubStateMachine(string parentStateName,
-            string initialSubState, Action<HierarchicalStateMachine<T>> configureSub)
+        public StateMachine<T>? SetSubStateMachine(string parentStateName,
+            string initialSubState, Action<HierarchicalStateMachine<T>?>? configureSub)
         {
             var parentState = RootStateMachine.GetState(parentStateName);
             if (parentState == null) return null;
@@ -639,7 +640,7 @@ namespace YamaEngine.AI
         }
 
         /// <summary>获取指定状态路径对应的状态。</summary>
-        public State<T> GetStateAtPath(string path)
+        public State<T>? GetStateAtPath(string path)
         {
             var parts = path.Split('.');
             var current = RootStateMachine.GetState(parts[0]);
@@ -690,7 +691,7 @@ namespace YamaEngine.AI
             return this;
         }
 
-        public StateMachineBuilder<T> State(string name, Action<State<T>> configure = null)
+        public StateMachineBuilder<T> State(string name, Action<State<T>?>? configure = null)
         {
             var state = new State<T>(name);
             configure?.Invoke(state);
