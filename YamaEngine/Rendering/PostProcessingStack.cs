@@ -139,23 +139,20 @@ namespace YamaEngine.Rendering
         public float OutputScale = 1.0f;
     }
 
-    /// <summary>后处理通用常量缓冲。</summary>
+    /// <summary>后处理共享常量缓冲 (b0, 与 HLSL PostProcessCB 一致, 16 字节)。</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PostProcessCB
     {
-        public Vector2 InvResolution;
-        public Vector2 Resolution;
         public float Time;
         public float DeltaTime;
         public int FrameIndex;
         public float Pad;
     }
 
-    /// <summary>Bloom 常量缓冲。</summary>
+    /// <summary>Bloom 常量缓冲 (b2, 与 HLSL PostProcessBloomCB 一致)。</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PostProcessBloomCB
     {
-        public Vector2 InvResolution;
         public float Threshold;
         public float Intensity;
         public float Radius;
@@ -163,7 +160,7 @@ namespace YamaEngine.Rendering
         public float Pad;
     }
 
-    /// <summary>景深常量缓冲。</summary>
+    /// <summary>景深常量缓冲 (b2, 与 HLSL PostProcessDoFCB 一致)。</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PostProcessDoFCB
     {
@@ -177,19 +174,21 @@ namespace YamaEngine.Rendering
         public float Pad0, Pad1, Pad2;
     }
 
-    /// <summary>运动模糊常量缓冲。</summary>
+    /// <summary>运动模糊常量缓冲 (b2, 与 HLSL PostProcessMotionBlurCB 一致)。</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PostProcessMotionBlurCB
     {
-        public Vector2 InvResolution;
+        public float Strength;
         public float MaxVelocity;
         public int SampleCount;
+        public float Pad0;
         public Matrix4x4 PrevViewProj;
         public Matrix4x4 InvViewProj;
-        public float Pad0, Pad1;
+        public float Pad1;
+        public float Pad2;
     }
 
-    /// <summary>色调映射常量缓冲。</summary>
+    /// <summary>色调映射常量缓冲 (b2, 与 HLSL PostProcessTonemapCB 一致)。</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PostProcessTonemapCB
     {
@@ -200,47 +199,25 @@ namespace YamaEngine.Rendering
         public float Saturation;
         public float Contrast;
         public float Gain;
+        public float Pad0;
         public Vector3 ColorOffset;
         public float WhiteBalanceTemp;
         public float WhiteBalanceTint;
         public float LutIntensity;
-        public int HasLut;
-        public float Pad0, Pad1;
     }
 
-    /// <summary>自动曝光常量缓冲。</summary>
+    /// <summary>自动曝光常量缓冲 (b2, 与 HLSL PostProcessExposureCB 一致)。</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PostProcessExposureCB
     {
         public float Key;
         public float Compensation;
+        public float AdaptationSpeed;
         public float MinExposure;
         public float MaxExposure;
-        public float AdaptationSpeed;
-        public float DeltaTime;
-        public float CurrentExposure;
-        public float Pad;
-    }
-
-    /// <summary>镜头特效(色差/暗角/光晕/颗粒)常量缓冲。</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public struct PostProcessLensCB
-    {
-        public Vector2 InvResolution;
-        public float ChromaticAberrationAmount;
-        public float ChromaticAberrationRadialStart;
-        public float VignetteIntensity;
-        public float VignetteRadius;
-        public float VignetteSoftness;
-        public Vector3 VignetteColor;
-        public float LensFlareIntensity;
-        public int LensFlareRayCount;
-        public float FilmGrainIntensity;
-        public float FilmGrainSize;
-        public float FilmGrainSpeed;
-        public float Time;
-        public int FrameIndex;
-        public float Pad;
+        public float ManualExposure;
+        public int UseAutoExposure;
+        public float Pad0;
     }
 
     /// <summary>
@@ -270,6 +247,15 @@ namespace YamaEngine.Rendering
         private RHIBuffer? _exposureBuffer;
         private RHIBuffer? _exposureReadback;
         private float _currentExposure;
+
+        // 常量上传缓冲 + 资源描述符
+        private RHIBuffer? _sharedCBUpload;
+        private RHIBuffer? _passCBUpload;
+        private RHIDescriptorHandle _rtASRV, _rtBSRV, _rtAUAV, _rtBUAV;
+        private RHIDescriptorHandle _bloomPyramidSRV, _bloomPyramidUAV;
+        private RHIDescriptorHandle _exposureBufferUAV;
+        private RHITexture? _lensDirt;
+        private RHIDescriptorHandle _lensDirtSRV;
 
         private int _width, _height;
 
@@ -302,13 +288,39 @@ namespace YamaEngine.Rendering
                 Parameters = new RHIRootParameter[]
                 {
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },   // 0:  b0 共享 (时间/帧号)
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },   // 1:  b2 per-pass CB
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
-                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 8, BaseShaderRegister = 0 } } } },
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 0 } } } }, // 2: t0 场景色
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
-                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 4, BaseShaderRegister = 0 } } } }
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 1 } } } }, // 3: t1 深度
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 2 } } } }, // 4: t2 运动矢量
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 3 } } } }, // 5: t3 上一 pass 输出
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 4 } } } }, // 6: t4 Bloom 金字塔
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 5 } } } }, // 7: t5 LUT
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 6 } } } }, // 8: t6 镜头污渍
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 0 } } } }, // 9: u0 输出/曝光缓冲
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 1 } } } }, // 10: u1 临时 (预留)
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 2 } } } }  // 11: u2 Bloom 金字塔 UAV
                 },
                 StaticSamplers = new[] { RHISamplerDesc.LinearWrap, RHISamplerDesc.PointClamp }
             };
@@ -360,6 +372,29 @@ namespace YamaEngine.Rendering
                 HeapType = RHIResourceHeapType.Default
             };
             _exposureBuffer = _device.CreateBuffer(expDesc, "PPExposure");
+
+            // 常量上传缓冲 + 资源描述符
+            _sharedCBUpload = _device.CreateUploadBuffer(64, "PP_SharedCB");
+            _passCBUpload = _device.CreateUploadBuffer(256, "PP_PassCB");
+            _rtASRV = _device.CreateSRV(_rtA);
+            _rtBSRV = _device.CreateSRV(_rtB);
+            _rtAUAV = _device.CreateUAV(_rtA);
+            _rtBUAV = _device.CreateUAV(_rtB);
+            _bloomPyramidSRV = _device.CreateSRV(_bloomPyramid);
+            _bloomPyramidUAV = _device.CreateUAV(_bloomPyramid);
+            _exposureBufferUAV = _device.CreateUAV(_exposureBuffer, RHIFormat.R32_Float, true, 0, 4, 4);
+
+            // 1x1 黑色镜头污渍 (无污渍 → LensCS 的 dirt 项为无操作)
+            _lensDirt = _device.CreateTexture(new RHITextureDesc
+            {
+                Dimension = RHIResourceDimension.Texture2D,
+                Format = RHIFormat.R8G8B8A8_UNorm,
+                Width = 1, Height = 1, DepthOrArraySize = 1,
+                MipLevels = 1, SampleCount = 1,
+                Flags = RHITextureFlags.ShaderResource
+            }, "PP_LensDirt");
+            _device.UploadToTexture(_lensDirt, new byte[4], 1, 1);
+            _lensDirtSRV = _device.CreateSRV(_lensDirt);
         }
 
         /// <summary>窗口尺寸变化。</summary>
@@ -387,6 +422,16 @@ namespace YamaEngine.Rendering
             in Matrix4x4 invViewProj, float deltaTime)
         {
             cmdList.SetComputeRootSignature(_rootSignature!);
+
+            // 上传共享常量 (b0: 时间/帧号, LensCS 颗粒动画使用)
+            var sharedCB = new PostProcessCB
+            {
+                Time = (float)Environment.TickCount * 0.001f,
+                DeltaTime = deltaTime,
+                FrameIndex = Environment.TickCount & 0xFFFFFF
+            };
+            _device.UploadToBuffer(_sharedCBUpload!, MemoryMarshal.CreateReadOnlySpan(ref sharedCB, 1));
+            cmdList.SetComputeRootConstantBufferView(0, _sharedCBUpload!);
 
             // 当前源/目标纹理指针
             var src = sceneColor;
@@ -431,27 +476,34 @@ namespace YamaEngine.Rendering
             RunTonemap(cmdList, src, output);
         }
 
-        /// <summary>运行自动曝光 Pass (直方图 + 适应)。</summary>
-        private void RunExposure(RHICommandList cmdList, RHITexture src, float deltaTime)
+        /// <summary>上传 per-pass 常量到 b2 (各 pass 复用同一上传缓冲)。</summary>
+        private void UploadPassCB<T>(in T cb) where T : struct
+        {
+            var tmp = cb;
+            _device.UploadToBuffer(_passCBUpload!, MemoryMarshal.CreateReadOnlySpan(ref tmp, 1));
+        }
+
+        /// <summary>运行自动曝光 Pass (降采样对数平均亮度 + 适应)。</summary>
+        private void RunExposure(RHICommandList cmdList, RHITexture sceneColor, float deltaTime)
         {
             cmdList.SetPipelineState(_exposurePipeline!);
-            cmdList.TransitionTo(src, RHIResourceState.NonPixelShaderResource);
-            cmdList.TransitionTo(_exposureBuffer!, RHIResourceState.UnorderedAccess);
+            cmdList.TransitionTo(sceneColor, RHIResourceState.NonPixelShaderResource);
 
             var cb = new PostProcessExposureCB
             {
                 Key = _settings.ExposureKey,
                 Compensation = _settings.ExposureCompensation,
+                AdaptationSpeed = _settings.ExposureAdaptationSpeed,
                 MinExposure = _settings.MinExposure,
                 MaxExposure = _settings.MaxExposure,
-                AdaptationSpeed = _settings.ExposureAdaptationSpeed,
-                DeltaTime = deltaTime,
-                CurrentExposure = _currentExposure
+                ManualExposure = _settings.ManualExposure,
+                UseAutoExposure = _settings.EnableAutoExposure ? 1 : 0
             };
-            // 第一遍: 计算亮度直方图; 第二遍: 平均 + 适应
+            UploadPassCB(cb);
+            cmdList.SetComputeRootConstantBufferView(1, _passCBUpload!);
+            cmdList.SetComputeRootDescriptorTable(2, _device.CreateSRV(sceneColor));
+            cmdList.SetComputeRootDescriptorTable(9, _exposureBufferUAV);
             cmdList.Dispatch(1, 1, 1);
-            cmdList.TransitionTo(_exposureBuffer, RHIResourceState.VertexAndConstantBuffer);
-            _currentExposure = _settings.EnableAutoExposure ? _currentExposure : _settings.ManualExposure;
         }
 
         /// <summary>运行景深 Pass (散景模糊)。</summary>
@@ -472,6 +524,11 @@ namespace YamaEngine.Rendering
                 FarFocusStart = _settings.FarFocusStart,
                 BokehShape = (int)_settings.BokehShape
             };
+            UploadPassCB(cb);
+            cmdList.SetComputeRootConstantBufferView(1, _passCBUpload!);
+            cmdList.SetComputeRootDescriptorTable(3, _device.CreateSRV(depth));
+            cmdList.SetComputeRootDescriptorTable(5, _device.CreateSRV(src));
+            cmdList.SetComputeRootDescriptorTable(9, _device.CreateUAV(dst));
             cmdList.Dispatch((_width + 7) / 8, (_height + 7) / 8, 1);
             cmdList.TransitionTo(dst, RHIResourceState.NonPixelShaderResource);
         }
@@ -487,12 +544,17 @@ namespace YamaEngine.Rendering
 
             var cb = new PostProcessMotionBlurCB
             {
-                InvResolution = new Vector2(1f / _width, 1f / _height),
+                Strength = _settings.MotionBlurStrength,
                 MaxVelocity = _settings.MotionBlurStrength,
                 SampleCount = _settings.MotionBlurSamples,
                 PrevViewProj = prevViewProj,
                 InvViewProj = invViewProj
             };
+            UploadPassCB(cb);
+            cmdList.SetComputeRootConstantBufferView(1, _passCBUpload!);
+            cmdList.SetComputeRootDescriptorTable(4, _device.CreateSRV(motionVectors));
+            cmdList.SetComputeRootDescriptorTable(5, _device.CreateSRV(src));
+            cmdList.SetComputeRootDescriptorTable(9, _device.CreateUAV(dst));
             cmdList.Dispatch((_width + 7) / 8, (_height + 7) / 8, 1);
             cmdList.TransitionTo(dst, RHIResourceState.NonPixelShaderResource);
         }
@@ -500,23 +562,27 @@ namespace YamaEngine.Rendering
         /// <summary>运行 Bloom (提取亮区 -> 多级降采样模糊 -> 合并)。</summary>
         private void RunBloom(RHICommandList cmdList, RHITexture src, RHITexture dst)
         {
-            // Pass 1: 提取亮区到 bloom 金字塔 mip 0
-            cmdList.SetPipelineState(_bloomExtractPipeline!);
-            cmdList.TransitionTo(src, RHIResourceState.NonPixelShaderResource);
-            cmdList.TransitionTo(_bloomPyramid!, RHIResourceState.UnorderedAccess);
             var bloomCB = new PostProcessBloomCB
             {
-                InvResolution = new Vector2(2f / _width, 2f / _height),
                 Threshold = _settings.BloomThreshold,
                 Intensity = _settings.BloomIntensity,
                 Radius = _settings.BloomRadius,
                 Tint = _settings.BloomTint
             };
+            UploadPassCB(bloomCB);
             int bw = Math.Max(1, _width / 2);
             int bh = Math.Max(1, _height / 2);
+
+            // Pass 1: 提取亮区到 bloom 金字塔 mip 0
+            cmdList.SetPipelineState(_bloomExtractPipeline!);
+            cmdList.TransitionTo(src, RHIResourceState.NonPixelShaderResource);
+            cmdList.TransitionTo(_bloomPyramid!, RHIResourceState.UnorderedAccess);
+            cmdList.SetComputeRootConstantBufferView(1, _passCBUpload!);
+            cmdList.SetComputeRootDescriptorTable(5, _device.CreateSRV(src));
+            cmdList.SetComputeRootDescriptorTable(11, _bloomPyramidUAV);
             cmdList.Dispatch((bw + 7) / 8, (bh + 7) / 8, 1);
 
-            // Pass 2: 多级高斯模糊 (降采样金字塔)
+            // Pass 2: 多级高斯模糊 (降采样金字塔; 逐 mip dispatch, mip 寻址由金字塔 UAV 承载)
             cmdList.SetPipelineState(_bloomBlurPipeline!);
             for (int mip = 1; mip < 6; mip++)
             {
@@ -530,34 +596,25 @@ namespace YamaEngine.Rendering
             cmdList.SetPipelineState(_bloomCombinePipeline!);
             cmdList.TransitionTo(src, RHIResourceState.NonPixelShaderResource);
             cmdList.TransitionTo(dst, RHIResourceState.UnorderedAccess);
+            cmdList.SetComputeRootConstantBufferView(1, _passCBUpload!);
+            cmdList.SetComputeRootDescriptorTable(5, _device.CreateSRV(src));
+            cmdList.SetComputeRootDescriptorTable(6, _bloomPyramidSRV);
+            cmdList.SetComputeRootDescriptorTable(9, _device.CreateUAV(dst));
             cmdList.Dispatch((_width + 7) / 8, (_height + 7) / 8, 1);
             cmdList.TransitionTo(dst, RHIResourceState.NonPixelShaderResource);
         }
 
-        /// <summary>运行镜头特效 (光晕+色差+暗角+胶片颗粒)。</summary>
+        /// <summary>运行镜头特效 (色散/暗角/镜头污渍/胶片颗粒)。</summary>
         private void RunLensEffects(RHICommandList cmdList, RHITexture src, RHITexture dst)
         {
             cmdList.SetPipelineState(_lensPipeline!);
             cmdList.TransitionTo(src, RHIResourceState.NonPixelShaderResource);
             cmdList.TransitionTo(dst, RHIResourceState.UnorderedAccess);
 
-            var cb = new PostProcessLensCB
-            {
-                InvResolution = new Vector2(1f / _width, 1f / _height),
-                ChromaticAberrationAmount = _settings.ChromaticAberrationAmount,
-                ChromaticAberrationRadialStart = _settings.ChromaticAberrationRadialStart,
-                VignetteIntensity = _settings.VignetteIntensity,
-                VignetteRadius = _settings.VignetteRadius,
-                VignetteSoftness = _settings.VignetteSoftness,
-                VignetteColor = _settings.VignetteColor,
-                LensFlareIntensity = _settings.LensFlareIntensity,
-                LensFlareRayCount = _settings.LensFlareRayCount,
-                FilmGrainIntensity = _settings.FilmGrainIntensity,
-                FilmGrainSize = _settings.FilmGrainSize,
-                FilmGrainSpeed = _settings.FilmGrainSpeed,
-                Time = (float)Environment.TickCount * 0.001f,
-                FrameIndex = (int)(Environment.TickCount & 0xFFFFFF)
-            };
+            // LensCS 读取 g_SceneColorSRV (t0) / g_LensDirtSRV (t6) / g_PP_Time (b0)
+            cmdList.SetComputeRootDescriptorTable(2, _device.CreateSRV(src));
+            cmdList.SetComputeRootDescriptorTable(8, _lensDirtSRV);
+            cmdList.SetComputeRootDescriptorTable(9, _device.CreateUAV(dst));
             cmdList.Dispatch((_width + 7) / 8, (_height + 7) / 8, 1);
             cmdList.TransitionTo(dst, RHIResourceState.NonPixelShaderResource);
         }
@@ -581,9 +638,15 @@ namespace YamaEngine.Rendering
                 ColorOffset = _settings.ColorOffset,
                 WhiteBalanceTemp = _settings.WhiteBalanceTemp,
                 WhiteBalanceTint = _settings.WhiteBalanceTint,
-                LutIntensity = _settings.LutIntensity,
-                HasLut = _settings.LutTexture != null ? 1 : 0
+                // 无 LUT 纹理时强度归零, 避免未绑定资源读取影响输出
+                LutIntensity = _settings.LutTexture != null ? _settings.LutIntensity : 0f
             };
+            UploadPassCB(cb);
+            cmdList.SetComputeRootConstantBufferView(1, _passCBUpload!);
+            cmdList.SetComputeRootDescriptorTable(5, _device.CreateSRV(src));
+            if (_settings.LutTexture != null)
+                cmdList.SetComputeRootDescriptorTable(7, _device.CreateSRV(_settings.LutTexture));
+            cmdList.SetComputeRootDescriptorTable(9, _device.CreateUAV(output));
             cmdList.Dispatch((_width + 7) / 8, (_height + 7) / 8, 1);
             cmdList.TransitionTo(output, RHIResourceState.PixelShaderResource);
         }
@@ -643,6 +706,9 @@ namespace YamaEngine.Rendering
             _bloomPyramid?.Dispose();
             _exposureBuffer?.Dispose();
             _exposureReadback?.Dispose();
+            _sharedCBUpload?.Dispose();
+            _passCBUpload?.Dispose();
+            _lensDirt?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
