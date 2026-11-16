@@ -114,6 +114,28 @@ namespace YamaEngine.Rendering
         public float Pad0;
     }
 
+    /// <summary>集群光照点光源 (与 HLSL PointLight 一致, 48 字节)。</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ForwardPointLight
+    {
+        /// <summary>世界空间位置。</summary>
+        public Vector3 Position;
+        /// <summary>影响半径。</summary>
+        public float Radius;
+        /// <summary>光源颜色。</summary>
+        public Vector3 Color;
+        /// <summary>强度。</summary>
+        public float Intensity;
+        /// <summary>衰减指数。</summary>
+        public float Falloff;
+        /// <summary>是否投射阴影 (1=是)。</summary>
+        public float CastShadow;
+        /// <summary>光源 ID。</summary>
+        public uint LightID;
+        /// <summary>填充。</summary>
+        public float Padding;
+    }
+
     /// <summary>前向渲染一帧的渲染结果。</summary>
     public sealed class ForwardRenderResult
     {
@@ -173,7 +195,23 @@ namespace YamaEngine.Rendering
         // VSM 阴影矩 (ShadowCS/ShadowFilterCS 写出, ForwardShadeCS 采样 t1)
         private RHITexture? _shadowMoments;
         private RHIDescriptorHandle _shadowDepthSRV;
+        private RHIDescriptorHandle _shadowMomentsSRV;
         private RHIDescriptorHandle _shadowMomentsUAV;
+
+        // 集群光照: 光源数据 + 场景资源 SRV/UAV
+        private readonly List<ForwardPointLight> _lights = new();
+        private ForwardPointLight[] _lightUpload = Array.Empty<ForwardPointLight>();
+        private RHIBuffer? _lightBuffer;
+        private RHIDescriptorHandle _lightSRV;
+        private RHIDescriptorHandle _clusterGridSRV;
+        private RHIDescriptorHandle _clusterListSRV;
+        private RHIDescriptorHandle _clusterGridUAV;
+        private RHIDescriptorHandle _clusterListUAV;
+        private RHIDescriptorHandle _sceneDepthSRV;
+        private RHIDescriptorHandle _normalsSRV;
+        private RHIDescriptorHandle _albedoSRV;
+        private RHIDescriptorHandle _sceneColorUAV;
+        private const int MaxLights = 1024;
 
         // 视图历史
         private Matrix4x4 _prevViewProj;
@@ -249,17 +287,47 @@ namespace YamaEngine.Rendering
                 Parameters = new RHIRootParameter[]
                 {
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },   // b2: ForwardShadingCB
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },   // 0:  b2 ForwardShadingCB
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 3 } },   // b3: ForwardCascadesCB
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 3 } },   // 1:  b3 ForwardCascadesCB
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 4 } },   // b4: ForwardClusterCB
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 4 } },   // 2:  b4 ForwardClusterCB
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
-                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 16, BaseShaderRegister = 0 } } } },
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 0 } } } }, // 3:  t0 ShadowDepthAtlas
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
-                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 8, BaseShaderRegister = 0 } } } }
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 1 } } } }, // 4:  t1 ShadowMoments
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 2 } } } }, // 5:  t2 ClusterGrid
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 3 } } } }, // 6:  t3 ClusterLightList
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 4 } } } }, // 7:  t4 PointLights
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 5 } } } }, // 8:  t5 SceneDepth
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 6 } } } }, // 9:  t6 GeometryBufferNormals
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 7 } } } }, // 10: t7 GeometryBufferAlbedo
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 1 } } } }, // 11: u1 MomentsUAV
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 2 } } } }, // 12: u2 ClusterGridUAV
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 3 } } } }, // 13: u3 ClusterLightListUAV
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 0 } } } }  // 14: u0 SceneColorUAV
                 },
                 StaticSamplers = new[] { RHISamplerDesc.LinearWrap, RHISamplerDesc.PointClamp, RHISamplerDesc.AnisotropicWrap, RHISamplerDesc.ShadowSampler }
             };
@@ -348,6 +416,29 @@ namespace YamaEngine.Rendering
                 HeapType = RHIResourceHeapType.Default
             }, "ForwardClusterLightList");
 
+            // 光源缓冲 (容量固定, 每帧上传实际数量)
+            _lightBuffer = _device.CreateBuffer(new RHIBufferDesc
+            {
+                SizeInBytes = (ulong)(MaxLights * 48),
+                Flags = RHIBufferFlags.Structured | RHIBufferFlags.ShaderResource,
+                Stride = 48,
+                HeapType = RHIResourceHeapType.Upload
+            }, "ForwardPointLights");
+            _lightUpload = new ForwardPointLight[MaxLights];
+
+            // 场景资源描述符
+            int clusterCount = gridX * gridY * gridZ;
+            _shadowMomentsSRV = _device.CreateSRV(_shadowMoments);
+            _clusterGridSRV = _device.CreateSRV(_clusterLightGrid, RHIFormat.Unknown, true, 0, (uint)clusterCount, 8);
+            _clusterListSRV = _device.CreateSRV(_clusterLightIndexList, RHIFormat.Unknown, true, 0, (uint)(clusterCount * _settings.MaxLightsPerPixel), 4);
+            _clusterGridUAV = _device.CreateUAV(_clusterLightGrid, RHIFormat.Unknown, true, 0, (uint)clusterCount, 8);
+            _clusterListUAV = _device.CreateUAV(_clusterLightIndexList, RHIFormat.Unknown, true, 0, (uint)(clusterCount * _settings.MaxLightsPerPixel), 4);
+            _lightSRV = _device.CreateSRV(_lightBuffer, RHIFormat.Unknown, true, 0, MaxLights, 48);
+            _sceneDepthSRV = _device.CreateSRV(_sceneDepth);
+            _normalsSRV = _device.CreateSRV(_geometrybufferNormals);
+            _albedoSRV = _device.CreateSRV(_geometrybufferAlbedo);
+            _sceneColorUAV = _device.CreateUAV(_sceneColor);
+
             // 最终输出
             _finalOutput = _device.CreateTexture(MakeRT("ForwardFinal", RHIFormat.R8G8B8A8_UNorm, _outputWidth, _outputHeight), "ForwardFinal");
         }
@@ -363,6 +454,7 @@ namespace YamaEngine.Rendering
             _sceneColor?.Dispose(); _sceneDepth?.Dispose(); _motionVectors?.Dispose();
             _geometrybufferNormals?.Dispose(); _geometrybufferAlbedo?.Dispose(); _finalOutput?.Dispose();
             _shadowMoments?.Dispose();
+            _lightBuffer?.Dispose();
             AllocateRenderTargets();
 
             _probefield?.Resize(_internalWidth, _internalHeight);
@@ -401,6 +493,9 @@ namespace YamaEngine.Rendering
             {
                 jitteredProj = _tsr.ApplyJitterToProjection(proj);
             }
+
+            // 帧首上传着色常量 (b2, 供 ClusterCullCS/ForwardShadeCS/OITCS 读取)
+            UploadShadingCB(view, jitteredProj, cameraPos, sunDir);
 
             // Pass 1: 级联阴影贴图 (CSM)
             if (_settings.EnableCSM)
@@ -512,14 +607,14 @@ namespace YamaEngine.Rendering
             cmdList.TransitionTo(_shadowAtlas, RHIResourceState.NonPixelShaderResource);
             cmdList.TransitionTo(_shadowMoments, RHIResourceState.UnorderedAccess);
             cmdList.SetComputeRootDescriptorTable(3, _shadowDepthSRV);
-            cmdList.SetComputeRootDescriptorTable(4, _shadowMomentsUAV);
+            cmdList.SetComputeRootDescriptorTable(11, _shadowMomentsUAV);
             int sw = _shadowAtlas.Width;
             int sh = _shadowAtlas.Height;
             cmdList.Dispatch((sw + 7) / 8, (sh + 7) / 8, 1);
 
             // ShadowFilterCS: 5x5 高斯过滤矩 (u1)
             cmdList.SetPipelineState(_shadowFilterPipeline!);
-            cmdList.SetComputeRootDescriptorTable(4, _shadowMomentsUAV);
+            cmdList.SetComputeRootDescriptorTable(11, _shadowMomentsUAV);
             cmdList.Dispatch((sw + 7) / 8, (sh + 7) / 8, 1);
 
             // 转为着色可采样 (ForwardShadeCS 的 ShadowMoments t1)
@@ -554,20 +649,29 @@ namespace YamaEngine.Rendering
             return lightView * lightProj;
         }
 
-        /// <summary>集群光照剔除。</summary>
+        /// <summary>
+        /// 集群光照剔除：上传光源与集群常量，每线程一集群测试点光源相交。
+        /// </summary>
         private void ClusterLightCull(RHICommandList cmdList, in Matrix4x4 view, in Matrix4x4 proj, Vector3 cameraPos)
         {
-            if (_clusterCullPipeline == null) return;
+            if (_clusterCullPipeline == null || _lightBuffer == null) return;
             cmdList.SetComputeRootSignature(_rootSignature!);
             cmdList.SetPipelineState(_clusterCullPipeline);
             cmdList.TransitionTo(_clusterLightGrid!, RHIResourceState.UnorderedAccess);
             cmdList.TransitionTo(_clusterLightIndexList!, RHIResourceState.UnorderedAccess);
 
+            // 上传点光源数据 (t4)
+            int lightCount = Math.Min(_lights.Count, MaxLights);
+            for (int i = 0; i < lightCount; i++) _lightUpload[i] = _lights[i];
+            if (lightCount > 0)
+                _device.UploadToBuffer(_lightBuffer, _lightUpload.AsSpan(0, lightCount));
+
+            // 上传集群常量 (cbuffer ForwardClusterCB : register(b4) → root param 2)
             float nearZ = proj.M43 / (proj.M33 - 1);
             float farZ = proj.M43 / (proj.M33 + 1);
             var cb = new ForwardClusterCB
             {
-                InvViewProj = Matrix4x4.Identity,
+                InvViewProj = Matrix4x4.Invert(view * proj, out var inv) ? inv : Matrix4x4.Identity,
                 CameraPos = cameraPos,
                 NearZ = nearZ,
                 FarZ = farZ,
@@ -575,45 +679,62 @@ namespace YamaEngine.Rendering
                 LogScale = 1.0f,
                 SliceScale = 32.0f / MathF.Log2(farZ / nearZ),
                 MaxLightsPerCluster = _settings.MaxLightsPerPixel,
-                LightCount = 0
+                LightCount = lightCount
             };
-            // 上传并绑定集群剔除常量 (cbuffer ForwardClusterCB : register(b4) → root param 2)
             _clusterCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<ForwardClusterCB>(), "Forward.ClusterCB");
             _device.UploadToBuffer(_clusterCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+
+            // 绑定: b2 (fInvResolution) + b4 (集群参数) + t4 光源 + u2/u3 集群输出
+            cmdList.SetComputeRootConstantBufferView(0, _shadingCBUpload!);
             cmdList.SetComputeRootConstantBufferView(2, _clusterCBUpload);
-            cmdList.Dispatch(1, 1, 1);
+            cmdList.SetComputeRootDescriptorTable(7, _lightSRV);
+            cmdList.SetComputeRootDescriptorTable(12, _clusterGridUAV);
+            cmdList.SetComputeRootDescriptorTable(13, _clusterListUAV);
+
+            // 每线程一集群 (numthreads 64)
+            int totalClusters = ((_internalWidth + 63) / 64) * ((_internalHeight + 63) / 64) * 32;
+            cmdList.Dispatch((totalClusters + 63) / 64, 1, 1);
 
             cmdList.TransitionTo(_clusterLightGrid, RHIResourceState.NonPixelShaderResource);
             cmdList.TransitionTo(_clusterLightIndexList, RHIResourceState.NonPixelShaderResource);
         }
 
-        /// <summary>渲染不透明几何 (前向着色)。</summary>
+        /// <summary>渲染不透明几何 (屏幕空间前向着色: 集群光源 + CSM 阴影)。</summary>
         private void RenderOpaque(RHICommandList cmdList, in Matrix4x4 view, in Matrix4x4 proj, Vector3 cameraPos, Vector3 sunDir)
         {
             if (_shadingPipeline == null) return;
             cmdList.SetComputeRootSignature(_rootSignature!);
             cmdList.SetPipelineState(_shadingPipeline);
             cmdList.TransitionTo(_sceneColor!, RHIResourceState.UnorderedAccess);
+            cmdList.TransitionTo(_sceneDepth!, RHIResourceState.NonPixelShaderResource);
+            cmdList.TransitionTo(_geometrybufferNormals!, RHIResourceState.NonPixelShaderResource);
+            cmdList.TransitionTo(_geometrybufferAlbedo!, RHIResourceState.NonPixelShaderResource);
+            if (_shadowMoments != null)
+                cmdList.TransitionTo(_shadowMoments, RHIResourceState.NonPixelShaderResource);
 
-            var cb = new ForwardShadingCB
-            {
-                ViewMatrix = view,
-                ProjMatrix = proj,
-                CameraPos = cameraPos,
-                Exposure = _postProcess.CurrentExposure,
-                InvResolution = new Vector2(1f / _internalWidth, 1f / _internalHeight),
-                EnableProbeField = _settings.EnableProbeFieldGI ? 1 : 0,
-                EnableAtmosphere = _settings.EnableAtmosphere ? 1 : 0,
-                SkyLightColor = new Vector3(0.4f, 0.6f, 1.0f),
-                SkyLightIntensity = 1.0f,
-                SunDirection = sunDir,
-                SunColor = new Vector3(1.0f, 0.95f, 0.85f),
-                SunIntensity = 8.0f
-            };
-            // 上传并绑定前向着色常量 (cbuffer ForwardShadingCB : register(b2) → root param 0)
-            _shadingCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<ForwardShadingCB>(), "Forward.ShadingCB");
-            _device.UploadToBuffer(_shadingCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
-            cmdList.SetComputeRootConstantBufferView(0, _shadingCBUpload);
+            // 绑定: b2 着色 + b3 级联 + b4 集群 + 全部场景资源 (t1-t7) + u0 输出
+            cmdList.SetComputeRootConstantBufferView(0, _shadingCBUpload!);
+            if (_cascadesCBUpload != null)
+                cmdList.SetComputeRootConstantBufferView(1, _cascadesCBUpload);
+            if (_clusterCBUpload != null)
+                cmdList.SetComputeRootConstantBufferView(2, _clusterCBUpload);
+            if (_shadowMomentsSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(4, _shadowMomentsSRV);
+            if (_clusterGridSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(5, _clusterGridSRV);
+            if (_clusterListSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(6, _clusterListSRV);
+            if (_lightSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(7, _lightSRV);
+            if (_sceneDepthSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(8, _sceneDepthSRV);
+            if (_normalsSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(9, _normalsSRV);
+            if (_albedoSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(10, _albedoSRV);
+            if (_sceneColorUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(14, _sceneColorUAV);
+
             cmdList.Dispatch((_internalWidth + 7) / 8, (_internalHeight + 7) / 8, 1);
             cmdList.TransitionTo(_sceneColor, RHIResourceState.PixelShaderResource);
         }
@@ -635,6 +756,51 @@ namespace YamaEngine.Rendering
             _microcluster?.RegisterMesh(asset, cmdList);
         }
 
+        // ── 光源管理 (集群光照输入) ──
+
+        /// <summary>设置点光源列表 (覆盖)。</summary>
+        public void SetLights(IReadOnlyList<ForwardPointLight> lights)
+        {
+            _lights.Clear();
+            if (lights == null) return;
+            foreach (var l in lights) _lights.Add(l);
+        }
+
+        /// <summary>添加单个点光源。</summary>
+        public void AddLight(in ForwardPointLight light) => _lights.Add(light);
+
+        /// <summary>清空全部点光源。</summary>
+        public void ClearLights() => _lights.Clear();
+
+        /// <summary>当前光源数。</summary>
+        public int LightCount => _lights.Count;
+
+        /// <summary>
+        /// 上传本帧着色常量 (cbuffer ForwardShadingCB : register(b2) → root param 0)。
+        /// 供 ClusterCullCS (fInvResolution) / ForwardShadeCS / OITCS 读取。
+        /// </summary>
+        private void UploadShadingCB(in Matrix4x4 view, in Matrix4x4 proj, Vector3 cameraPos, Vector3 sunDir)
+        {
+            _shadingCBUpload ??= _device.CreateUploadBuffer((ulong)Marshal.SizeOf<ForwardShadingCB>(), "Forward.ShadingCB");
+            var cb = new ForwardShadingCB
+            {
+                ViewMatrix = view,
+                ProjMatrix = proj,
+                InvViewProj = Matrix4x4.Invert(view * proj, out var inv) ? inv : Matrix4x4.Identity,
+                CameraPos = cameraPos,
+                Exposure = _postProcess.CurrentExposure,
+                InvResolution = new Vector2(1f / _internalWidth, 1f / _internalHeight),
+                EnableProbeField = 0,   // 待 EnvProbe (t13) 资源接线后由设置驱动
+                EnableAtmosphere = 0,   // 待大气资源接线后由设置驱动
+                SkyLightColor = new Vector3(0.4f, 0.6f, 1.0f),
+                SkyLightIntensity = 1.0f,
+                SunDirection = sunDir,
+                SunColor = new Vector3(1.0f, 0.95f, 0.85f),
+                SunIntensity = 8.0f
+            };
+            _device.UploadToBuffer(_shadingCBUpload, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+        }
+
         /// <summary>释放所有资源。</summary>
         public void Dispose()
         {
@@ -654,6 +820,7 @@ namespace YamaEngine.Rendering
             _shadingCBUpload?.Dispose();
             _cascadesCBUpload?.Dispose();
             _clusterCBUpload?.Dispose();
+            _lightBuffer?.Dispose();
             _clusterLightGrid?.Dispose();
             _clusterLightIndexList?.Dispose();
             _shadowPipeline?.Dispose();
