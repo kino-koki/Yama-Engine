@@ -213,6 +213,12 @@ namespace YamaEngine.Rendering
         private RHIDescriptorHandle _sceneColorUAV;
         private const int MaxLights = 1024;
 
+        // OIT 顺序无关透明 (McGuire & Bavoil 2013 加权混合)
+        private RHITexture? _oitAccum;
+        private RHITexture? _oitRevealage;
+        private RHIDescriptorHandle _oitAccumUAV;
+        private RHIDescriptorHandle _oitRevealageUAV;
+
         // 视图历史
         private Matrix4x4 _prevViewProj;
         private int _frameIndex;
@@ -328,6 +334,13 @@ namespace YamaEngine.Rendering
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
                                 new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 0 } } } }  // 14: u0 SceneColorUAV
+                    ,
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 4 } } } }, // 15: u4 OitAccumUAV
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 5 } } } }  // 16: u5 OitRevealageUAV
                 },
                 StaticSamplers = new[] { RHISamplerDesc.LinearWrap, RHISamplerDesc.PointClamp, RHISamplerDesc.AnisotropicWrap, RHISamplerDesc.ShadowSampler }
             };
@@ -439,6 +452,16 @@ namespace YamaEngine.Rendering
             _albedoSRV = _device.CreateSRV(_geometrybufferAlbedo);
             _sceneColorUAV = _device.CreateUAV(_sceneColor);
 
+            // OIT 累积纹理 (初始值: accum=0, revealage=1 → 无透明几何时 OITCS 为无操作)
+            _oitAccum = _device.CreateTexture(MakeRT("ForwardOitAccum", RHIFormat.R16G16B16A16_Float, _internalWidth, _internalHeight), "ForwardOitAccum");
+            _oitRevealage = _device.CreateTexture(MakeRT("ForwardOitRevealage", RHIFormat.R8_UNorm, _internalWidth, _internalHeight), "ForwardOitRevealage");
+            _device.UploadToTexture(_oitAccum, new byte[_internalWidth * _internalHeight * 8], _internalWidth, _internalHeight);
+            var revealInit = new byte[_internalWidth * _internalHeight];
+            Array.Fill(revealInit, (byte)255);
+            _device.UploadToTexture(_oitRevealage, revealInit, _internalWidth, _internalHeight);
+            _oitAccumUAV = _device.CreateUAV(_oitAccum);
+            _oitRevealageUAV = _device.CreateUAV(_oitRevealage);
+
             // 最终输出
             _finalOutput = _device.CreateTexture(MakeRT("ForwardFinal", RHIFormat.R8G8B8A8_UNorm, _outputWidth, _outputHeight), "ForwardFinal");
         }
@@ -454,6 +477,7 @@ namespace YamaEngine.Rendering
             _sceneColor?.Dispose(); _sceneDepth?.Dispose(); _motionVectors?.Dispose();
             _geometrybufferNormals?.Dispose(); _geometrybufferAlbedo?.Dispose(); _finalOutput?.Dispose();
             _shadowMoments?.Dispose();
+            _oitAccum?.Dispose(); _oitRevealage?.Dispose();
             _lightBuffer?.Dispose();
             AllocateRenderTargets();
 
@@ -739,13 +763,25 @@ namespace YamaEngine.Rendering
             cmdList.TransitionTo(_sceneColor, RHIResourceState.PixelShaderResource);
         }
 
-        /// <summary>渲染透明物体 (顺序无关透明 OIT)。</summary>
+        /// <summary>渲染透明物体 (OIT 合成: 透明累积 → 混入场景色)。</summary>
         private void RenderTransparent(RHICommandList cmdList, in Matrix4x4 view, in Matrix4x4 proj)
         {
-            if (_oitPipeline == null) return;
+            if (_oitPipeline == null || _oitAccum == null || _oitRevealage == null) return;
             cmdList.SetComputeRootSignature(_rootSignature!);
             cmdList.SetPipelineState(_oitPipeline);
             cmdList.TransitionTo(_sceneColor!, RHIResourceState.UnorderedAccess);
+            cmdList.TransitionTo(_oitAccum, RHIResourceState.UnorderedAccess);
+            cmdList.TransitionTo(_oitRevealage, RHIResourceState.UnorderedAccess);
+
+            // 绑定: b2 着色常量 + u0 场景色 + u4/u5 OIT 累积
+            cmdList.SetComputeRootConstantBufferView(0, _shadingCBUpload!);
+            if (_sceneColorUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(14, _sceneColorUAV);
+            if (_oitAccumUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(15, _oitAccumUAV);
+            if (_oitRevealageUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(16, _oitRevealageUAV);
+
             cmdList.Dispatch((_internalWidth + 7) / 8, (_internalHeight + 7) / 8, 1);
             cmdList.TransitionTo(_sceneColor, RHIResourceState.PixelShaderResource);
         }
@@ -829,6 +865,8 @@ namespace YamaEngine.Rendering
             _shadingPipeline?.Dispose();
             _oitPipeline?.Dispose();
             _rootSignature?.Dispose();
+            _oitAccum?.Dispose();
+            _oitRevealage?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
