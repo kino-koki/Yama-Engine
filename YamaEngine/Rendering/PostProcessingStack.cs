@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using YamaEngine.RHI;
@@ -257,6 +258,13 @@ namespace YamaEngine.Rendering
         private RHITexture? _lensDirt;
         private RHIDescriptorHandle _lensDirtSRV;
 
+        // 自动曝光 GPU→CPU 回读 (拷贝引擎 + 回读管理器)
+        private RHICopyEngine _copyEngine;
+        private RHIReadbackManager _readbackManager;
+        private readonly Queue<long> _pendingReadbackIds = new();
+        private ulong _frameCounter;
+        private bool _exposureInCopySource;
+
         private int _width, _height;
 
         /// <summary>配置。</summary>
@@ -395,6 +403,10 @@ namespace YamaEngine.Rendering
             }, "PP_LensDirt");
             _device.UploadToTexture(_lensDirt, new byte[4], 1, 1);
             _lensDirtSRV = _device.CreateSRV(_lensDirt);
+
+            // 自动曝光回读: 拷贝引擎 + 回读管理器 (仅回读 16B 曝光值, 小缓冲即可)
+            _copyEngine = new RHICopyEngine(_device, uploadBufferSize: 4 * 1024 * 1024);
+            _readbackManager = new RHIReadbackManager(_device, _copyEngine, bufferSize: 1024 * 1024);
         }
 
         /// <summary>窗口尺寸变化。</summary>
@@ -421,6 +433,32 @@ namespace YamaEngine.Rendering
             RHITexture motionVectors, RHITexture output, in Matrix4x4 prevViewProj,
             in Matrix4x4 invViewProj, float deltaTime)
         {
+            _frameCounter++;
+            _copyEngine?.BeginFrame(_frameCounter);
+            _readbackManager?.BeginFrame(_frameCounter);
+
+            // 自动曝光回读: 请求读取上一帧写入的曝光值 (16B), 并收割已就绪的历史结果
+            if (_exposureBuffer != null && _readbackManager != null)
+            {
+                _pendingReadbackIds.Enqueue(_readbackManager.RequestBufferReadback(_exposureBuffer, 0, 16));
+                while (_pendingReadbackIds.Count > 0 && _readbackManager.IsReady(_pendingReadbackIds.Peek()))
+                {
+                    long rid = _pendingReadbackIds.Dequeue();
+                    byte[] data = _readbackManager.GetResultData(rid);
+                    _readbackManager.ReleaseResult(rid);
+                    if (data != null && data.Length >= 4)
+                    {
+                        float exposure = BitConverter.ToSingle(data, 0);
+                        if (float.IsFinite(exposure))
+                            _currentExposure = Math.Clamp(exposure, _settings.MinExposure, _settings.MaxExposure);
+                    }
+                }
+                // 上一帧回读后缓冲处于 CopySource 状态, 本帧写入前转回 UAV
+                if (_exposureInCopySource && _exposureBuffer != null)
+                    cmdList.TransitionTo(_exposureBuffer, RHIResourceState.UnorderedAccess);
+                _exposureInCopySource = false;
+            }
+
             cmdList.SetComputeRootSignature(_rootSignature!);
 
             // 上传共享常量 (b0: 时间/帧号, LensCS 颗粒动画使用)
@@ -474,6 +512,10 @@ namespace YamaEngine.Rendering
 
             // 6. 色调映射 + 颜色分级 + LUT -> 输出 LDR
             RunTonemap(cmdList, src, output);
+
+            // 帧结束: 提交本帧的回读拷贝 (读取上一帧曝光), 推进帧索引
+            _readbackManager?.EndFrame();
+            _copyEngine?.EndFrame();
         }
 
         /// <summary>上传 per-pass 常量到 b2 (各 pass 复用同一上传缓冲)。</summary>
@@ -504,6 +546,9 @@ namespace YamaEngine.Rendering
             cmdList.SetComputeRootDescriptorTable(2, _device.CreateSRV(sceneColor));
             cmdList.SetComputeRootDescriptorTable(9, _exposureBufferUAV);
             cmdList.Dispatch(1, 1, 1);
+            // 转入 CopySource 供帧末回读拷贝读取 (下一帧 Process 开头转回 UAV)
+            cmdList.TransitionTo(_exposureBuffer!, RHIResourceState.CopySource);
+            _exposureInCopySource = true;
         }
 
         /// <summary>运行景深 Pass (散景模糊)。</summary>
@@ -709,6 +754,8 @@ namespace YamaEngine.Rendering
             _sharedCBUpload?.Dispose();
             _passCBUpload?.Dispose();
             _lensDirt?.Dispose();
+            _copyEngine?.Dispose();
+            _readbackManager?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
