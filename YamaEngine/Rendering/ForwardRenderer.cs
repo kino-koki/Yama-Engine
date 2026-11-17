@@ -527,11 +527,16 @@ namespace YamaEngine.Rendering
                 RenderCSM(cmdList, view, proj, cameraPos, sunDir);
             }
 
-            // Pass 2: GPU 驱动剔除 + MicroCluster 可见性缓冲
+            // Pass 2: GPU 驱动剔除 + MicroCluster 可见性缓冲光栅化 + 属性解码
             if (_settings.EnableMicroCluster && _microcluster != null)
             {
                 _microcluster.Cull(cmdList, view, jitteredProj, cameraPos, _internalWidth, _internalHeight);
                 _microcluster.Rasterize(cmdList, view * jitteredProj);
+                // 可见性缓冲解码 → GeometryBuffer (法线/反照率), 供 ForwardShadeCS 采样 (t6/t7)
+                _microcluster.DecodeVisibility(cmdList,
+                    new[] { _geometrybufferNormals!, _geometrybufferAlbedo! },
+                    Matrix4x4.Invert(view * jitteredProj, out var invVP) ? invVP : Matrix4x4.Identity,
+                    cameraPos);
             }
 
             // Pass 3: 运动矢量计算 (TSR)
@@ -786,10 +791,11 @@ namespace YamaEngine.Rendering
             cmdList.TransitionTo(_sceneColor, RHIResourceState.PixelShaderResource);
         }
 
-        /// <summary>注册 MicroCluster 网格。</summary>
+        /// <summary>注册 MicroCluster 网格 (注册后重建页表与合并簇缓冲)。</summary>
         public void RegisterMicroClusterMesh(MicroClusterMeshAsset asset, RHICommandList cmdList)
         {
             _microcluster?.RegisterMesh(asset, cmdList);
+            _microcluster?.BuildPageTable();
         }
 
         // ── 光源管理 (集群光照输入) ──
