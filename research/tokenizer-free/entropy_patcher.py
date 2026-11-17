@@ -55,6 +55,24 @@ class ByteEntropyModel:
         return h
 
 
+def patch_bytes_with_scorer(data: bytes, score_fn, min_patch: int = 2, max_patch: int = 32):
+    """通用动态分 patch: score_fn(i) 返回位置 i 字节的"意外度"，
+    高于阈值的字节开启新 patch。任何熵/意外度模型都可接入。"""
+    if not data:
+        return []
+    patches = []
+    start = 0
+    for i in range(1, len(data)):
+        too_long = i - start >= max_patch
+        can_split = i - start >= min_patch
+        if can_split and (score_fn(i) > 0 or too_long):
+            patches.append(bytes(data[start:i]))
+            start = i
+    if start < len(data):
+        patches.append(bytes(data[start:]))
+    return patches
+
+
 def patch_bytes(data: bytes, entropy_model=None, threshold: float = 4.0,
                 min_patch: int = 2, max_patch: int = 32):
     """BLT 式动态分 patch。
@@ -70,19 +88,11 @@ def patch_bytes(data: bytes, entropy_model=None, threshold: float = 4.0,
         entropy_model = ByteEntropyModel()
         entropy_model.train(data)
 
-    patches = []
-    start = 0
-    for i in range(1, len(data)):
+    def score(i: int) -> float:
         ctx = data[max(0, i - 8):i]
-        ent = entropy_model.next_byte_entropy(ctx)
-        too_long = i - start >= max_patch
-        can_split = i - start >= min_patch
-        if can_split and (ent > threshold or too_long):
-            patches.append(bytes(data[start:i]))
-            start = i
-    if start < len(data):
-        patches.append(bytes(data[start:]))
-    return patches
+        return entropy_model.next_byte_entropy(ctx) - threshold
+
+    return patch_bytes_with_scorer(data, score, min_patch=min_patch, max_patch=max_patch)
 
 
 def unpatch(patches) -> bytes:

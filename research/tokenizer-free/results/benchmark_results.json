@@ -1,0 +1,49 @@
+{
+  "val_bytes": 326,
+  "dim": 32,
+  "seq_len": 128,
+  "epochs": 40,
+  "rows": [
+    {
+      "model": "BPE (baseline)",
+      "train_units": 1023,
+      "val_units": 259,
+      "val_bits": 1927.9212567420952,
+      "bpb": 5.913868885711949,
+      "est_train_flops": 838860800
+    },
+    {
+      "model": "byte-patch (n-gram entropy)",
+      "train_units": 650,
+      "val_units": 163,
+      "val_bits": 1437.0025090416532,
+      "bpb": 4.407983156569489,
+      "est_train_flops": 629145600
+    },
+    {
+      "model": "byte-patch (learned entropy)",
+      "train_units": 650,
+      "val_units": 163,
+      "val_bits": 1437.0025090416532,
+      "bpb": 4.407983156569489,
+      "est_train_flops": 2139095040
+    },
+    {
+      "model": "byte-patch (n-gram entropy, FLOP-matched)",
+      "train_units": 650,
+      "val_units": 163,
+      "val_bits": 1436.747026074427,
+      "bpb": 4.407199466485972,
+      "est_train_flops": 838860800.0
+    },
+    {
+      "model": "byte-patch (learned entropy, FLOP-matched)",
+      "train_units": 650,
+      "val_units": 163,
+      "val_bits": 1436.747026074427,
+      "bpb": 4.407199466485972,
+      "est_train_flops": 838860800.0
+    }
+  ],
+  "elapsed_s": 18.098942041397095
+}

@@ -141,6 +141,12 @@ bytes out
 
 ### 6.2 分阶段迁移路线（性能不降的保障）
 
+> **P1-min 实测（2026-11-17，无 GPU 环境的最小验证链路）**：
+> [`research/tokenizer-free/benchmark.py`](../research/tokenizer-free/benchmark.py) 已实现 FLOP 受控对比框架——
+> 同一中英代码混合语料、相同主干（dim=32/seq=128），以验证集 **bits-per-byte (BPB)** 为指标：
+> BPE 基线 5.914，n-gram 熵 patch **4.408 (-25.5%)**，可学习熵 patch **4.408 (-25.5%)**（含熵模型自身开销 2.14e9 FLOPs），
+> FLOP 匹配放大后 **4.407 (-25.5%)**。方向与 BLT/H-Net 论文一致；论文级断言仍需真实 GPU 训练（下表 P1）。
+
 | 阶段 | 动作 | 验收标准 |
 |---|---|---|
 | P0 影子运行 | 熵 patcher 与现有 BPE 并行跑，只记录不生效 | patch 长度分布、边界与词/子词边界重合率报告 |

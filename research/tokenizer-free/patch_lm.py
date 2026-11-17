@@ -6,6 +6,8 @@
 # 这里实现一个单层因果自注意力 Transformer (含完整手写反向传播),
 # 在微型中英代码混合语料上训练, 演示"无分词器的字节级建模"闭环。
 
+import math
+
 import numpy as np
 
 from entropy_patcher import ByteEntropyModel, patch_bytes, unpatch
@@ -97,8 +99,8 @@ class TinyCausalTransformer:
         n = len(targets)
         return float(-np.mean(np.log(probs[np.arange(n), targets] + 1e-9)))
 
-    def train_step(self, ids, lr: float = 0.05) -> float:
-        """对整段 id 序列做一步 SGD。返回 loss。"""
+    def train_step(self, ids, lr: float = 0.05, max_norm: float = 1.0) -> float:
+        """对整段 id 序列做一步 SGD (带全局范数梯度裁剪)。返回 loss。"""
         if len(ids) < 2:
             return 0.0
         ctx = ids[:-1]
@@ -139,14 +141,25 @@ class TinyCausalTransformer:
         dWv = X.T @ dV
         dX += dQ @ self.Wq.T + dK @ self.Wk.T + dV @ self.Wv.T
 
+        # ── 全局范数梯度裁剪 (长序列训练稳定性) ──
+        grads = [("Wq", dWq), ("Wk", dWk), ("Wv", dWv), ("Wo", dWo),
+                 ("W1", dW1), ("b1", db1), ("W2", dW2), ("b2", db2),
+                 ("Wout", dWout)]
+        total = float(np.sum(dX * dX))
+        for _, g in grads:
+            total += float(np.sum(g * g))
+        norm = math.sqrt(total)
+        if norm > max_norm:
+            scale = max_norm / (norm + 1e-12)
+            dX = dX * scale
+            grads = [(name, g * scale) for name, g in grads]
+
         # embedding / 位置梯度 (仅示范, 累加到对应行)
         for i, tid in enumerate(ids_in):
             self.E[tid] -= lr * dX[i]
         self.P[:n] -= lr * dX
 
-        for name, grad in (("Wq", dWq), ("Wk", dWk), ("Wv", dWv), ("Wo", dWo),
-                           ("W1", dW1), ("b1", db1), ("W2", dW2), ("b2", db2),
-                           ("Wout", dWout)):
+        for name, grad in grads:
             setattr(self, name, getattr(self, name) - lr * grad)
         return loss
 
