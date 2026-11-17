@@ -30,7 +30,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 // 常量缓冲 (匹配 C# SoftwareRasterCB)
 // ──────────────────────────────────────────────────────────────────────────
-cbuffer SoftwareRasterCB : register(b0)
+cbuffer SoftwareRasterCB : register(b2)
 {
     float4x4 gViewProjMatrix;
     float3   gCameraPos;
@@ -45,7 +45,7 @@ cbuffer SoftwareRasterCB : register(b0)
 };
 
 // 属性解码常量 (匹配 C# AttributeDecodeCB)
-cbuffer AttributeDecodeCB : register(b1)
+cbuffer AttributeDecodeCB : register(b3)
 {
     float4x4 gInvViewProjMatrix;
     float3   gDecodeCameraPos;

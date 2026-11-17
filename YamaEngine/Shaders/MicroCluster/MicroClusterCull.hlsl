@@ -11,7 +11,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 // 剔除常量 (匹配 C# MicroClusterCullCB)
 // ──────────────────────────────────────────────────────────────────────────
-cbuffer MicroClusterCullCB : register(b0)
+cbuffer MicroClusterCullCB : register(b2)
 {
     float4x4 gMicroClusterViewMatrix;
     float4x4 gMicroClusterProjMatrix;

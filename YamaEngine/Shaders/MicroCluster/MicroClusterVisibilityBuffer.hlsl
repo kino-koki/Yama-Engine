@@ -34,7 +34,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 // 常量缓冲 (匹配 C# VisibilityGenCB / AttributeDecodeCB)
 // ──────────────────────────────────────────────────────────────────────────
-cbuffer VisibilityGenCB : register(b0)
+cbuffer VisibilityGenCB : register(b2)
 {
     float4x4 gViewProjMatrix;
     float2   gInvResolution;
@@ -43,7 +43,7 @@ cbuffer VisibilityGenCB : register(b0)
     uint     gPad0, gPad1, gPad2, gPad3;
 };
 
-cbuffer AttributeDecodeCB : register(b1)
+cbuffer AttributeDecodeCB : register(b3)
 {
     float4x4 gInvViewProjMatrix;
     float3   gCameraPos;

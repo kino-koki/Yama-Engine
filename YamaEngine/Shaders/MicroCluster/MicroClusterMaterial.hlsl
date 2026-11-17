@@ -11,7 +11,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 // 常量缓冲
 // ──────────────────────────────────────────────────────────────────────────
-cbuffer MicroClusterMaterialCB : register(b0)
+cbuffer MicroClusterMaterialCB : register(b2)
 {
     float4x4 gMatViewProjMatrix;
     float4x4 gMatInvViewProjMatrix;

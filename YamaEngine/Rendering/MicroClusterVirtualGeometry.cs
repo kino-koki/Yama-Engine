@@ -1106,6 +1106,17 @@ namespace YamaEngine.Rendering
         private RHIDescriptorHandle _visibleCountUAV;
         private const int ClusterCapacity = 1 << 16; // 剔除输出容量上限 (簇数)
 
+        // --- HZB (层级 Z 缓冲) 金字塔: 遮挡剔除用 (Deferred/HZBBuild 逐级 2×2 最大深度降采样) ---
+        private RHITexture? _hzbTexture;
+        private int _hzbMipCount;
+        private int _hzbWidth, _hzbHeight;
+        private RHIPipelineState? _hzbBuildPipeline;
+        private RHIRootSignature? _hzbRootSignature;
+        private RHIBuffer? _hzbConstantsCB;                 // b2: HZBConstants
+        private readonly List<RHIDescriptorHandle> _hzbSrcSRVs = new();  // [0]=深度 SRV, [k]=mip k-1 SRV
+        private readonly List<RHIDescriptorHandle> _hzbDstUAVs = new();  // [k]=mip k UAV
+        private RHIDescriptorHandle _hzbFullSRV;            // 完整 mip 链 (剔除 pass 采样 t2)
+
         /// <summary>已注册的 MicroCluster 网格资产。</summary>
         public Dictionary<Guid, MicroClusterMeshAsset> Meshes { get; } = new();
         /// <summary>可见性缓冲。</summary>
@@ -1307,14 +1318,14 @@ namespace YamaEngine.Rendering
         /// <summary>创建 GPU 管线状态。</summary>
         private void CreatePipelines()
         {
-            // 根签名: [0] CullCB (CBV b0), [1] t0 Clusters, [2] t1 Groups,
-            //         [3] t2 HZB, [4] t3 PageTable, [5-8] u0-u3 剔除输出
+            // 根签名: [0] CullCB (CBV b2), [1] t0 Clusters, [2] t1 Groups,
+            //         [3] t2 HZB 金字塔, [4] t3 PageTable, [5-8] u0-u3 剔除输出
             var rootDesc = new RHIRootSignatureDesc
             {
                 Parameters = new RHIRootParameter[]
                 {
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
-                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
                                 new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 0 } } } },
@@ -1370,6 +1381,153 @@ namespace YamaEngine.Rendering
                 CS = ShaderManager.Instance.GetBytecode("MicroCluster/MicroClusterRaster", "SoftwareRasterCS", RHIShaderStage.Compute)
             };
             _softwareRasterPipeline = _device.CreateComputePipelineState(swDesc);
+
+            // HZB 构建管线 (Deferred/HZBBuild: 2×2 最大深度降采样) + 专用根签名
+            var hzbRoot = new RHIRootSignatureDesc
+            {
+                Parameters = new RHIRootParameter[]
+                {
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 0 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 0 } } } },
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },
+                },
+                StaticSamplers = new[] { RHISamplerDesc.PointClamp }
+            };
+            _hzbRootSignature = _device.CreateRootSignature(hzbRoot, "MicroCluster.HZBRootSig");
+            _hzbBuildPipeline = _device.CreateComputePipelineState(new RHIComputePipelineDesc
+            {
+                Name = "MicroCluster.HZBBuild",
+                CS = ShaderManager.Instance.GetBytecode("Deferred/HZBBuild", "HZBBuildCS", RHIShaderStage.Compute)
+            });
+        }
+
+        /// <summary>
+        /// 从可见性深度纹理构建 HZB 金字塔 (逐级 2×2 最大深度降采样)。
+        /// 供簇剔除 Pass 的 HZB 遮挡剔除采样 (t2)。
+        /// </summary>
+        private void BuildHZB(RHICommandList cmdList)
+        {
+            var depth = _visibilityBuffer.DepthTexture;
+            if (depth == null || _hzbBuildPipeline == null || _hzbRootSignature == null) return;
+
+            int srcW = depth.TextureDesc!.Value.Width;
+            int srcH = depth.TextureDesc!.Value.Height;
+            if (srcW == 0 || srcH == 0) return;
+
+            // HZB mip0 = 深度一半分辨率; 逐级减半, 直到 1×1 (最多 14 级)
+            int mip0W = Math.Max(1, srcW >> 1);
+            int mip0H = Math.Max(1, srcH >> 1);
+            int mipCount = 1;
+            int w = mip0W, h = mip0H;
+            while ((w > 1 || h > 1) && mipCount < 14)
+            {
+                w = Math.Max(1, w >> 1);
+                h = Math.Max(1, h >> 1);
+                mipCount++;
+            }
+
+            if (_hzbTexture == null || _hzbWidth != mip0W || _hzbHeight != mip0H || _hzbMipCount != mipCount)
+            {
+                _hzbTexture?.Dispose();
+                _hzbTexture = _device.CreateTexture(new RHITextureDesc
+                {
+                    Dimension = RHIResourceDimension.Texture2D,
+                    Format = RHIFormat.R32_Float,
+                    Width = mip0W, Height = mip0H, DepthOrArraySize = 1,
+                    MipLevels = mipCount, SampleCount = 1,
+                    Flags = RHITextureFlags.ShaderResource | RHITextureFlags.UnorderedAccess
+                }, "MicroCluster.HZB");
+                _hzbWidth = mip0W;
+                _hzbHeight = mip0H;
+                _hzbMipCount = mipCount;
+
+                // 逐 mip 视图: [0] = 深度纹理 (mip0 的源), [k] = mip k-1 (级联源)
+                _hzbSrcSRVs.Clear();
+                _hzbDstUAVs.Clear();
+                _hzbSrcSRVs.Add(_device.CreateSRV(depth, new RHISRVDesc
+                {
+                    Format = RHIFormat.R32_Float,
+                    Dimension = RHIResourceDimension.Texture2D,
+                    MostDetailedMip = 0,
+                    MipLevels = 1
+                }));
+                for (int mip = 0; mip < mipCount; mip++)
+                {
+                    _hzbSrcSRVs.Add(_device.CreateSRV(_hzbTexture, new RHISRVDesc
+                    {
+                        Format = RHIFormat.R32_Float,
+                        Dimension = RHIResourceDimension.Texture2D,
+                        MostDetailedMip = (uint)mip,
+                        MipLevels = 1
+                    }));
+                    _hzbDstUAVs.Add(_device.CreateUAV(_hzbTexture, new RHIUAVDesc
+                    {
+                        Format = RHIFormat.R32_Float,
+                        Dimension = RHIResourceDimension.Texture2D,
+                        MipSlice = (uint)mip
+                    }));
+                }
+                _hzbFullSRV = _device.CreateSRV(_hzbTexture, new RHISRVDesc
+                {
+                    Format = RHIFormat.R32_Float,
+                    Dimension = RHIResourceDimension.Texture2D,
+                    MostDetailedMip = 0,
+                    MipLevels = (uint)mipCount
+                });
+            }
+
+            cmdList.SetComputeRootSignature(_hzbRootSignature);
+            cmdList.SetPipelineState(_hzbBuildPipeline);
+
+            // 深度纹理转入可采样状态
+            cmdList.TransitionTo(depth, RHIResourceState.NonPixelShaderResource);
+
+            // 逐级降采样: mip0 ← 深度, mip k ← mip k-1
+            int cw = srcW, ch = srcH;
+            for (int mip = 0; mip < mipCount; mip++)
+            {
+                int dw = Math.Max(1, cw >> 1);
+                int dh = Math.Max(1, ch >> 1);
+
+                var cb = new HZBBuildConstants
+                {
+                    SrcWidth = (uint)cw, SrcHeight = (uint)ch,
+                    DstWidth = (uint)dw, DstHeight = (uint)dh,
+                    MipLevel = (uint)mip
+                };
+                _hzbConstantsCB ??= _device.CreateUploadBuffer(64, "MicroCluster.HZBConstants");
+                _device.UploadToBuffer(_hzbConstantsCB, MemoryMarshal.CreateReadOnlySpan(ref cb, 1));
+
+                cmdList.SetComputeRootDescriptorTable(0, _hzbSrcSRVs[mip]);
+                cmdList.SetComputeRootDescriptorTable(1, _hzbDstUAVs[mip]);
+                cmdList.SetComputeRootConstantBufferView(2, _hzbConstantsCB!);
+
+                cmdList.TransitionTo(_hzbTexture, RHIResourceState.UnorderedAccess);
+                cmdList.Dispatch(Math.Max(1, (dw + 7) / 8), Math.Max(1, (dh + 7) / 8), 1);
+                cmdList.TransitionTo(_hzbTexture, RHIResourceState.NonPixelShaderResource);
+
+                cw = dw;
+                ch = dh;
+            }
+        }
+
+        /// <summary>HZB 构建常量 (与 HLSL HZBConstants 一致, 24 字节)。</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HZBBuildConstants
+        {
+            public uint SrcWidth;
+            public uint SrcHeight;
+            public uint DstWidth;
+            public uint DstHeight;
+            public uint MipLevel;
+            public uint Pad0;
+            public uint Pad1;
+            public uint Pad2;
         }
 
         /// <summary>注册网格资产并上传到 GPU。</summary>
@@ -1443,6 +1601,9 @@ namespace YamaEngine.Rendering
         {
             if (_cullPipeline == null || _rootSignature == null || _cullResult.VisibleClusterBuffer == null) return;
 
+            // 构建 HZB 金字塔 (从可见性深度纹理; 供本 pass 的 HZB 遮挡剔除采样)
+            BuildHZB(cmdList);
+
             cmdList.SetComputeRootSignature(_rootSignature);
             cmdList.SetPipelineState(_cullPipeline);
 
@@ -1479,13 +1640,13 @@ namespace YamaEngine.Rendering
             if (_cullResult.VisibleCountBuffer != null)
                 cmdList.TransitionTo(_cullResult.VisibleCountBuffer, RHIResourceState.UnorderedAccess);
 
-            // 绑定: b0 剔除常量 + t0 簇 + t1 组 + t2 HZB(中性) + t3 页表(中性) + u0-u3 输出
+            // 绑定: b0 剔除常量 + t0 簇 + t1 组 + t2 HZB 金字塔 + t3 页表(中性) + u0-u3 输出
             cmdList.SetComputeRootConstantBufferView(0, _cullCBUpload!);
             if (_mergedClusterSRV.IsValid)
                 cmdList.SetComputeRootDescriptorTable(1, _mergedClusterSRV);
             if (_mergedGroupSRV.IsValid)
                 cmdList.SetComputeRootDescriptorTable(2, _mergedGroupSRV);
-            cmdList.SetComputeRootDescriptorTable(3, _hzbSRV);
+            cmdList.SetComputeRootDescriptorTable(3, _hzbFullSRV);
             cmdList.SetComputeRootDescriptorTable(4, _pageTableSRV);
             cmdList.SetComputeRootDescriptorTable(5, _visibleClustersUAV);
             cmdList.SetComputeRootDescriptorTable(6, _indirectArgsUAV);
@@ -1633,6 +1794,10 @@ namespace YamaEngine.Rendering
             _mergedGroupBuffer?.Dispose();
             _neutralHZB?.Dispose();
             _neutralPageTable?.Dispose();
+            _hzbTexture?.Dispose();
+            _hzbBuildPipeline?.Dispose();
+            _hzbRootSignature?.Dispose();
+            _hzbConstantsCB?.Dispose();
             foreach (var mesh in Meshes.Values) mesh.Dispose();
             GC.SuppressFinalize(this);
         }

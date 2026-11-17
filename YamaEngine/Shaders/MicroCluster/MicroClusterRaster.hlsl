@@ -15,7 +15,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 // 常量缓冲 (复用 MicroClusterCullCB, 仅需 ViewProj 与分辨率)
 // ──────────────────────────────────────────────────────────────────────────
-cbuffer MicroClusterRasterCB : register(b0)
+cbuffer MicroClusterRasterCB : register(b2)
 {
     float4x4 gMicroClusterViewMatrix;
     float4x4 gMicroClusterProjMatrix;
