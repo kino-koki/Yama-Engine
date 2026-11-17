@@ -54,7 +54,8 @@ def rmsnorm_forward(x: np.ndarray, g: np.ndarray, eps: float) -> tuple:
 def rmsnorm_backward(dout: np.ndarray, cache: tuple) -> np.ndarray:
     x, r, g = cache
     dnorm = dout * g
-    # d x_j = dnorm_j / r - x_j * sum_i(dnorm_i * x_i) / (r^3 * L)
+    # d x_j = dnorm_j / r - x_j * sum_i(dnorm_i * x_i) * r^3 / L
+    # (r = 1/rms, 故 dr/dx_j = -x_j·r³/L)
     dx = dnorm * r - x * (np.sum(dnorm * x, axis=-1, keepdims=True) * (r ** 3) / x.shape[-1])
     dg = np.sum(dout * x * r, axis=0)
     return dx, dg
@@ -182,6 +183,7 @@ def backward(params: dict, cfg: TransformerConfig, ids: list,
         grads["Wout"] = dlogits.T @ hn
     dxn, dg = rmsnorm_backward(dn, cn)
     grads["norm_out.g"] += dg
+    dx = dxn.copy()   # 输出 norm 的梯度流入残差流 (此前被丢弃导致层路径梯度全零)
     x = params["E"][ids] + params["P"][:L]
 
     for l in reversed(range(cfg.n_layers)):
@@ -196,16 +198,17 @@ def backward(params: dict, cfg: TransformerConfig, ids: list,
         # f = silu(u) * g
         du = df * g * silu_backward(u)
         dg = df * silu(u)
-        dx2 = du @ params[f"l{l}.Wu"].T + dg @ params[f"l{l}.Wg"].T
         grads[f"l{l}.Wu"] = h2.T @ du
         grads[f"l{l}.Wg"] = h2.T @ dg
+        dh2 = du @ params[f"l{l}.Wu"].T + dg @ params[f"l{l}.Wg"].T   # dL/dh2
         # h2 = rmsnorm(x2)
-        dx2n, dg2 = rmsnorm_backward(dx2, c2)
+        dx2_norm, dg2 = rmsnorm_backward(dh2, c2)
         grads[f"l{l}.norm2.g"] += dg2
+        dx2 += dx2_norm                     # dL/dx2 = 直接残差 + norm 路径
         # x2 = x + ao ; ao = o @ Wo
-        dx = dx2n.copy()          # → x (残差)
-        dao = dx2n
+        dao = dx2
         grads[f"l{l}.Wo"] = o.T @ dao
+        dx = dx2.copy()                     # 残差流梯度 (传给下一层/输入)
         do = dao @ params[f"l{l}.Wo"].T
         # 拆回头部: o = concat(oh)
         doh = do.reshape(L, cfg.n_heads, cfg.head_dim).transpose(1, 0, 2)
@@ -358,7 +361,7 @@ def forward_step(params: dict, cfg: TransformerConfig, token_id: int,
         u = (h2 @ params[f"l{l}.Wu"])[0]
         g = (h2 @ params[f"l{l}.Wg"])[0]
         f = silu(u) * g
-        x = x + (f @ params[f"l{l}.W2"])[0]
+        x = x + f @ params[f"l{l}.W2"]   # f 已是 1-D (ffn_dim), 勿再取 [0]
     hn, _ = rmsnorm_forward(x[None, :], params["norm_out.g"], cfg.norm_eps)
     if cfg.tie_weights:
         return (hn @ params["E"].T)[0]
