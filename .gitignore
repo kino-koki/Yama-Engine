@@ -49,6 +49,8 @@ TestResults/
 # ── 可再生日录（不入库）──
 third_party/
 third_party/vcpkg/
+# DXC 着色器编译器 (随引擎分发的二进制, HLSL 运行时编译必需 — 例外保留)
+!third_party/dxc/
 dotnet-sdk-cache/
 .dotnet-temp/
 .uploads/
