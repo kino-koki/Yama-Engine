@@ -532,9 +532,9 @@ namespace YamaEngine.Rendering
             {
                 _microcluster.Cull(cmdList, view, jitteredProj, cameraPos, _internalWidth, _internalHeight);
                 _microcluster.Rasterize(cmdList, view * jitteredProj);
-                // 可见性缓冲解码 → GeometryBuffer (法线/反照率), 供 ForwardShadeCS 采样 (t6/t7)
+                // 可见性缓冲解码 → GeometryBuffer (u2=Albedo / u3=Normal / u4=Emissive), 供 ForwardShadeCS 采样
                 _microcluster.DecodeVisibility(cmdList,
-                    new[] { _geometrybufferNormals!, _geometrybufferAlbedo! },
+                    _geometrybufferAlbedo!, _geometrybufferNormals!, null,
                     Matrix4x4.Invert(view * jitteredProj, out var invVP) ? invVP : Matrix4x4.Identity,
                     cameraPos);
             }

@@ -1106,6 +1106,40 @@ namespace YamaEngine.Rendering
         private RHIDescriptorHandle _visibleCountUAV;
         private const int ClusterCapacity = 1 << 16; // 剔除输出容量上限 (簇数)
 
+        // --- 帧常量 (Common.hlsli FrameConstants, b0) 与几何堆 (光栅化 t5) ---
+        private RHIBuffer? _frameCBUpload;
+        private RHIBuffer? _geometryHeap;
+        private RHIDescriptorHandle _geometryHeapSRV;
+        private RHIDescriptorHandle _visibilityTextureUAV;
+        private RHIDescriptorHandle _depthTextureUAV;
+        private int _visUavWidth, _visUavHeight;
+
+        /// <summary>FrameConstants (Common.hlsli b0, 656 字节) — MicroCluster 着色器使用 gScreenParams 等成员。</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MicroClusterFrameConstants
+        {
+            public Matrix4x4 ViewMatrix;
+            public Matrix4x4 ProjMatrix;
+            public Matrix4x4 ViewProjMatrix;
+            public Matrix4x4 InvViewMatrix;
+            public Matrix4x4 InvProjMatrix;
+            public Matrix4x4 InvViewProjMatrix;
+            public Matrix4x4 PrevViewProjMatrix;
+            public Matrix4x4 PrevViewMatrix;
+            public Vector4 CameraPos;        // w = nearZ
+            public Vector4 CameraForward;    // w = farZ
+            public Vector4 CameraParams;     // x=fov, y=aspect, z=near, w=far
+            public Vector4 ScreenParams;     // x=w, y=h, z=1/w, w=1/h
+            public Vector4 TimeParams;       // x=time, y=dt, z=frames, w=sin(time)
+            public Vector4 JitterParams;
+            public Vector4 FogColor;
+            public Vector4 FogParams;
+            public uint RenderFlags;
+            public uint FrameCount;
+            public float Exposure;
+            public float Padding0;
+        }
+
         // --- HZB (层级 Z 缓冲) 金字塔: 遮挡剔除用 (Deferred/HZBBuild 逐级 2×2 最大深度降采样) ---
         private RHITexture? _hzbTexture;
         private int _hzbMipCount;
@@ -1116,6 +1150,23 @@ namespace YamaEngine.Rendering
         private readonly List<RHIDescriptorHandle> _hzbSrcSRVs = new();  // [0]=深度 SRV, [k]=mip k-1 SRV
         private readonly List<RHIDescriptorHandle> _hzbDstUAVs = new();  // [k]=mip k UAV
         private RHIDescriptorHandle _hzbFullSRV;            // 完整 mip 链 (剔除 pass 采样 t2)
+
+        // --- 可见性解码 (MicroClusterVisibilityBuffer: VisibilityDecodeCS) ---
+        private RHIPipelineState? _visibilityDecodePipeline;
+        private RHIRootSignature? _decodeRootSignature;
+        private RHIBuffer? _decodeCBUploadGen;              // b2: VisibilityGenCB
+        private RHIBuffer? _decodeCBUploadDecode;           // b3: AttributeDecodeCB
+        private RHIBuffer? _identityInstancesBuffer;        // t4: 单位变换实例 (按簇 ID 索引)
+        private RHIDescriptorHandle _instancesSRV;
+        private RHIDescriptorHandle _visibilitySRV;         // t5: 可见性缓冲 (R32G32_UINT)
+        private RHIDescriptorHandle _visDepthSRV;           // t6: 深度
+        private RHITexture? _emissiveTarget;                // u4: 自发光输出 (内部)
+        private RHIDescriptorHandle _visibilityUAVDec;      // u0
+        private RHIDescriptorHandle _depthUAVDec;           // u1
+        private RHIDescriptorHandle _albedoUAV;             // u2
+        private RHIDescriptorHandle _normalUAV;             // u3
+        private RHIDescriptorHandle _emissiveUAV;           // u4
+        private int _decodeWidth, _decodeHeight;
 
         /// <summary>已注册的 MicroCluster 网格资产。</summary>
         public Dictionary<Guid, MicroClusterMeshAsset> Meshes { get; } = new();
@@ -1156,6 +1207,9 @@ namespace YamaEngine.Rendering
                 HeapType = RHIResourceHeapType.Default
             };
             var geometryHeap = _device.CreateBuffer(heapDesc, "MicroClusterGeometryHeap");
+            _geometryHeap = geometryHeap;
+            _geometryHeapSRV = _device.CreateSRV(geometryHeap, RHIFormat.R32_UInt, false, 0,
+                (uint)(heapDesc.SizeInBytes / 4), 4);
 
             var uploadDesc = new RHIBufferDesc
             {
@@ -1245,6 +1299,29 @@ namespace YamaEngine.Rendering
             _indirectArgsUAV = _device.CreateUAV(_cullResult.IndirectArgsBuffer, RHIFormat.Unknown, true, 0, 4, 16);
             _softwareRasterUAV = _device.CreateUAV(_cullResult.SoftwareRasterClusterBuffer, RHIFormat.Unknown, true, 0, ClusterCapacity, 16);
             _visibleCountUAV = _device.CreateUAV(_cullResult.VisibleCountBuffer, RHIFormat.R32_UInt, true, 0, 2, 4);
+
+            // 单位变换实例缓冲 (解码着色器按簇 ID 索引; 簇顶点已是世界空间)
+            int instanceStride = Marshal.SizeOf<GPUInstanceData>();
+            _identityInstancesBuffer = _device.CreateBuffer(new RHIBufferDesc
+            {
+                SizeInBytes = (ulong)(ClusterCapacity * instanceStride),
+                Flags = RHIBufferFlags.Structured | RHIBufferFlags.ShaderResource,
+                Stride = (ulong)instanceStride,
+                HeapType = RHIResourceHeapType.Upload
+            }, "MicroCluster.IdentityInstances");
+            var identityInstances = new GPUInstanceData[ClusterCapacity];
+            for (int i = 0; i < ClusterCapacity; i++)
+            {
+                identityInstances[i] = new GPUInstanceData
+                {
+                    TransformRow0 = new Vector4(1f, 0f, 0f, 0f),
+                    TransformRow1 = new Vector4(0f, 1f, 0f, 0f),
+                    TransformRow2 = new Vector4(0f, 0f, 1f, 0f),
+                    InstanceId = (uint)i
+                };
+            }
+            _device.UploadToBuffer(_identityInstancesBuffer, identityInstances);
+            _instancesSRV = _device.CreateSRV(_identityInstancesBuffer, RHIFormat.Unknown, true, 0, ClusterCapacity, (uint)instanceStride);
         }
 
         /// <summary>根据屏幕尺寸重建软件光栅化器资源。</summary>
@@ -1318,12 +1395,14 @@ namespace YamaEngine.Rendering
         /// <summary>创建 GPU 管线状态。</summary>
         private void CreatePipelines()
         {
-            // 根签名: [0] CullCB (CBV b2), [1] t0 Clusters, [2] t1 Groups,
-            //         [3] t2 HZB 金字塔, [4] t3 PageTable, [5-8] u0-u3 剔除输出
+            // 根签名: [0] FrameConstants (CBV b0), [1] CullCB (CBV b2),
+            //         [2-7] t0-t5 (簇/顶点/三角形/可见簇/页表/几何堆), [8-11] u0-u3 剔除/光栅化输出
             var rootDesc = new RHIRootSignatureDesc
             {
                 Parameters = new RHIRootParameter[]
                 {
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 0 } },
                     new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
                             Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
@@ -1338,6 +1417,12 @@ namespace YamaEngine.Rendering
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
                                 new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 3 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 4 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 5 } } } },
                     new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
                             DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
                                 new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 0 } } } },
@@ -1403,6 +1488,61 @@ namespace YamaEngine.Rendering
             {
                 Name = "MicroCluster.HZBBuild",
                 CS = ShaderManager.Instance.GetBytecode("Deferred/HZBBuild", "HZBBuildCS", RHIShaderStage.Compute)
+            });
+
+            // 可见性解码管线 (MicroClusterVisibilityBuffer: VisibilityDecodeCS) + 专用根签名
+            var decodeRoot = new RHIRootSignatureDesc
+            {
+                Parameters = new RHIRootParameter[]
+                {
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 2 } },  // b2 VisibilityGenCB
+                    new() { ParameterType = RHIRootParameterType.CBV, ShaderVisibility = RHIShaderVisibility.All,
+                            Descriptor = new RHIRootDescriptor { ShaderRegister = 3 } },  // b3 AttributeDecodeCB
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 0 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 1 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 2 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 3 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 4 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 5 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.SRV, NumDescriptors = 1, BaseShaderRegister = 6 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 0 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 1 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 2 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 3 } } } },
+                    new() { ParameterType = RHIRootParameterType.DescriptorTable, ShaderVisibility = RHIShaderVisibility.All,
+                            DescriptorTable = new RHIRootDescriptorTable { Ranges = new[] {
+                                new RHIRootDescriptorRange { RangeType = RHIDescriptorRangeType.UAV, NumDescriptors = 1, BaseShaderRegister = 4 } } } }
+                },
+                StaticSamplers = new[] { RHISamplerDesc.PointClamp, RHISamplerDesc.LinearWrap }
+            };
+            _decodeRootSignature = _device.CreateRootSignature(decodeRoot, "MicroCluster.DecodeRootSig");
+            _visibilityDecodePipeline = _device.CreateComputePipelineState(new RHIComputePipelineDesc
+            {
+                Name = "MicroCluster.VisibilityDecode",
+                CS = ShaderManager.Instance.GetBytecode("MicroCluster/MicroClusterVisibilityBuffer", "VisibilityDecodeCS", RHIShaderStage.Compute)
             });
         }
 
@@ -1614,7 +1754,23 @@ namespace YamaEngine.Rendering
             _device.UploadToBuffer(_cullResult.VisibleCountBuffer!, new byte[8]);
             _device.UploadToBuffer(_cullResult.IndirectArgsBuffer!, new byte[16]);
 
-            // 准备剔除常量 (cbuffer MicroClusterCullCB : register(b0) → root param 0)
+            // 帧常量 (Common.hlsli FrameConstants b0 — 着色器使用 gScreenParams 等)
+            var fc = new MicroClusterFrameConstants
+            {
+                ViewMatrix = view,
+                ProjMatrix = proj,
+                ViewProjMatrix = view * proj,
+                InvViewProjMatrix = Matrix4x4.Invert(view * proj, out var inv) ? inv : Matrix4x4.Identity,
+                CameraPos = new Vector4(cameraPos, 0.1f),
+                CameraForward = new Vector4(-view.M21, -view.M22, -view.M23, 1000f),
+                CameraParams = new Vector4(1.0472f, (float)width / Math.Max(1, height), 0.1f, 1000f),
+                ScreenParams = new Vector4(width, height, 1.0f / Math.Max(1, width), 1.0f / Math.Max(1, height)),
+                FrameCount = (uint)Environment.TickCount
+            };
+            _frameCBUpload ??= _device.CreateUploadBuffer(656, "MicroCluster.FrameCB");
+            _device.UploadToBuffer(_frameCBUpload, MemoryMarshal.CreateReadOnlySpan(ref fc, 1));
+
+            // 准备剔除常量 (cbuffer MicroClusterCullCB : register(b2) → root param 1)
             var cb = new MicroClusterCullCB
             {
                 ViewMatrix = view,
@@ -1640,18 +1796,19 @@ namespace YamaEngine.Rendering
             if (_cullResult.VisibleCountBuffer != null)
                 cmdList.TransitionTo(_cullResult.VisibleCountBuffer, RHIResourceState.UnorderedAccess);
 
-            // 绑定: b0 剔除常量 + t0 簇 + t1 组 + t2 HZB 金字塔 + t3 页表(中性) + u0-u3 输出
-            cmdList.SetComputeRootConstantBufferView(0, _cullCBUpload!);
+            // 绑定: b0 帧常量 + b2 剔除常量 + t0 簇 + t1 组 + t2 HZB 金字塔 + t3 页表 + u0-u3 输出
+            cmdList.SetComputeRootConstantBufferView(0, _frameCBUpload!);
+            cmdList.SetComputeRootConstantBufferView(1, _cullCBUpload!);
             if (_mergedClusterSRV.IsValid)
-                cmdList.SetComputeRootDescriptorTable(1, _mergedClusterSRV);
+                cmdList.SetComputeRootDescriptorTable(2, _mergedClusterSRV);
             if (_mergedGroupSRV.IsValid)
-                cmdList.SetComputeRootDescriptorTable(2, _mergedGroupSRV);
-            cmdList.SetComputeRootDescriptorTable(3, _hzbFullSRV);
-            cmdList.SetComputeRootDescriptorTable(4, _pageTableSRV);
-            cmdList.SetComputeRootDescriptorTable(5, _visibleClustersUAV);
-            cmdList.SetComputeRootDescriptorTable(6, _indirectArgsUAV);
-            cmdList.SetComputeRootDescriptorTable(7, _softwareRasterUAV);
-            cmdList.SetComputeRootDescriptorTable(8, _visibleCountUAV);
+                cmdList.SetComputeRootDescriptorTable(3, _mergedGroupSRV);
+            cmdList.SetComputeRootDescriptorTable(4, _hzbFullSRV);
+            cmdList.SetComputeRootDescriptorTable(5, _pageTableSRV);
+            cmdList.SetComputeRootDescriptorTable(6, _visibleClustersUAV);
+            cmdList.SetComputeRootDescriptorTable(7, _indirectArgsUAV);
+            cmdList.SetComputeRootDescriptorTable(8, _softwareRasterUAV);
+            cmdList.SetComputeRootDescriptorTable(9, _visibleCountUAV);
 
             // 分派剔除计算 (每簇一个线程, 64 线程/组)
             int totalClusters = (int)cb.TotalClusters;
@@ -1674,12 +1831,24 @@ namespace YamaEngine.Rendering
         {
             if (_visibilityBuffer.VisibilityTexture == null) return;
 
+            // 可见性/深度 UAV (尺寸变化时重建)
+            if (_visUavWidth != _visibilityBuffer.Width || _visUavHeight != _visibilityBuffer.Height
+                || !_visibilityTextureUAV.IsValid)
+            {
+                _visibilityTextureUAV = _device.CreateUAV(_visibilityBuffer.VisibilityTexture);
+                _depthTextureUAV = _device.CreateUAV(_visibilityBuffer.DepthTexture!);
+                _visUavWidth = _visibilityBuffer.Width;
+                _visUavHeight = _visibilityBuffer.Height;
+            }
+
             // --- 硬件光栅化路径 (Mesh Shader, 大三角形) ---
             // 混合策略: 簇投影尺寸 >= 阈值时使用硬件光栅化
             if (_meshShaderPipeline != null && _rootSignature != null && _cullResult.IndirectArgsBuffer != null)
             {
-                cmdList.SetPipelineState(_meshShaderPipeline);
                 cmdList.SetGraphicsRootSignature(_rootSignature);
+                cmdList.SetPipelineState(_meshShaderPipeline);
+                cmdList.SetComputeRootConstantBufferView(0, _frameCBUpload!);
+                cmdList.SetComputeRootConstantBufferView(1, _cullCBUpload!);
 
                 var dsv = _device.CreateDSV(_visibilityBuffer.DepthTexture!);
                 var rtv = _device.CreateRTV(_visibilityBuffer.VisibilityTexture);
@@ -1694,49 +1863,172 @@ namespace YamaEngine.Rendering
             }
 
             // --- 软件光栅化路径 (Compute Shader, 子像素三角形) ---
-            // 混合策略: 簇投影尺寸 < 阈值时使用软件光栅化
-            // 三阶段: Bin 分配 -> Tile 光栅化 -> (属性解码在后续 Pass)
-            if (EnableSoftwareRaster && _softwareRasterizer != null && _softwareRasterizer.IsInitialized &&
+            // SoftwareRasterCS: 每线程组处理一个软件光栅簇, 逐三角形屏幕空间光栅化
+            if (EnableSoftwareRaster && _softwareRasterPipeline != null && _rootSignature != null &&
                 _cullResult.SoftwareRasterClusterBuffer != null)
             {
-                var swCB = new SoftwareRasterCB
+                cmdList.SetComputeRootSignature(_rootSignature);
+                cmdList.SetPipelineState(_softwareRasterPipeline);
+
+                // 绑定: b0 帧常量 + b2 光栅常量 (与剔除 CB 同布局) + t0-t5 场景数据 + u0/u1 输出
+                cmdList.SetComputeRootConstantBufferView(0, _frameCBUpload!);
+                cmdList.SetComputeRootConstantBufferView(1, _cullCBUpload!);
+                if (_mergedClusterSRV.IsValid)
+                    cmdList.SetComputeRootDescriptorTable(2, _mergedClusterSRV);
+                var firstMesh = Meshes.Values.FirstOrDefault(m => m.VertexBuffer != null);
+                if (firstMesh?.VertexBuffer != null && firstMesh.TriangleBuffer != null)
                 {
-                    ViewProjMatrix = viewProj,
-                    InvResolution = new Vector2(1f / _visibilityBuffer.Width, 1f / _visibilityBuffer.Height),
-                    VisibleClusterCount = (uint)Math.Max(1, _cullResult.LastSoftwareRasterClusterCount),
-                    TileCountX = (uint)((_visibilityBuffer.Width + SoftwareRasterConstants.TileSize - 1) / SoftwareRasterConstants.TileSize),
-                    TileCountY = (uint)((_visibilityBuffer.Height + SoftwareRasterConstants.TileSize - 1) / SoftwareRasterConstants.TileSize),
-                    FrameIndex = (uint)Environment.TickCount
-                };
+                    cmdList.SetComputeRootDescriptorTable(3, _device.CreateSRV(firstMesh.VertexBuffer,
+                        RHIFormat.Unknown, true, 0, (uint)(firstMesh.Clusterization!.Vertices.Count),
+                        (uint)Marshal.SizeOf<MicroClusterVertex>()));
+                    cmdList.SetComputeRootDescriptorTable(4, _device.CreateSRV(firstMesh.TriangleBuffer,
+                        RHIFormat.Unknown, true, 0, (uint)(firstMesh.Clusterization.Triangles.Count),
+                        (uint)Marshal.SizeOf<MicroClusterTriangle>()));
+                }
+                if (_visibleClustersSRV.IsValid)
+                    cmdList.SetComputeRootDescriptorTable(5, _visibleClustersSRV);
+                cmdList.SetComputeRootDescriptorTable(6, _pageTableSRV);
+                if (_geometryHeapSRV.IsValid)
+                    cmdList.SetComputeRootDescriptorTable(7, _geometryHeapSRV);
+                cmdList.SetComputeRootDescriptorTable(8, _visibilityTextureUAV);
+                cmdList.SetComputeRootDescriptorTable(9, _depthTextureUAV);
 
-                // 阶段 1: Bin 分配 (三角形按 16x16 tile 分配到 bin)
-                _softwareRasterizer.BinAssignPass(cmdList, _cullResult.SoftwareRasterClusterBuffer, swCB);
-
-                // 阶段 2: Tile 光栅化 (HiZ 预测试 + 原子可见性缓冲写入)
-                _softwareRasterizer.RasterizePass(cmdList, _visibilityBuffer.VisibilityTexture,
-                    _visibilityBuffer.DepthTexture!, null);
+                // 按容量 over-dispatch (着色器内有 gVisibleCount[1] 越界保护)
+                int totalClusters = (int)GetTotalClusterCount();
+                cmdList.Dispatch(Math.Max(1, totalClusters), 1, 1);
             }
         }
 
         /// <summary>
-        /// 可见性缓冲解码 Pass: 从可见性缓冲读取每像素命中的三角形,
-        /// 插值 Position/Normal/UV/Tangent, 输出 GeometryBuffer。
+        /// 可见性缓冲解码 Pass (VisibilityDecodeCS): 从可见性缓冲读取每像素命中的三角形,
+        /// 经实例变换插值 Position/Normal, 输出 GeometryBuffer (Albedo/Normal/Emissive)。
         /// 几何与材质完全解耦: 此 Pass 仅输出几何属性, 材质 Pass 后续执行。
         /// </summary>
-        public void DecodeVisibility(RHICommandList cmdList, RHITexture[] geometrybufferTargets, in Matrix4x4 invViewProj, Vector3 cameraPos)
+        /// <param name="cmdList">命令列表。</param>
+        /// <param name="albedoTarget">GeometryBuffer RT0 (Albedo) — u2。</param>
+        /// <param name="normalTarget">GeometryBuffer RT1 (Normal) — u3。</param>
+        /// <param name="emissiveTarget">GeometryBuffer RT2 (Emissive) — u4；传 null 时使用内部临时纹理。</param>
+        /// <param name="invViewProj">逆视图投影矩阵。</param>
+        /// <param name="cameraPos">相机位置。</param>
+        public void DecodeVisibility(RHICommandList cmdList, RHITexture albedoTarget, RHITexture normalTarget,
+            RHITexture? emissiveTarget, in Matrix4x4 invViewProj, Vector3 cameraPos)
         {
-            if (_softwareRasterizer == null || _visibilityBuffer.VisibilityTexture == null) return;
+            if (_visibilityDecodePipeline == null || _decodeRootSignature == null ||
+                _visibilityBuffer.VisibilityTexture == null || _visibilityBuffer.DepthTexture == null)
+                return;
 
-            var cb = new AttributeDecodeCB
+            int w = _visibilityBuffer.Width;
+            int h = _visibilityBuffer.Height;
+
+            if (emissiveTarget == null)
+            {
+                // 内部自发光目标 (当前管线无外部 Emissive 缓冲时兜底)
+                if (_emissiveTarget == null || _decodeWidth != w || _decodeHeight != h)
+                {
+                    _emissiveTarget?.Dispose();
+                    _emissiveTarget = _device.CreateTexture(new RHITextureDesc
+                    {
+                        Dimension = RHIResourceDimension.Texture2D,
+                        Format = RHIFormat.R16G16B16A16_Float,
+                        Width = w, Height = h, DepthOrArraySize = 1,
+                        MipLevels = 1, SampleCount = 1,
+                        Flags = RHITextureFlags.ShaderResource | RHITextureFlags.UnorderedAccess
+                    }, "MicroCluster.EmissiveInternal");
+                }
+                emissiveTarget = _emissiveTarget;
+            }
+
+            // 描述符惰性创建 (尺寸变化时重建)
+            if (_decodeWidth != w || _decodeHeight != h || !_visibilitySRV.IsValid)
+            {
+                _visibilitySRV = _device.CreateSRV(_visibilityBuffer.VisibilityTexture, new RHISRVDesc
+                {
+                    Format = RHIFormat.R32G32_UInt,
+                    Dimension = RHIResourceDimension.Texture2D,
+                    MostDetailedMip = 0,
+                    MipLevels = 1
+                });
+                _visDepthSRV = _device.CreateSRV(_visibilityBuffer.DepthTexture, new RHISRVDesc
+                {
+                    Format = RHIFormat.R32_Float,
+                    Dimension = RHIResourceDimension.Texture2D,
+                    MostDetailedMip = 0,
+                    MipLevels = 1
+                });
+                _visibilityUAVDec = _device.CreateUAV(_visibilityBuffer.VisibilityTexture);
+                _depthUAVDec = _device.CreateUAV(_visibilityBuffer.DepthTexture);
+                _albedoUAV = _device.CreateUAV(albedoTarget);
+                _normalUAV = _device.CreateUAV(normalTarget);
+                _emissiveUAV = _device.CreateUAV(emissiveTarget);
+                _decodeWidth = w;
+                _decodeHeight = h;
+            }
+
+            // 常量缓冲 (b2 VisibilityGenCB / b3 AttributeDecodeCB)
+            _decodeCBUploadGen ??= _device.CreateUploadBuffer(128, "MicroCluster.DecodeCBGen");
+            _decodeCBUploadDecode ??= _device.CreateUploadBuffer(128, "MicroCluster.DecodeCBDecode");
+            var genCB = new VisibilityGenCB
+            {
+                ViewProjMatrix = invViewProj,
+                InvResolution = new Vector2(1f / Math.Max(1, w), 1f / Math.Max(1, h)),
+                VisibleClusterCount = (uint)Math.Max(1, _cullResult.LastSoftwareRasterClusterCount),
+                FrameIndex = (uint)Environment.TickCount
+            };
+            _device.UploadToBuffer(_decodeCBUploadGen, MemoryMarshal.CreateReadOnlySpan(ref genCB, 1));
+            var decodeCB = new AttributeDecodeCB
             {
                 InvViewProjMatrix = invViewProj,
                 CameraPos = cameraPos,
-                InvResolution = new Vector2(1f / _visibilityBuffer.Width, 1f / _visibilityBuffer.Height),
+                InvResolution = new Vector2(1f / Math.Max(1, w), 1f / Math.Max(1, h)),
                 MaterialCount = 256
             };
+            _device.UploadToBuffer(_decodeCBUploadDecode, MemoryMarshal.CreateReadOnlySpan(ref decodeCB, 1));
 
-            // 阶段 3: 属性解码 (从可见性缓冲插值顶点属性 -> GeometryBuffer)
-            _softwareRasterizer.DecodePass(cmdList, _visibilityBuffer.VisibilityTexture, geometrybufferTargets, cb);
+            cmdList.SetComputeRootSignature(_decodeRootSignature);
+            cmdList.SetPipelineState(_visibilityDecodePipeline);
+
+            // 状态转换: 可见性/深度 → 可采样; 目标 → UAV
+            cmdList.TransitionTo(_visibilityBuffer.VisibilityTexture, RHIResourceState.NonPixelShaderResource);
+            cmdList.TransitionTo(_visibilityBuffer.DepthTexture, RHIResourceState.NonPixelShaderResource);
+            cmdList.TransitionTo(albedoTarget, RHIResourceState.UnorderedAccess);
+            cmdList.TransitionTo(normalTarget, RHIResourceState.UnorderedAccess);
+            cmdList.TransitionTo(emissiveTarget, RHIResourceState.UnorderedAccess);
+
+            // 绑定: b2/b3 常量 + t0-t6 场景数据 + u0-u4 输出
+            cmdList.SetComputeRootConstantBufferView(0, _decodeCBUploadGen!);        // b2
+            cmdList.SetComputeRootConstantBufferView(1, _decodeCBUploadDecode!);     // b3
+            if (_mergedClusterSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(2, _mergedClusterSRV);
+            var firstMesh = Meshes.Values.FirstOrDefault(m => m.VertexBuffer != null);
+            if (firstMesh?.VertexBuffer != null && firstMesh.TriangleBuffer != null)
+            {
+                cmdList.SetComputeRootDescriptorTable(3, _device.CreateSRV(firstMesh.VertexBuffer,
+                    RHIFormat.Unknown, true, 0, (uint)(firstMesh.Clusterization!.Vertices.Count),
+                    (uint)Marshal.SizeOf<MicroClusterVertex>()));
+                cmdList.SetComputeRootDescriptorTable(4, _device.CreateSRV(firstMesh.TriangleBuffer,
+                    RHIFormat.Unknown, true, 0, (uint)(firstMesh.Clusterization.Triangles.Count),
+                    (uint)Marshal.SizeOf<MicroClusterTriangle>()));
+            }
+            if (_visibleClustersSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(5, _visibleClustersSRV);
+            if (_instancesSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(6, _instancesSRV);
+            if (_visibilitySRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(7, _visibilitySRV);
+            if (_visDepthSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(8, _visDepthSRV);
+            if (_visibilityUAVDec.IsValid)
+                cmdList.SetComputeRootDescriptorTable(9, _visibilityUAVDec);
+            if (_depthUAVDec.IsValid)
+                cmdList.SetComputeRootDescriptorTable(10, _depthUAVDec);
+            if (_albedoUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(11, _albedoUAV);
+            if (_normalUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(12, _normalUAV);
+            if (_emissiveUAV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(13, _emissiveUAV);
+
+            cmdList.Dispatch(Math.Max(1, (w + 7) / 8), Math.Max(1, (h + 7) / 8), 1);
         }
 
         /// <summary>把结构体列表序列化为字节数组 (Upload 堆直写用; 元素为 Sequential 布局类)。</summary>
@@ -1798,6 +2090,12 @@ namespace YamaEngine.Rendering
             _hzbBuildPipeline?.Dispose();
             _hzbRootSignature?.Dispose();
             _hzbConstantsCB?.Dispose();
+            _visibilityDecodePipeline?.Dispose();
+            _decodeRootSignature?.Dispose();
+            _decodeCBUploadGen?.Dispose();
+            _decodeCBUploadDecode?.Dispose();
+            _identityInstancesBuffer?.Dispose();
+            _emissiveTarget?.Dispose();
             foreach (var mesh in Meshes.Values) mesh.Dispose();
             GC.SuppressFinalize(this);
         }

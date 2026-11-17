@@ -258,11 +258,12 @@ VisibilityPSOutput MicroClusterVisibilityPS(
 
 // 每个线程组处理一个软件光栅簇, 每线程光栅化一个三角形
 [numthreads(32, 1, 1)]
-void SoftwareRasterCS(uint3 dispatchID : SV_DispatchThreadID)
+void SoftwareRasterCS(uint3 dispatchID : SV_DispatchThreadID, uint groupThreadID : SV_GroupIndex)
 {
     uint clusterSlot = dispatchID.x;
+    // 越界保护: 允许按容量 over-dispatch, 超出实际软件光栅簇数的线程组直接退出
+    if (clusterSlot >= gVisibleCount[1]) return;
     // 读取软件光栅簇列表 (来自剔除 Pass)
-    // 此处复用 gVisibleClusters, 实际绑定软件光栅簇缓冲
     VisibleCluster visCluster = gVisibleClusters[clusterSlot];
     uint clusterIdx = visCluster.ClusterIndex;
     MicroClusterCluster cluster = gClusters[clusterIdx];
@@ -277,7 +278,7 @@ void SoftwareRasterCS(uint3 dispatchID : SV_DispatchThreadID)
     [loop]
     for (uint t = 0; t < triCount; t += 32)
     {
-        uint triLocal = t + (dispatchID.y * 1) + (clusterSlot & 0); // 简化: 按线程索引
+        uint triLocal = t + groupThreadID;   // 每线程处理一个三角形 (原实现 32 线程重复同一三角形)
         uint triIdx = triLocal;
         if (triIdx >= triCount) continue;
 
