@@ -5,13 +5,13 @@
 //       CascadeShadowMapRenderer、ScreenSpaceAmbientOcclusion、LightResolveProcessor）
 //       组织为一条完整、真实、CPU 级可验证的 Deferred Shading 管线。
 //
-// 为什么是 CPU 参考实现？
-//   - GPU 端到端需要真实 Vulkan 窗口/设备，本环境无头无法可靠验证；
+// 为什么保留 CPU 参考实现？
 //   - 这些算法（GBuffer 打包、CSM 级联分割、SSAO 核、Cook-Torrance BRDF）
-//     本身是确定性纯函数，CPU 参考实现即可严格验证数值正确性；
-//   - RenderGraph 负责组织 pass 图（资源生命周期/依赖/屏障），本类负责
-//     在 CPU 侧对每个 pass 给出可验证的参考求值，二者共同构成 UE4.7 级
-//     Deferred 管线框架，后续可逐步替换为真实 GPU shader pass。
+//     是确定性纯函数，CPU 参考实现可严格验证数值正确性；
+//   - GPU 执行已由 DeferredGpuRenderer 落地：它消费 GpuDeferredPipeline.BuildFramePlan
+//     的帧计划，分配真实渲染目标、经 GpuShaderCompiler 将 GLSL 编译为 SPIR-V、
+//     创建图形管线并依序执行（GBuffer MRT8 网格绘制 + 全屏光照/后处理链）；
+//   - 本类继续作为数值正确性的可验证参考，与 GPU 路径互为对照。
 //
 // 阶段（与 UE4.7 Deferred 一致）：
 //   Shadow(CSM) → GeometryBuffer(GBuffer 打包) → SSAO → Lighting(延迟光照) → PostProcess

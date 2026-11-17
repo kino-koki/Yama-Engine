@@ -167,6 +167,8 @@ public sealed class RenderGapReport
             ("PathTracerBVHBuilder", true),               // CPU LBVH 构建 + 上传 + PathTraceCS 软件遍历
             ("PathTracerAccelerationStructure", true),    // 三缓冲 (节点/顶点/索引) + SRV
             ("PostProcessingStack", true),                // 全部 8 个后处理 pass 资源绑定
+            // 2026-11-17 真实化成果: 延迟渲染 GPU 执行器 (帧计划→RHI)
+            ("DeferredGpuRenderer", true),                // 帧计划落地: 目标分配/GLSL→SPIR-V/管线/逐 pass 执行
         };
         // 反射交叉校验：确认类型确实存在于程序集
         var renderingAssembly = typeof(RenderGapReport).Assembly;
