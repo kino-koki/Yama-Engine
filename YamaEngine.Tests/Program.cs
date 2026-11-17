@@ -1723,6 +1723,19 @@ try
     RunPTBVH("AccelMergeMeshesRemapsIndices", () => PathTracerBVHTests.TestAccelMergeMeshesRemapsIndices());
     Console.WriteLine($"  == PathTracerBVH: {ptbvhPass}/{ptbvhTotal} passed ==");
 
+    // ── 延迟渲染 GPU 执行器深度验证 ──
+    int dgpuPass = 0, dgpuTotal = 0;
+    void RunDGpu(string name, Action test)
+    {
+        dgpuTotal++;
+        try { test(); dgpuPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunDGpu("DeferredUboLayouts", () => DeferredGpuRendererTests.TestDeferredUboLayouts());
+    RunDGpu("DeferredGpuPlanCompleteness", () => DeferredGpuRendererTests.TestDeferredGpuPlanCompleteness());
+    RunDGpu("DeferredGpuShadersCompile", () => DeferredGpuRendererTests.TestDeferredGpuShadersCompile());
+    Console.WriteLine($"  == DeferredGpu: {dgpuPass}/{dgpuTotal} passed ==");
+
     // ── UE5.8 级引擎核心基础设施深度验证 ──
     int corePass = 0, coreTotal = 0;
     void RunCore(string name, Action test)
