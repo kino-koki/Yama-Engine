@@ -208,6 +208,14 @@ namespace YamaEngine.Rendering
         private RHIDescriptorHandle _clusterGridUAV;
         private RHIDescriptorHandle _clusterListUAV;
         private RHIDescriptorHandle _sceneDepthSRV;
+
+        // MicroCluster 可见性深度 = 真实场景深度 (Mesh Shader PS SV_Depth / 软光栅原子最小深度写入)
+        private RHITexture? _microClusterDepthTexture;
+        private RHIDescriptorHandle _microClusterDepthSRV;
+
+        /// <summary>当前有效场景深度 (MicroCluster 启用时为可见性深度，否则为独立深度缓冲)。</summary>
+        private RHITexture? ActiveSceneDepth => _microClusterDepthTexture ?? _sceneDepth;
+        private RHIDescriptorHandle ActiveSceneDepthSRV => _microClusterDepthSRV.IsValid ? _microClusterDepthSRV : _sceneDepthSRV;
         private RHIDescriptorHandle _normalsSRV;
         private RHIDescriptorHandle _albedoSRV;
         private RHIDescriptorHandle _sceneColorUAV;
@@ -501,7 +509,7 @@ namespace YamaEngine.Rendering
             {
                 _pathTracer.Render(cmdList, view, proj, cameraPos, _outputWidth, _outputHeight, deltaTime);
                 // 后处理路径追踪结果
-                _postProcess.Process(cmdList, _pathTracer.Result!, _sceneDepth!, _motionVectors!,
+                _postProcess.Process(cmdList, _pathTracer.Result!, ActiveSceneDepth!, _motionVectors!,
                     _finalOutput!, _prevViewProj, Matrix4x4.Identity, deltaTime);
                 result.FinalColor = _finalOutput;
                 result.Stats.FrameTimeMilliseconds = deltaTime;
@@ -537,6 +545,15 @@ namespace YamaEngine.Rendering
                     _geometrybufferAlbedo!, _geometrybufferNormals!, null,
                     Matrix4x4.Invert(view * jitteredProj, out var invVP) ? invVP : Matrix4x4.Identity,
                     cameraPos);
+                // 可见性深度 = 真实场景深度 (供着色/TSR/后处理使用)
+                _microClusterDepthTexture = _microcluster.VisibilityBuffer.DepthTexture;
+                _microClusterDepthSRV = _device.CreateSRV(_microClusterDepthTexture, new RHISRVDesc
+                {
+                    Format = RHIFormat.R32_Float,
+                    Dimension = RHIResourceDimension.Texture2D,
+                    MostDetailedMip = 0,
+                    MipLevels = 1
+                });
             }
 
             // Pass 3: 运动矢量计算 (TSR)
@@ -567,12 +584,12 @@ namespace YamaEngine.Rendering
             RHITexture upscaled = _sceneColor!;
             if (_settings.EnableTSR && _tsr != null)
             {
-                _tsr.Upscale(cmdList, _sceneColor!, _sceneDepth!, _finalOutput!, view, jitteredProj, deltaTime);
+                _tsr.Upscale(cmdList, _sceneColor!, ActiveSceneDepth!, _finalOutput!, view, jitteredProj, deltaTime);
                 upscaled = _finalOutput!;
             }
 
             // Pass 9: 后处理栈
-            _postProcess.Process(cmdList, upscaled, _sceneDepth!, _motionVectors!,
+            _postProcess.Process(cmdList, upscaled, ActiveSceneDepth!, _motionVectors!,
                 _finalOutput!, _prevViewProj, Matrix4x4.Identity, deltaTime);
 
             // 自适应分辨率更新
@@ -755,8 +772,8 @@ namespace YamaEngine.Rendering
                 cmdList.SetComputeRootDescriptorTable(6, _clusterListSRV);
             if (_lightSRV.IsValid)
                 cmdList.SetComputeRootDescriptorTable(7, _lightSRV);
-            if (_sceneDepthSRV.IsValid)
-                cmdList.SetComputeRootDescriptorTable(8, _sceneDepthSRV);
+            if (ActiveSceneDepthSRV.IsValid)
+                cmdList.SetComputeRootDescriptorTable(8, ActiveSceneDepthSRV);
             if (_normalsSRV.IsValid)
                 cmdList.SetComputeRootDescriptorTable(9, _normalsSRV);
             if (_albedoSRV.IsValid)
