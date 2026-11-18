@@ -862,6 +862,7 @@ namespace YamaEngine.Audio
                     {
                         int x = f.Postlist[j];
                         if (x > lx && x < currentx) { lo = j; lx = x; }
+                        if (x < hx && x > currentx) { hi = j; hx = x; }
                     }
                     f.Loneighbor[i] = lo;
                     f.Hineighbor[i] = hi;
@@ -1981,6 +1982,12 @@ namespace YamaEngine.Audio
             for (int i = 0; i < channels; i++)
             {
                 var mdct = _packetW != 0 ? _mdct1 : _mdct0;
+                if (_packetSequence == 5 && i == 0)
+                {
+                    var sb = new System.Text.StringBuilder("SPEC5 ");
+                    for (int j = 0; j < n / 2; j++) sb.Append(_packetPcm[i][j].ToString("G6")).Append(',');
+                    System.IO.File.WriteAllText("C:/Users/李恩/AppData/Local/Temp/audioref/spec5.txt", sb.ToString());
+                }
                 MdctBackward(mdct, _packetPcm[i], 0, _packetPcm[i], 0);
             }
         }
