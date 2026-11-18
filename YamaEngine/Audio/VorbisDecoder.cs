@@ -987,8 +987,7 @@ namespace YamaEngine.Audio
             }
             else
             {
-                int dbgFlag = (int)br.ReadBit();
-                if (dbgFlag != 1) return null;
+                if (br.ReadBit() != 1) return null;
 
                 var fitValue = new int[f.Posts];
                 int bits = ILog((uint)(f.QuantQ - 1));
@@ -1753,13 +1752,21 @@ namespace YamaEngine.Audio
             int half = n >> 1;
             double twoOverN = 4.0 / n;
             double piOverN = Math.PI / n;
+            // 就地变换 (input 与 output 同一缓冲) 时先拷贝输入,
+            // 否则前序输出会覆盖尚未读取的频谱 bin, 导致幅度坍缩。
+            float[] src = input;
+            if (ReferenceEquals(input, output) && inOff == outOff)
+            {
+                src = new float[half];
+                Array.Copy(input, inOff, src, 0, half);
+            }
             for (int i = 0; i < n; i++)
             {
                 double sum = 0;
                 // 三角恒等: cos(π/N(2k+1)(2i+1+N/2)) 展开为 cos·cos 与 sin·sin 项,
                 // 可用预计算旋转因子加速; 此处直接计算保证数值正确。
                 for (int k = 0; k < half; k++)
-                    sum += input[inOff + k] * Math.Cos(piOverN * (i + 0.5 + half * 0.5) * (2 * k + 1));
+                    sum += src[k] * Math.Cos(piOverN * (i + 0.5 + half * 0.5) * (2 * k + 1));
                 output[outOff + i] = (float)(sum * twoOverN);
             }
         }
