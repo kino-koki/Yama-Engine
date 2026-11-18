@@ -2364,6 +2364,9 @@ try
     AudioBackendTests.TestSoftwareBackendClearAndShutdown();
     AudioBackendTests.TestOpenALBackendNoThrowWhenNativeMissing();
     AudioBackendTests.TestEngineSoftwareBackendIntegration();
+    // ── 音频解码器 (FLAC 位精确 + MD5 校验; Vorbis/MP3 移植进行中) ──
+    AudioRealDecoderTests.TestFlacSineBitExact();
+    AudioRealDecoderTests.TestFlacChirpStereoMd5();
     // ── 可视化蓝图运行时执行 (GraphNode.Execute 分发 + 数据流 + 条件/状态机) ──
     VisualBlueprintRuntimeTests.TestBeginPlaySetVariablePrintStringChain();
     VisualBlueprintRuntimeTests.TestSetVariableStoresComputedValue();
