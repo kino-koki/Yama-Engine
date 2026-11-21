@@ -195,6 +195,14 @@ namespace YamaEngine.Vulkan
         public static extern void shaderc_compile_options_set_forced_version_profile(
             IntPtr options, int version, int profile);
 
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void shaderc_compile_options_set_source_language(
+            IntPtr options, int language);
+
+        // source language 枚举
+        public const int SourceLanguageGlsl = 0;
+        public const int SourceLanguageHlsl = 1;
+
         // shader_kind 枚举
         public const int KindVertex = 0;
         public const int KindFragment = 1;
@@ -249,6 +257,7 @@ namespace YamaEngine.Vulkan
     {
         private IntPtr _compiler;
         private IntPtr _options;
+        private IntPtr _optionsHlsl;   // HLSL 源码语言选项 (glslang HLSL 前端)
         private bool _disposed;
 
         public ShadercCompiler(ShaderOptimizationLevel optLevel = ShaderOptimizationLevel.Performance)
@@ -261,12 +270,29 @@ namespace YamaEngine.Vulkan
             ShadercNative.shaderc_compile_options_set_optimization_level(_options, (int)optLevel);
             ShadercNative.shaderc_compile_options_set_target_env(_options, ShadercNative.TargetVulkan, 1);
             ShadercNative.shaderc_compile_options_set_auto_bind_uniforms(_options, true);
+
+            // HLSL 选项 (glslang HLSL 前端; 目标 Vulkan 1.1 以支持 wave/subgroup 内建的 SPIR-V 代码生成)
+            _optionsHlsl = ShadercNative.shaderc_compile_options_initialize();
+            ShadercNative.shaderc_compile_options_set_source_language(_optionsHlsl, ShadercNative.SourceLanguageHlsl);
+            ShadercNative.shaderc_compile_options_set_optimization_level(_optionsHlsl, (int)optLevel);
+            ShadercNative.shaderc_compile_options_set_target_env(_optionsHlsl, ShadercNative.TargetVulkan, 2);
+            ShadercNative.shaderc_compile_options_set_auto_bind_uniforms(_optionsHlsl, true);
         }
 
         /// <summary>编译 GLSL 到 SPIR-V。</summary>
         public ShaderCompileResult Compile(string source, ShaderStageExt stage,
                                            string fileName = "shader.glsl",
                                            string entryPoint = "main")
+            => CompileWith(source, stage, fileName, entryPoint, _options);
+
+        /// <summary>编译 HLSL 到 SPIR-V (glslang HLSL 前端; 不支持 wave intrinsics / mesh shader 等 SM6.6 专有特性)。</summary>
+        public ShaderCompileResult CompileHlsl(string source, ShaderStageExt stage,
+                                               string fileName = "shader.hlsl",
+                                               string entryPoint = "main")
+            => CompileWith(source, stage, fileName, entryPoint, _optionsHlsl);
+
+        private ShaderCompileResult CompileWith(string source, ShaderStageExt stage,
+                                                string fileName, string entryPoint, IntPtr options)
         {
             var sw = Stopwatch.StartNew();
             int kind = StageToKind(stage);
@@ -281,7 +307,7 @@ namespace YamaEngine.Vulkan
             {
                 var result = ShadercNative.shaderc_compile_into_spv(
                     _compiler, pSrc, (UIntPtr)srcBytes.Length,
-                    kind, pName, pEntry, _options);
+                    kind, pName, pEntry, options);
 
                 if (result == IntPtr.Zero)
                 {
@@ -357,6 +383,8 @@ namespace YamaEngine.Vulkan
             if (_disposed) return;
             if (_options != IntPtr.Zero)
                 ShadercNative.shaderc_compile_options_release(_options);
+            if (_optionsHlsl != IntPtr.Zero)
+                ShadercNative.shaderc_compile_options_release(_optionsHlsl);
             if (_compiler != IntPtr.Zero)
                 ShadercNative.shaderc_compiler_release(_compiler);
             _disposed = true;

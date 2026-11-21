@@ -209,6 +209,8 @@ namespace YamaEngine.Shaders
                     "-T", targetProfile,
                     "-E", entryPoint,
                     "-Fo", outFile,
+                    "-spirv", // 输出 SPIR-V (Vulkan 后端消费; DXIL 仅限 D3D12)
+                    "-fspv-target-env=vulkan1.1", // SPIR-V 1.3: 支持 wave/subgroup 内建
                     "-I", _shaderDir,
                 };
 
@@ -294,7 +296,28 @@ namespace YamaEngine.Shaders
             }
             catch { }
 
-            // 2. Windows SDK
+            // 2. 应用目录 / 引擎 third_party 目录 (随引擎分发的 DXC)
+            try
+            {
+                var baseDir = AppContext.BaseDirectory;
+                string[] probes =
+                {
+                    Path.Combine(baseDir, "dxc.exe"),
+                    Path.Combine(baseDir, "third_party", "dxc", "x64", "dxc.exe"),
+                };
+                foreach (var c in probes)
+                    if (File.Exists(c)) return c;
+                var appDir = new DirectoryInfo(baseDir);
+                for (int i = 0; i < 8 && appDir != null; i++)
+                {
+                    var cand = Path.Combine(appDir.FullName, "third_party", "dxc", "x64", "dxc.exe");
+                    if (File.Exists(cand)) return cand;
+                    appDir = appDir.Parent;
+                }
+            }
+            catch { }
+
+            // 3. Windows SDK
             string[] sdkRoots = {
                 $"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\\Windows Kits\\10\\bin",
                 $"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}\\Windows Kits\\10\\bin",

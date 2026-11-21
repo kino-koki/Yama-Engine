@@ -1809,6 +1809,7 @@ namespace YamaEngine.Rendering
             cmdList.SetComputeRootDescriptorTable(7, _indirectArgsUAV);
             cmdList.SetComputeRootDescriptorTable(8, _softwareRasterUAV);
             cmdList.SetComputeRootDescriptorTable(9, _visibleCountUAV);
+            cmdList.SetComputeRootDescriptorTable(12, _visibleCountSRV);   // t6: 原子计数器 (越界保护)
 
             // 分派剔除计算 (每簇一个线程, 64 线程/组)
             int totalClusters = (int)cb.TotalClusters;
@@ -1892,6 +1893,7 @@ namespace YamaEngine.Rendering
                     cmdList.SetComputeRootDescriptorTable(7, _geometryHeapSRV);
                 cmdList.SetComputeRootDescriptorTable(8, _visibilityTextureUAV);
                 cmdList.SetComputeRootDescriptorTable(9, _depthTextureUAV);
+                cmdList.SetComputeRootDescriptorTable(12, _visibleCountSRV);   // t6: 原子计数器 (越界保护)
 
                 // 按容量 over-dispatch (着色器内有 gVisibleCount[1] 越界保护)
                 int totalClusters = (int)GetTotalClusterCount();

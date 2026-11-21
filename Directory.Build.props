@@ -44,4 +44,15 @@
       SYSLIB0014
     </NoWarn>
   </PropertyGroup>
+
+  <!-- 将 DXC 编译器 (dxc.exe/dxcompiler.dll/dxil.dll, 随引擎分发于 third_party/dxc) 拷贝到每个项目的输出目录,
+       供 ShaderManager 在运行时编译 HLSL 着色器 (DxcCompiler 按 DLL/exe 名探测加载)。 -->
+  <Target Name="CopyDxcNativeBinaries" AfterTargets="Build">
+    <ItemGroup>
+      <DxcBin Include="$(MSBuildThisFileDirectory)third_party\dxc\x64\dxc.exe" />
+      <DxcBin Include="$(MSBuildThisFileDirectory)third_party\dxc\x64\dxcompiler.dll" />
+      <DxcBin Include="$(MSBuildThisFileDirectory)third_party\dxc\x64\dxil.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DxcBin)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

@@ -3,6 +3,9 @@ bin/
 obj/
 out/
 build/
+# DXC 运行时编译的着色器磁盘缓存 (ShaderManager/DxcCompiler 生成, 增量编译)
+YamaEngine/Shaders/Compiled/
+*.cso
 # 例外：YamaEngine/Build 是引擎“构建/打包子系统”的源码目录，必须纳入版本控制。
 # 若被上面的通用 build/ 规则忽略，CI 全新检出后该目录缺失，
 # 会导致 YamaEngine.Build 命名空间不存在（CS0234，EngineDiagnostics/RuntimeSceneLoader/EngineBootstrap 等编译失败）。
@@ -51,6 +54,7 @@ third_party/
 third_party/vcpkg/
 # DXC 着色器编译器 (随引擎分发的二进制, HLSL 运行时编译必需 — 例外保留)
 !third_party/dxc/
+# 本地 .NET SDK 缓存 (5738 个文件, 免安装构建用 — 绝不入库)
 dotnet-sdk-cache/
 .dotnet-temp/
 .uploads/
@@ -84,8 +88,6 @@ editor_settings.json
 
 # ── 历史工作文件与缓存 ──
 _dup_backup/
-dotnet-sdk-cache/
-*.log
 all_errors.txt
 build_errors.txt
 build_log.txt

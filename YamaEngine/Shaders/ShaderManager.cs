@@ -53,8 +53,44 @@ namespace YamaEngine.Shaders
     public sealed class ShaderManager
     {
         private static ShaderManager? _instance;
-        /// <summary>全局实例 (需先 Initialize)。</summary>
-        public static ShaderManager Instance => _instance ?? throw new InvalidOperationException("ShaderManager 未初始化。请先调用 Initialize()。");
+        /// <summary>全局实例 (惰性自举: 自动定位着色器目录并初始化)。</summary>
+        public static ShaderManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    var inst = new ShaderManager();
+                    inst.Initialize(FindShaderDirectory());
+                    _instance = inst;
+                }
+                return _instance;
+            }
+        }
+
+        /// <summary>定位着色器根目录 (含 Common.hlsli 的目录)。</summary>
+        private static string FindShaderDirectory()
+        {
+            var candidates = new List<string>();
+            var baseDir = AppContext.BaseDirectory;
+            candidates.Add(Path.Combine(baseDir, "Shaders"));
+            var dir = new DirectoryInfo(baseDir);
+            for (int i = 0; i < 8 && dir != null; i++)
+            {
+                candidates.Add(Path.Combine(dir.FullName, "YamaEngine", "Shaders"));
+                candidates.Add(Path.Combine(dir.FullName, "Shaders"));
+                dir = dir.Parent;
+            }
+            var cwd = Directory.GetCurrentDirectory();
+            candidates.Add(Path.Combine(cwd, "Shaders"));
+            candidates.Add(Path.Combine(cwd, "YamaEngine", "Shaders"));
+            foreach (var c in candidates)
+            {
+                if (File.Exists(Path.Combine(c, "Common.hlsli")))
+                    return c;
+            }
+            return candidates[0];
+        }
 
         private DxcCompiler? _dxc;
         private string _shaderDir = "";

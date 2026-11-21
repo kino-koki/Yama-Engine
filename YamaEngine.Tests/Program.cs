@@ -10,6 +10,7 @@ using YamaEngine.Diagnostics;
 using YamaEngine.Editor;
 using YamaEngine.Gameplay;
 using YamaEngine.GameFramework;
+using YamaEngine.AI;
 using YamaEngine.Input;
 using YamaEngine.Materials;
 using YamaEngine.Modeling;
@@ -356,6 +357,67 @@ try
     RunUnityPhys("UnityPhysLayerCollisionCustom", () => UnityPhysicsDepthTests.TestLayerCollisionMatrixCustom());
     RunUnityPhys("UnityPhysLayerCollisionMask", () => UnityPhysicsDepthTests.TestLayerCollisionMask());
     Console.WriteLine($"  == UnityPhysicsDepth: {uphPass}/{uphTotal} passed ==");
+
+    // ===== Unity5 Lighting 深度块 (LightComponent / LightmapSettings / 枚举) =====
+    int ulPass = 0, ulTotal = 0;
+    void RunUnityLight(string name, Action test)
+    {
+        ulTotal++;
+        try { test(); ulPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityLight("UnityLightTypeValues", () => UnityLightingDepthTests.TestLightTypeValues());
+    RunUnityLight("UnityLightComponentDefaults", () => UnityLightingDepthTests.TestLightComponentDefaults());
+    RunUnityLight("UnitySpotLightCone", () => UnityLightingDepthTests.TestSpotLightCone());
+    RunUnityLight("UnityDirectionalLightNoRange", () => UnityLightingDepthTests.TestDirectionalLightNoRange());
+    RunUnityLight("UnityShadowBiasDefault", () => UnityLightingDepthTests.TestShadowBiasDefault());
+    RunUnityLight("UnityLightmapSettingsDefaults", () => UnityLightingDepthTests.TestLightmapSettingsDefaults());
+    RunUnityLight("UnityLightmapModeValues", () => UnityLightingDepthTests.TestLightmapModeValues());
+    RunUnityLight("UnityAmbientOcclusionMode", () => UnityLightingDepthTests.TestAmbientOcclusionMode());
+    RunUnityLight("UnityLightmapSettingsCustom", () => UnityLightingDepthTests.TestLightmapSettingsCustom());
+    RunUnityLight("UnityBakingLightType", () => UnityLightingDepthTests.TestBakingLightType());
+    Console.WriteLine($"  == UnityLightingDepth: {ulPass}/{ulTotal} passed ==");
+
+    // ===== Unity5 ReflectionProbe 深度块 (Mode / BlendMode / 字段默认 / 优先级) =====
+    int urpPass = 0, urpTotal = 0;
+    void RunUnityRP(string name, Action test)
+    {
+        urpTotal++;
+        try { test(); urpPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityRP("UnityRPMode", () => UnityReflectionProbeDepthTests.TestReflectionProbeMode());
+    RunUnityRP("UnityRPBlendMode", () => UnityReflectionProbeDepthTests.TestProbeBlendMode());
+    RunUnityRP("UnityRPDefaults", () => UnityReflectionProbeDepthTests.TestReflectionProbeDefaults());
+    RunUnityRP("UnityRPParallax", () => UnityReflectionProbeDepthTests.TestReflectionProbeParallax());
+    RunUnityRP("UnityRPRealtime", () => UnityReflectionProbeDepthTests.TestReflectionProbeRealtime());
+    RunUnityRP("UnityRPInterval", () => UnityReflectionProbeDepthTests.TestReflectionProbeInterval());
+    RunUnityRP("UnityRPPriority", () => UnityReflectionProbeDepthTests.TestReflectionProbePriority());
+    Console.WriteLine($"  == UnityReflectionProbeDepth: {urpPass}/{urpTotal} passed ==");
+
+    // ===== Unity5 AssetBundle 深度块 (AssetRef / AssetBundle / AssetPackage) =====
+    int uabPass = 0, uabTotal = 0;
+    void RunUnityAB(string name, Action test)
+    {
+        uabTotal++;
+        try { test(); uabPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityAB("UnityABAssetType", () => UnityAssetBundleDepthTests.TestAssetTypeValues());
+    RunUnityAB("UnityABAssetRefLoadState", () => UnityAssetBundleDepthTests.TestAssetRefLoadState());
+    RunUnityAB("UnityABAssetRefSourceBundle", () => UnityAssetBundleDepthTests.TestAssetRefSourceBundle());
+    RunUnityAB("UnityABRegisterAndCount", () => UnityAssetBundleDepthTests.TestBundleRegisterAndCount());
+    RunUnityAB("UnityABGetByName", () => UnityAssetBundleDepthTests.TestBundleGetByName());
+    RunUnityAB("UnityABRegisterOverwrite", () => UnityAssetBundleDepthTests.TestBundleRegisterOverwrite());
+    RunUnityAB("UnityABLoadAllByType", () => UnityAssetBundleDepthTests.TestBundleLoadAllByType());
+    RunUnityAB("UnityABLoadTyped", () => UnityAssetBundleDepthTests.TestBundleLoadTyped());
+    RunUnityAB("UnityABLoadOrCreate", () => UnityAssetBundleDepthTests.TestBundleLoadOrCreate());
+    RunUnityAB("UnityABClear", () => UnityAssetBundleDepthTests.TestBundleClear());
+    RunUnityAB("UnityABPackageAddBundle", () => UnityAssetBundleDepthTests.TestPackageAddBundle());
+    RunUnityAB("UnityABPackageResolveByName", () => UnityAssetBundleDepthTests.TestPackageResolveByBundleName());
+    RunUnityAB("UnityABPackageResolveGlobal", () => UnityAssetBundleDepthTests.TestPackageResolveGlobal());
+    RunUnityAB("UnityABPackageResolveAll", () => UnityAssetBundleDepthTests.TestPackageResolveAll());
+    Console.WriteLine($"  == UnityAssetBundleDepth: {uabPass}/{uabTotal} passed ==");
 
     // ===== Terrain Depth (Unity5 heightmap / splatmap / grass / trees / water / collider) =====
     int terPass = 0, terTotal = 0;
@@ -988,6 +1050,48 @@ try
     RunCamProj("ProjectionTopFlipped", () => CelCameraProjectionDepthTests.TestProjectionTopFlipped());
     RunCamProj("ProjectionZoomNarrows", () => CelCameraProjectionDepthTests.TestProjectionZoomNarrows());
     Console.WriteLine($"  == CelCameraProjectionDepth: {camProjPass}/{camProjTotal} passed ==");
+
+    int zoneGraphPass = 0, zoneGraphTotal = 0;
+    void RunZoneGraph(string name, Action test)
+    {
+        zoneGraphTotal++;
+        try { test(); zoneGraphPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name} — {ex.Message}"); }
+    }
+    RunZoneGraph("LaneDefaults", () => CelZoneGraphDepthTests.TestLaneDefaults());
+    RunZoneGraph("LaneLength", () => CelZoneGraphDepthTests.TestLaneLength());
+    RunZoneGraph("LaneRightVec", () => CelZoneGraphDepthTests.TestLaneRightVec());
+    RunZoneGraph("LaneGetPositionAtT", () => CelZoneGraphDepthTests.TestLaneGetPositionAtT());
+    RunZoneGraph("LaneGetPositionAtDistancePolyline", () => CelZoneGraphDepthTests.TestLaneGetPositionAtDistancePolyline());
+    RunZoneGraph("LaneGetClosestPoint", () => CelZoneGraphDepthTests.TestLaneGetClosestPoint());
+    RunZoneGraph("LaneGetTAtClosestPoint", () => CelZoneGraphDepthTests.TestLaneGetTAtClosestPoint());
+    RunZoneGraph("LaneContainsPointXZ", () => CelZoneGraphDepthTests.TestLaneContainsPointXZ());
+    RunZoneGraph("LaneTagQueries", () => CelZoneGraphDepthTests.TestLaneTagQueries());
+    RunZoneGraph("ShapeBoundsAndCenter", () => CelZoneGraphDepthTests.TestShapeBoundsAndCenter());
+    RunZoneGraph("ShapeContainsPoint", () => CelZoneGraphDepthTests.TestShapeContainsPoint());
+    RunZoneGraph("SpatialHashCellSize", () => CelZoneGraphDepthTests.TestSpatialHashCellSize());
+    RunZoneGraph("SpatialHashAddLaneNear", () => CelZoneGraphDepthTests.TestSpatialHashAddLaneNear());
+    RunZoneGraph("GraphDataCRUD", () => CelZoneGraphDepthTests.TestGraphDataCRUD());
+    RunZoneGraph("FindNearestLane", () => CelZoneGraphDepthTests.TestFindNearestLane());
+    RunZoneGraph("FindNearestLaneSkipsRestricted", () => CelZoneGraphDepthTests.TestFindNearestLaneSkipsRestricted());
+    RunZoneGraph("FindLanesInRadius", () => CelZoneGraphDepthTests.TestFindLanesInRadius());
+    RunZoneGraph("FindNearestShapeInside", () => CelZoneGraphDepthTests.TestFindNearestShapeInside());
+    RunZoneGraph("GetConnectedLanes", () => CelZoneGraphDepthTests.TestGetConnectedLanes());
+    RunZoneGraph("ZonePathBasics", () => CelZoneGraphDepthTests.TestZonePathBasics());
+    RunZoneGraph("ZonePathGetPositionAtDistance", () => CelZoneGraphDepthTests.TestZonePathGetPositionAtDistance());
+    RunZoneGraph("ZonePathGetPositionAtT", () => CelZoneGraphDepthTests.TestZonePathGetPositionAtT());
+    RunZoneGraph("PathfinderSameLane", () => CelZoneGraphDepthTests.TestPathfinderSameLane());
+    RunZoneGraph("PathfinderTwoLaneChain", () => CelZoneGraphDepthTests.TestPathfinderTwoLaneChain());
+    RunZoneGraph("PathfinderAvoidsRestricted", () => CelZoneGraphDepthTests.TestPathfinderAvoidsRestricted());
+    RunZoneGraph("PathfinderLaneCost", () => CelZoneGraphDepthTests.TestPathfinderLaneCost());
+    RunZoneGraph("PathfinderHeuristic", () => CelZoneGraphDepthTests.TestPathfinderHeuristic());
+    RunZoneGraph("SystemDefaults", () => CelZoneGraphDepthTests.TestSystemDefaults());
+    RunZoneGraph("SystemSetGraph", () => CelZoneGraphDepthTests.TestSystemSetGraph());
+    RunZoneGraph("SystemRegisterAgent", () => CelZoneGraphDepthTests.TestSystemRegisterAgent());
+    RunZoneGraph("SystemRegisterAgentIdempotent", () => CelZoneGraphDepthTests.TestSystemRegisterAgentIdempotent());
+    RunZoneGraph("SystemUpdateBindsNearestLane", () => CelZoneGraphDepthTests.TestSystemUpdateBindsNearestLane());
+    RunZoneGraph("SystemFindPathToPosition", () => CelZoneGraphDepthTests.TestSystemFindPathToPosition());
+    Console.WriteLine($"  == CelZoneGraphDepth: {zoneGraphPass}/{zoneGraphTotal} passed ==");
 
     int n2dPass = 0, n2dTotal = 0;
     void RunNode2D(string name, Action test)

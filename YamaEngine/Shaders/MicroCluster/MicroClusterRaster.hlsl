@@ -92,6 +92,9 @@ StructuredBuffer<VisibleCluster> gVisibleClusters : register(t3);
 StructuredBuffer<uint> gPageTable : register(t4);
 ByteAddressBuffer gGeometryHeap   : register(t5);
 
+// 剔除 Pass 的原子计数器 (软光栅簇数等, 供 over-dispatch 越界保护)
+StructuredBuffer<uint> gVisibleCount : register(t6);
+
 // UAV 输出 (软件光栅化路径)
 RWTexture2D<uint2> gVisibilityBufferUAV : register(u0);
 RWTexture2D<float> gMicroClusterDepthUAV      : register(u1);
@@ -352,20 +355,13 @@ void SoftwareRasterCS(uint3 dispatchID : SV_DispatchThreadID, uint groupThreadID
 
                     // 深度测试 (原子比较交换)
                     uint2 pixel = uint2(px, py);
+                    // 简化深度测试: 先读后写 (存在竞态; R32_FLOAT UAV 无原生原子最小值,
+                    // 生产实现可改用 R32_UINT + InterlockedCompareExchange 位级比较)
                     float prevDepth = gMicroClusterDepthUAV[pixel];
                     if (depth < prevDepth)
                     {
-                        // InterlockedCompareExchange 风格的深度测试
-                        uint oldBits = asuint(prevDepth);
-                        uint newBits = asuint(depth);
-                        InterlockedCompareExchange(
-                            (RWStructuredBuffer<uint>)gMicroClusterDepthUAV, 0, oldBits, newBits, oldBits);
-                        // 简化: 直接写入 (实际需正确原子最小深度)
-                        if (depth < gMicroClusterDepthUAV[pixel])
-                        {
-                            gMicroClusterDepthUAV[pixel] = depth;
-                            gVisibilityBufferUAV[pixel] = PackVisibility(cluster.Id, triIdx, float2(b1, b2));
-                        }
+                        gMicroClusterDepthUAV[pixel] = depth;
+                        gVisibilityBufferUAV[pixel] = PackVisibility(cluster.Id, triIdx, float2(b1, b2));
                     }
                 }
             }

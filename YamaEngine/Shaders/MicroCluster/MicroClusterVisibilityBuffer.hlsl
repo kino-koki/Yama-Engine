@@ -36,7 +36,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 cbuffer VisibilityGenCB : register(b2)
 {
-    float4x4 gViewProjMatrix;
+    float4x4 gVisViewProjMatrix;
     float2   gInvResolution;
     uint     gVisibleClusterCount;
     uint     gFrameIndex;
@@ -45,8 +45,8 @@ cbuffer VisibilityGenCB : register(b2)
 
 cbuffer AttributeDecodeCB : register(b3)
 {
-    float4x4 gInvViewProjMatrix;
-    float3   gCameraPos;
+    float4x4 gVisInvViewProjMatrix;
+    float3   gVisCameraPos;
     float    gDecodePad0;
     float2   gDecodeInvResolution;
     uint     gMaterialCount;
@@ -345,7 +345,7 @@ void VisibilityDecodeCS(uint3 dispatchID : SV_DispatchThreadID)
     uint materialId = inst.MaterialIndexBase + materialSlot;
 
     // 视线方向
-    float3 viewDir = normalize(gCameraPos - worldPos);
+    float3 viewDir = normalize(gVisCameraPos - worldPos);
 
     // --- 写入 GeometryBuffer ---
     // RT0: Albedo (占位, 由材质 Pass 填充实际反照率) + Roughness
