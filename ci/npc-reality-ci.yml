@@ -1,0 +1,36 @@
+name: NPC Runtime & Reality Core (verification branch)
+
+# 该分支的代码从未在本地编译过（沙盒无 .NET SDK）。
+# 本 workflow 的唯一目的：让云端真实编译器判定它能否合入 main。
+# 红灯 = 不要合并，按输出修 NpcRuntimeAdapter.cs 等耦合点后再跑。
+on:
+  push:
+    branches: [ 'feat/npc-reality-core' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: SDK info
+        run: dotnet --info
+      - name: Restore
+        run: |
+          dotnet restore YamaEngine/YamaEngine.csproj
+          dotnet restore YamaEngine.Tests/YamaEngine.Tests.csproj
+      - name: Build engine (-warnaserror)
+        run: dotnet build YamaEngine/YamaEngine.csproj -c Debug -p:Platform=x64 --no-restore -warnaserror
+      - name: Build tests
+        run: dotnet build YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug -p:Platform=x64 --no-restore
+      - name: Run new deterministic suites only
+        run: >
+          dotnet test YamaEngine.Tests/YamaEngine.Tests.csproj -c Debug -p:Platform=x64 --no-build
+          --filter "DisplayName~NpcRuntimeTests|DisplayName~RealityPhysicsTests|DisplayName~NpcRuntimeRegression|DisplayName~NpcRuntimeDeepTests|DisplayName~SimulationBridgeTests"
+          --logger "console;verbosity=normal"
