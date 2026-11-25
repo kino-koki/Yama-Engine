@@ -1,0 +1,32 @@
+name: Repo Guards (no SDK needed)
+
+# 纯静态仓库守卫：不需要 .NET SDK / Windows / GPU，任何平台都能跑。
+# 与 build.yml 分工：build.yml 管真实编译与测试，本 workflow 管仓库卫生与可移植性。
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  guards:
+    name: Static hygiene checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run path / orphan / governance guards
+        run: python3 scripts/path_guard.py
+
+      - name: Upload placeholder inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: placeholder-inventory
+          path: placeholder_inventory.csv
+          if-no-files-found: ignore
