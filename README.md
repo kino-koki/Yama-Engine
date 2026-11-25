@@ -7,7 +7,7 @@
 ![Vulkan](https://img.shields.io/badge/Vulkan-1.4-b71b1b.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078d4.svg)
 ![Build](https://github.com/kino-koki/Yama-Engine/actions/workflows/build.yml/badge.svg)
-![Tests](https://github.com/kino-koki/Yama-Engine/actions/workflows/build.yml/badge.svg)
+![Tests](https://img.shields.io/badge/tests-1559%20xUnit-4c1.svg)
 
 ---
 

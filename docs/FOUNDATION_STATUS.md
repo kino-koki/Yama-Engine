@@ -25,7 +25,7 @@ World Partition / Mass / GAS / Iris 等）是大团队多年累积的成果。�
 
 | 依赖 | 版本 | 说明 |
 |---|---|---|
-| .NET SDK | 8.0.422（global.json 锁定） | 必须，否则无法还原/构建 |
+| .NET SDK | 10.0.203（global.json 锁定；旧文误写 8.0.422，2026-11-02 更正） | 必须，否则无法还原/构建 |
 | Visual Studio 2022 | 17.8+ | 含"桌面开发"与 C++ 工作负载（桥接工程需要） |
 | Windows App SDK | 1.8+ | YamaEditor (WinUI 3) 依赖 |
 | Vulkan 驱动 | 1.3+（推荐 1.4） | 运行时渲染需要 |
@@ -75,7 +75,7 @@ World Partition / Mass / GAS / Iris 等）是大团队多年累积的成果。�
 
 ### 4.2 仍需人工/真机验证
 
-- [ ] 在装有 .NET 8 SDK 的机器跑一次 `scripts/build_verify.ps1`，把**真实错误清单**固化。
+- [ ] 在装有 .NET 10 SDK 的机器跑一次 `scripts/build_verify.ps1`，把**真实错误清单**固化。
 - [ ] 推送后让 `build.yml` 跑一次，确认 WinUI 3 / Windows App SDK 目标可用。
 - [ ] 在真机（有 Vulkan 1.4 显卡）启动编辑器，确认视口能渲出完整 PBR 场景（目前仅验证过三角形）。
 - [ ] `YamaEngineBridge` 用新路径指示成功编译（需 Assimp 就位）。

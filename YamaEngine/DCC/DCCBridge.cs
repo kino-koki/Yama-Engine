@@ -561,6 +561,19 @@ namespace YamaEngine.DCC
 
         private void AutoDetectApplications()
         {
+            // 环境变量优先：允许任意机器覆盖自动探测结果，不再依赖特定安装路径。
+            // YAMA_BLENDER_PATH / YAMA_MAYA_PATH / YAMA_3DSMAX_PATH
+            var blenderOverride = Environment.GetEnvironmentVariable("YAMA_BLENDER_PATH");
+            if (!string.IsNullOrEmpty(blenderOverride) && File.Exists(blenderOverride))
+                _appPaths[DCCApplication.Blender51] = blenderOverride;
+            var mayaOverride = Environment.GetEnvironmentVariable("YAMA_MAYA_PATH");
+            if (!string.IsNullOrEmpty(mayaOverride) && File.Exists(mayaOverride))
+                _appPaths[DCCApplication.Maya2025] = mayaOverride;
+            var maxOverride = Environment.GetEnvironmentVariable("YAMA_3DSMAX_PATH");
+            if (!string.IsNullOrEmpty(maxOverride) && File.Exists(maxOverride))
+                _appPaths[DCCApplication.Max2025] = maxOverride;
+
+            // 以下仅为 Windows 常见默认安装位置；生产环境请用上面的环境变量或 SetApplicationPath 覆盖。
             string[] blenderPaths = {
                 @"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe",
                 @"C:\Program Files\Blender Foundation\Blender 4.2\blender.exe",
@@ -1398,7 +1411,7 @@ namespace YamaEngine.DCC
             catch (DllNotFoundException)
             {
                 Log("Assimp DLL not found. Download from: https://github.com/assimp/assimp/releases");
-                Log("Install to: C:\\Windows\\System32\\assimp.dll or project bin folder");
+                Log("Install to: third_party/assimp/ or the application output directory (do not write into system folders).");
                 return ImportScene(filePath); // 回退到内置解析器
             }
             catch (Exception ex)

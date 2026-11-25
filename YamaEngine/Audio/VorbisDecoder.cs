@@ -1993,7 +1993,9 @@ namespace YamaEngine.Audio
                 {
                     var sb = new System.Text.StringBuilder("SPEC5 ");
                     for (int j = 0; j < n / 2; j++) sb.Append(_packetPcm[i][j].ToString("G6")).Append(',');
-                    System.IO.File.WriteAllText("C:/Users/李恩/AppData/Local/Temp/audioref/spec5.txt", sb.ToString());
+                    // 调试参考输出：写入跨平台的系统临时目录，不再硬编码开发者本机路径。
+                    // TODO: 接入正式诊断日志后移除这段临时写盘。
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "yama-audioref-spec5.txt"), sb.ToString());
                 }
                 MdctBackward(mdct, _packetPcm[i], 0, _packetPcm[i], 0);
             }
