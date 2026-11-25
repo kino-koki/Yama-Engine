@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yama-engine.dev/schemas/debug-protocol.schema.json",
+  "title": "Yama 调试器 / 远程检查器消息协议",
+  "description": "反推自 CodeEditing/CodeDebugger.cs 的公共 API（Breakpoint/StepOver/GetCallStack/GetLocalVariables/EvaluateExpression/WatchWindow）。对齐 Godot 3 调试器与远程检查器。",
+  "type": "object",
+  "required": [
+    "protocolVersion",
+    "direction",
+    "type"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "direction": {
+      "enum": [
+        "editor->runtime",
+        "runtime->editor"
+      ]
+    },
+    "type": {
+      "enum": [
+        "set_breakpoint",
+        "remove_breakpoint",
+        "continue",
+        "step_over",
+        "step_into",
+        "step_out",
+        "pause",
+        "get_call_stack",
+        "get_locals",
+        "evaluate",
+        "watch_add",
+        "watch_remove",
+        "inspect_node",
+        "set_property",
+        "breakpoint_hit",
+        "step_completed",
+        "response"
+      ]
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "set_breakpoint"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "file",
+              "line"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "evaluate"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "expression"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "inspect_node"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "nodeId"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

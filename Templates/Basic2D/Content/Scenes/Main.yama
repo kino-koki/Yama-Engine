@@ -1,0 +1,126 @@
+{
+  "Version": 1,
+  "Engine": "Yama Engine",
+  "SavedAtUtc": "2026-11-24T00:00:00Z",
+  "Objects": [
+    {
+      "Id": "11111111-1111-1111-1111-111111111111",
+      "Name": "Player",
+      "IsVisible": true,
+      "Layer": 2,
+      "Position": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0
+      },
+      "Rotation": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "W": 1
+      },
+      "Scale": {
+        "X": 1,
+        "Y": 1,
+        "Z": 1
+      },
+      "MeshAssetPath": "Sprite_Player",
+      "MaterialAssetPath": "",
+      "BaseColor": {
+        "X": 1,
+        "Y": 1,
+        "Z": 1
+      },
+      "Metallic": 0,
+      "Roughness": 1,
+      "CastShadow": false,
+      "ReceiveShadow": false,
+      "Components": [
+        {
+          "Type": "CelPhysics2D",
+          "BodyType": "Kinematic",
+          "GravityScale": 1
+        }
+      ]
+    },
+    {
+      "Id": "22222222-2222-2222-2222-222222222222",
+      "Name": "Ground",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": {
+        "X": 0,
+        "Y": -2,
+        "Z": 0
+      },
+      "Rotation": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "W": 1
+      },
+      "Scale": {
+        "X": 1,
+        "Y": 1,
+        "Z": 1
+      },
+      "MeshAssetPath": "TileMap_Ground",
+      "MaterialAssetPath": "",
+      "BaseColor": {
+        "X": 0.4,
+        "Y": 0.6,
+        "Z": 0.4
+      },
+      "Metallic": 0,
+      "Roughness": 1,
+      "CastShadow": false,
+      "ReceiveShadow": false,
+      "Components": [
+        {
+          "Type": "TileMap",
+          "TileSet": "Content/Tilesets/Default.tileset.json"
+        }
+      ]
+    },
+    {
+      "Id": "33333333-3333-3333-3333-333333333333",
+      "Name": "Camera2D",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": {
+        "X": 0,
+        "Y": 0,
+        "Z": 10
+      },
+      "Rotation": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "W": 1
+      },
+      "Scale": {
+        "X": 1,
+        "Y": 1,
+        "Z": 1
+      },
+      "MeshAssetPath": "Camera2D",
+      "MaterialAssetPath": "",
+      "BaseColor": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0
+      },
+      "Metallic": 0,
+      "Roughness": 0,
+      "CastShadow": false,
+      "ReceiveShadow": false,
+      "Components": [
+        {
+          "Type": "CelCameraFollow2D",
+          "Target": "Player",
+          "DragMargin": 0.2
+        }
+      ]
+    }
+  ]
+}
