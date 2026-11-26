@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yama-engine.dev/schemas/yscene.schema.json",
+  "title": "Yama 场景 (*.yama)",
+  "description": "反推自 Templates/Basic3D/Content/Scenes/Main.yama (92 行) 与 Scenes/SceneSerializer.cs 的 JsonSerializer 用法。对应 Godot 的 .tscn。",
+  "type": "object",
+  "required": [
+    "Version",
+    "Engine",
+    "Objects"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "Version": {
+      "type": "integer",
+      "const": 1
+    },
+    "Engine": {
+      "type": "string",
+      "const": "Yama Engine"
+    },
+    "SavedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SceneObject"
+      }
+    }
+  },
+  "$defs": {
+    "Vec3": {
+      "type": "object",
+      "required": [
+        "X",
+        "Y",
+        "Z"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "X": {
+          "type": "number"
+        },
+        "Y": {
+          "type": "number"
+        },
+        "Z": {
+          "type": "number"
+        }
+      }
+    },
+    "Quat": {
+      "type": "object",
+      "required": [
+        "X",
+        "Y",
+        "Z",
+        "W"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "X": {
+          "type": "number"
+        },
+        "Y": {
+          "type": "number"
+        },
+        "Z": {
+          "type": "number"
+        },
+        "W": {
+          "type": "number"
+        }
+      }
+    },
+    "SceneObject": {
+      "type": "object",
+      "required": [
+        "Id",
+        "Name",
+        "Position",
+        "Rotation",
+        "Scale"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "Id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "IsVisible": {
+          "type": "boolean"
+        },
+        "Layer": {
+          "type": "integer"
+        },
+        "Position": {
+          "$ref": "#/$defs/Vec3"
+        },
+        "Rotation": {
+          "$ref": "#/$defs/Quat"
+        },
+        "Scale": {
+          "$ref": "#/$defs/Vec3"
+        },
+        "MeshAssetPath": {
+          "type": "string"
+        },
+        "MaterialAssetPath": {
+          "type": "string"
+        },
+        "BaseColor": {
+          "$ref": "#/$defs/Vec3"
+        },
+        "Metallic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "Roughness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "CastShadow": {
+          "type": "boolean"
+        },
+        "ReceiveShadow": {
+          "type": "boolean"
+        },
+        "Components": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "Children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SceneObject"
+          }
+        }
+      }
+    }
+  }
+}

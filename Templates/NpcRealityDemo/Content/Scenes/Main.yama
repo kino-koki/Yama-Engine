@@ -1,0 +1,88 @@
+{
+  "Version": 1,
+  "Engine": "Yama Engine",
+  "SavedAtUtc": "2026-11-24T00:00:00Z",
+  "Objects": [
+    {
+      "Id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "Name": "Reality_World",
+      "IsVisible": true,
+      "Layer": 0,
+      "Position": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0
+      },
+      "Rotation": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "W": 1
+      },
+      "Scale": {
+        "X": 1,
+        "Y": 1,
+        "Z": 1
+      },
+      "MeshAssetPath": "",
+      "MaterialAssetPath": "",
+      "BaseColor": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0
+      },
+      "Metallic": 0,
+      "Roughness": 0,
+      "CastShadow": false,
+      "ReceiveShadow": false,
+      "Components": [
+        {
+          "Type": "RealityWorld",
+          "GridSize": 32,
+          "FixedStep": 0.0166667,
+          "ConservationGate": true
+        }
+      ]
+    },
+    {
+      "Id": "aaaaaaaa-0000-0000-0000-000000000002",
+      "Name": "NPC_Agent",
+      "IsVisible": true,
+      "Layer": 1,
+      "Position": {
+        "X": 4,
+        "Y": 0.5,
+        "Z": 2
+      },
+      "Rotation": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "W": 1
+      },
+      "Scale": {
+        "X": 1,
+        "Y": 1,
+        "Z": 1
+      },
+      "MeshAssetPath": "Capsule",
+      "MaterialAssetPath": "",
+      "BaseColor": {
+        "X": 0.8,
+        "Y": 0.3,
+        "Z": 0.2
+      },
+      "Metallic": 0,
+      "Roughness": 0.7,
+      "CastShadow": true,
+      "ReceiveShadow": true,
+      "Components": [
+        {
+          "Type": "NpcRuntimeAgent",
+          "Profile": "Villager",
+          "Lod": "Near"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "platform": "ios",
+  "displayName": "iOS 10+",
+  "status": "缺失适配层",
+  "renderer": "需 MoltenVK",
+  "runtimeBinary": "ipa",
+  "resourceRoot": "Content",
+  "startupScene": "Content/Scenes/Main.yama",
+  "projectManifest": "yama.project.json",
+  "entryArgs": [
+    "--headless=false",
+    "--project",
+    "."
+  ],
+  "requiredNative": [],
+  "notes": "规格契约，非可运行包；产出真实包需 YamaCLI build --platform ios 与真机编译。"
+}

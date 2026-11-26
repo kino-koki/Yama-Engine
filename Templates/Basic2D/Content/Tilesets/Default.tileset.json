@@ -1,0 +1,38 @@
+{
+  "formatVersion": 1,
+  "name": "Default",
+  "sourceImage": "Content/Assets/tiles.png",
+  "tileSize": {
+    "width": 32,
+    "height": 32
+  },
+  "margin": 0,
+  "spacing": 0,
+  "tiles": [
+    {
+      "id": 0,
+      "name": "grass",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "zIndex": 0
+    },
+    {
+      "id": 1,
+      "name": "stone",
+      "rect": {
+        "x": 32,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "collision": {
+        "shape": "rect"
+      },
+      "zIndex": 0
+    }
+  ]
+}

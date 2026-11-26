@@ -112,6 +112,8 @@
     <Compile Include="Testing\**\*.cs" />
     <Compile Include="Platforms\**\*.cs" />
     <Compile Include="Packages\**\*.cs" />
+    <!-- 真实物理内核：XPBD / PBF / 热结构耦合 / 守恒账本 / 可选 Rust 数值热点 -->
+    <Compile Include="Reality\**\*.cs" />
 
     <!-- 根目录入口 -->
     <Compile Include="EngineApplication.cs" />

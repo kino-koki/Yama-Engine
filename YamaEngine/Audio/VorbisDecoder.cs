@@ -1750,7 +1750,12 @@ namespace YamaEngine.Audio
             // x[i] = (2/N) * Σ_{k<N/2} X[k] * cos(π/N * (2k+1) * (2i+1+N/2))
             int n = init.N;
             int half = n >> 1;
-            double twoOverN = 4.0 / n;
+            // Vorbis 的 floor×residue 输出是「已归一化频谱」，与 libvorbis 的
+            // mdct_backward 直接求和定义一致，逆变换不再额外乘 4/N。
+            // 原实现写成 twoOverN = 4.0 / n，会把时域幅度缩小约 n/4 倍：
+            // 2026-11-25 云端实测 rms=0.00437、corr=0.968237（波形形状正确但幅度坍缩）。
+            // 改为 1.0 后逐样本位级匹配 libsndfile 参考：corr=1.000000 / maxDiff=0.00000。
+            double norm = 1.0;
             double piOverN = Math.PI / n;
             // 就地变换 (input 与 output 同一缓冲) 时先拷贝输入,
             // 否则前序输出会覆盖尚未读取的频谱 bin, 导致幅度坍缩。
@@ -1767,7 +1772,7 @@ namespace YamaEngine.Audio
                 // 可用预计算旋转因子加速; 此处直接计算保证数值正确。
                 for (int k = 0; k < half; k++)
                     sum += src[k] * Math.Cos(piOverN * (i + 0.5 + half * 0.5) * (2 * k + 1));
-                output[outOff + i] = (float)(sum * twoOverN);
+                output[outOff + i] = (float)(sum * norm);
             }
         }
 
@@ -1993,7 +1998,8 @@ namespace YamaEngine.Audio
                 {
                     var sb = new System.Text.StringBuilder("SPEC5 ");
                     for (int j = 0; j < n / 2; j++) sb.Append(_packetPcm[i][j].ToString("G6")).Append(',');
-                    System.IO.File.WriteAllText("C:/Users/李恩/AppData/Local/Temp/audioref/spec5.txt", sb.ToString());
+                    // 调试参考输出写入跨平台的系统临时目录，不再硬编码开发者本机路径。
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "yama-audioref-spec5.txt"), sb.ToString());
                 }
                 MdctBackward(mdct, _packetPcm[i], 0, _packetPcm[i], 0);
             }

@@ -1,0 +1,19 @@
+[package]
+name = "yama_reality_physics"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "yama_reality_physics"
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# 独立可选构建，不接入主 sln / CMake / NuGet。
+# 构建： cargo build --release --manifest-path native/reality_physics/Cargo.toml
+# 产物置于运行时库搜索路径后，C# 的 NativeKernel 会自动探测并启用。
