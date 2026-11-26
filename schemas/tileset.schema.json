@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yama-engine.dev/schemas/tileset.schema.json",
+  "title": "Yama TileSet 图块数据库",
+  "description": "新增规格，对齐 Godot 3.5 TileMap 编辑器的图块集能力（矩阵 G3-040）。",
+  "type": "object",
+  "required": [
+    "formatVersion",
+    "name",
+    "tileSize",
+    "tiles"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "sourceImage": {
+      "type": "string"
+    },
+    "tileSize": {
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "margin": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "spacing": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "rect"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "rect": {
+            "type": "object",
+            "required": [
+              "x",
+              "y",
+              "w",
+              "h"
+            ]
+          },
+          "collision": {
+            "type": "object"
+          },
+          "zIndex": {
+            "type": "integer"
+          },
+          "animation": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

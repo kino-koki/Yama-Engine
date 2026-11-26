@@ -545,9 +545,10 @@ namespace YamaEngine.Audio
             }
 
             // 字节对齐 + CRC-16 (整帧)
+            // FLAC 规范要求帧尾填充位为 0，但部分编码器会写非零填充。
+            // 不因填充位内容拒帧：整帧完整性由随后的 CRC-16 与上层样本/MD5 校验保证。
             int alignBits = (8 - (br.BitPosition & 7)) & 7;
-            if (alignBits > 0 && br.ReadBits(alignBits) != 0)
-                throw new InvalidDataException("FLAC帧尾填充位非零");
+            if (alignBits > 0) br.ReadBits(alignBits);
             int crc16Pos = br.BitPosition >> 3;
             ushort crc16Got = (ushort)br.ReadBits(16);
             ushort crc16Calc = Crc16(data, offset, crc16Pos - offset);

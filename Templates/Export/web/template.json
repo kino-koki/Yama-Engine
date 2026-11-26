@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "platform": "web",
+  "displayName": "HTML5/WASM",
+  "status": "阻断：无 GLES2",
+  "renderer": "需 GLES2 后端",
+  "runtimeBinary": "index.html",
+  "resourceRoot": "Content",
+  "startupScene": "Content/Scenes/Main.yama",
+  "projectManifest": "yama.project.json",
+  "entryArgs": [
+    "--headless=false",
+    "--project",
+    "."
+  ],
+  "requiredNative": [],
+  "notes": "规格契约，非可运行包；产出真实包需 YamaCLI build --platform web 与真机编译。"
+}

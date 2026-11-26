@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yama-engine.dev/schemas/yama-project.schema.json",
+  "title": "Yama 项目清单 (yama.project.json)",
+  "description": "反推自远端 Templates/Basic3D/yama.project.json，formatVersion=1。对应 Godot 的 project.godot。",
+  "type": "object",
+  "required": [
+    "name",
+    "engine",
+    "formatVersion",
+    "startupScene",
+    "folders"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engine": {
+      "type": "string",
+      "const": "Yama Engine"
+    },
+    "formatVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "template": {
+      "type": "string"
+    },
+    "startupScene": {
+      "type": "string",
+      "pattern": "^.+\\.yama$"
+    },
+    "folders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "rendering": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pipeline": {
+          "type": "string",
+          "enum": [
+            "ForwardPreview",
+            "Forward",
+            "Deferred",
+            "Cel2D"
+          ]
+        },
+        "defaultMaterial": {
+          "type": "string"
+        }
+      }
+    },
+    "localization": {
+      "type": "object",
+      "properties": {
+        "defaultLocale": {
+          "type": "string"
+        },
+        "fallbackLocale": {
+          "type": "string"
+        }
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

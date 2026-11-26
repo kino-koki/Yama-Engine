@@ -1,0 +1,82 @@
+id,category,godot35_capability,yama_files,evidence,status,action_this_round,acceptance
+G3-001,平台,Windows 7+ 编辑器与导出(32/64),YamaEngine/Platform/Win32Window.cs|YamaEditor/YamaEditor.csproj|YamaEditor/App.xaml.cs,Win32Window / WinUI3,已实现·未端到端,写入平台矩阵；补导出模板清单,真机 dotnet run --project YamaEditor
+G3-002,平台,macOS 10.12+ (x86/ARM),YamaEngine/Platform/SDL2Window.cs,仅 SDL2 通用窗口，无 macOS 适配层,缺失,标为 P1 缺口；不伪造支持,macos-latest runner 构建
+G3-003,平台,Linux (x86/ARM),YamaEngine/Platform/LinuxAdapter.cs|YamaEngine/Platform/SDL2Window.cs,LinuxAdapter 831 行,部分,平台矩阵标注未验证,ubuntu-latest runner 冒烟
+G3-004,平台,HTML5 / WebAssembly,YamaEngine/Platform/PlatformAbstractionLayer.cs,无 WASM 目标、无 GLES2 后端,缺失,明确列为需第三方/自研后端,浏览器实际运行
+G3-005,平台,Android 4.4+,YamaEngine/Platform/AndroidAdapter.cs,AndroidAdapter 788 行,部分,标未出包验证,Android 出包+安装
+G3-006,平台,iOS 10+,YamaEngine/Platform/PlatformAbstractionLayer.cs,无 iOS 适配层,缺失,列为缺口,Xcode 构建
+G3-007,平台,主机(PS5/Xbox/Switch),YamaEngine/Platforms/ConsoleSDKAbstraction.cs,PS5SDKStub/XboxSDKStub/SwitchSDKStub，74 处 TODO,占位·NDA,决策文档：条件编译隔离，默认不编入,确认默认产物不含 *SDKStub
+G3-008,平台,无头 Linux/macOS 服务器,YamaCLI/YamaCLI.csproj|scripts/build_verify.ps1,build.yml 的 smoke 60,已实现,纳入 E2E S1,dotnet run --project YamaCLI -- smoke 60
+G3-009,平台,导出模板(每平台一份),Templates/Basic3D/yama.project.json,仅有项目模板，无平台导出模板,部分,本轮补 6 平台 template.json,YamaCLI build --platform 出包
+G3-010,平台,签名 / 商店分发,—,无签名配置、无商店流程,缺失,列入生态路线图,git verify-tag + 商店上传
+G3-011,编辑器,场景树编辑器,YamaEngine/Editor/Panels/OutlinerPanel.cs|YamaEngine/Editor/EditorSceneController.cs,OutlinerPanel / SceneController 488 行,已实现,接线核验 E1,新建场景→加节点→保存往返
+G3-012,编辑器,内置脚本编辑器,YamaEngine/CodeEditing/CodeEditorView.cs|YamaEngine/Editor/Panels/CodeEditorPanel.cs,CodeEditorPanel 1577 行,已实现,接线核验 E2,打开 .cs → 编辑 → 保存
+G3-013,编辑器,脚本调试器(断点/单步/栈/变量),YamaEngine/CodeEditing/CodeDebugger.cs,Breakpoint/StepOver/GetCallStack/EvaluateExpression 463 行,已实现·未接线,补调试协议 schema；接线核验 E3,运行中断点命中并读到变量
+G3-014,编辑器,线程内调试,—,Godot 3.5 官方亦不支持,N/A,标注 N/A，不算缺口,—
+G3-015,编辑器,性能监控工具,YamaEngine/Editor/Panels/StatsPanel.cs|YamaEngine/Diagnostics/CPUProfiler.cs|YamaEngine/Diagnostics/GPUProfiler.cs|YamaEngine/Diagnostics/FrameDebugger.cs,StatsPanel 373 行 + 36 个 Diagnostics 文件,已实现,接线核验 E4,运行中显示帧时间/显存
+G3-016,编辑器,脚本热重载,YamaEngine/PluginSystem/ScriptHotReloadSystem.cs|YamaEngine/Scripting/ScriptHotReload.cs,双轨：PluginSystem 版编译中(1102 行)，Scripting 版被 Remove(876 行),部分·双轨,BUILD_DECISIONS D1；补接线规格,改常量→行为变化且状态保持
+G3-017,编辑器,场景热编辑(运行期改动保留),YamaEngine/Editor/EditorSceneController.cs,需核验关闭项目后是否持久化,未验证,接线核验 E5 + E2E S4,运行期改位置→关闭→重开仍在
+G3-018,编辑器,远程检查器,YamaEngine/Editor/EditorEngineBridge.cs,EditorEngineBridge 1412 行，需核验 IPC 通道,部分,补 remote-inspector 协议规格,运行进程外读取节点属性
+G3-019,编辑器,实时摄像机复制,YamaEngine/Editor/EditorCameraController.cs|YamaEditor/Controls/ViewportCamera3D.cs,两文件存在，需核验同步链路,部分,接线核验 E7,编辑器移相机→运行画面跟随
+G3-020,编辑器,内置离线类参考文档,ARCHITECTURE.md|USER_GUIDE.md,有手册但非 API 类参考,部分,本轮补 docfx 规格 + XML 注释生成脚本,离线打开 docs/api/index.html
+G3-021,编辑器,多语言编辑器(社区数十种),YamaEngine/Localization/StringTableSystem.cs|YamaEngine/Localization/RTLTextSystem.cs|YamaEngine/Localization/PluralRulesSystem.cs,8 个本地化文件,部分,标中/英双语最小目标,切换语言后 UI 全量变化
+G3-022,编辑器,插件 / 资产库,YamaEngine/PluginSystem/PluginMarketSystem.cs|YamaEngine/PluginSystem/PluginCoreSystem.cs|integrations/README.md,PluginMarketSystem 1073 行,已实现,接线核验 E9,安装一个插件并生效
+G3-023,渲染,OpenGL ES 2.0 (移动/Web 推荐),—,唯一图形后端为 Vulkan；D3D12 已删,缺失,平台矩阵标为阻断 Web/低端移动,实际 GLES2 上下文创建
+G3-024,渲染,OpenGL 2.1 (桌面推荐),—,同上,缺失,同上,桌面 GL 上下文
+G3-025,渲染,Vulkan 1.3/1.4 后端,YamaEngine/Vulkan/VulkanDevice.cs|YamaEngine/Vulkan/VulkanSwapchain.cs|YamaEditor/Controls/TriangleRenderer.cs,Silk.NET.Vulkan 2.22,已实现·部分验证,渲染台账 R1,真实 GPU 截图 + vulkaninfo
+G3-026,渲染,第一个三角形端到端,YamaEditor/Controls/TriangleRenderer.cs,README 自述内嵌 SPIR-V + PSO + DrawInstanced 已验证,已验证,纳入 E2E S5 作为基线,截图留证
+G3-027,渲染,PBR 材质,YamaEngine/Rendering/AdvancedPBRShading.cs,算法原型，未真实 GPU 端到端,未验证,渲染台账 R2,完整 PBR 帧截图
+G3-028,渲染,级联阴影,YamaEngine/Rendering/CascadeShadowMapRenderer.cs,1855 行,未验证,渲染台账 R3,阴影对比截图
+G3-029,渲染,MicroCluster 虚拟几何,YamaEngine/Rendering/MicroClusterVirtualGeometry.cs,2123 行，原型,未验证,渲染台账 R4,LOD 切换录屏
+G3-030,渲染,ReSTIR / SVGF / 路径追踪,YamaEngine/Rendering/RayTracedShadows.cs,README 列为原型,未验证,渲染台账 R5,降噪前后对比
+G3-031,渲染,体积雾 / 大气,YamaEngine/Rendering/AtmosphereRenderer.cs,2147 行,未验证,渲染台账 R6,不同时间参数截图
+G3-032,渲染,后处理 / 色调映射,YamaEngine/Rendering/ColorGradingSystem.cs,2465 行,未验证,渲染台账 R7,LUT 切换对比
+G3-033,渲染,RenderGraph,YamaEngine/Rendering/RenderGraphV2.cs,2477 行,未验证,渲染台账 R8,pass 顺序可视化
+G3-034,渲染,运行时原生崩溃 0xC0000005,YamaEngine/Diagnostics/CrashReporter.cs|docs/RUNTIME_CRASH_DIAGNOSIS.md,README 自述 VulkanPipelineState 崩溃待排查,阻塞·真机,E2E S6：抓 minidump,WinDbg 调用栈 + 30 分钟无崩溃
+G3-035,2D,专用 2D 像素坐标系,YamaEngine/Cel2D/CelGame2D.cs|YamaEngine/Cel2D/CelRenderLayers2D.cs,Cel2D 14 文件,部分,2D 规格 + Basic2D 模板,断言坐标单位为像素、无 Z
+G3-036,2D,精灵 / Polygon2D / Line2D,YamaEngine/Cel2D/CelSpriteRenderer.cs|YamaEngine/Cel2D/Cel9Slice.cs,CelSpriteRenderer / Cel9Slice,部分,2D 规格,绘制多边形与线段
+G3-037,2D,AnimatedSprite,YamaEngine/Cel2D/CelAnimationStateMachine2D.cs|YamaEngine/Cel2D/CelSkeletalAnimation.cs,状态机 + 骨骼动画,已实现,2D 模板内含动画帧,播放序列帧
+G3-038,2D,视差层 / 伪 3D,YamaEngine/Cel2D/CelRenderLayers2D.cs,图层系统,部分,2D 规格,多层不同滚动速度
+G3-039,2D,YSort,YamaEngine/Cel2D/CelSpriteSorter2D.cs,排序器,已实现,2D 模板,角色前后遮挡正确
+G3-040,2D,TileMap 编辑器,YamaEngine/Editor/LevelEditor/GridSnappingSystem.cs|YamaEngine/Editor/LevelEditor/TerrainEditor.cs,网格吸附 + 地形，非完整图块数据库,部分,本轮补 tileset.schema.json,拖 sprite → 刷图 → 保存
+G3-041,2D,TileSet 图块数据库,—,无图块集资源格式,缺失,本轮补 schema + Basic2D 示例,图块集往返
+G3-042,2D,2D 物理,YamaEngine/Cel2D/CelPhysics2D.cs|YamaEngine/Physics/CollisionDetectionReal.cs,CelPhysics2D,已实现,2D 规格,碰撞/重力断言
+G3-043,2D,Camera2D 跟随 / 拖拽边界,YamaEngine/Cel2D/CelCameraFollow2D.cs,CelCameraFollow2D,已实现,2D 模板,相机跟随截图
+G3-044,3D,3D 节点与变换,YamaEngine/Scenes/SceneManager.cs|YamaEngine/GameFramework/GameFrameworkFull.cs,SceneManager 382 行,已实现,场景 schema,变换往返
+G3-045,3D,glTF / FBX / Blender 导入,YamaEngine/Assets/Importers/glTFImporter.cs|YamaEngine/Assets/Importers/FbxImporter.cs|YamaEngine/DCC/DCCBridge.cs,15 个 Importer,部分,接线核验 E10,四类文件导入往返
+G3-046,3D,骨骼 / 蒙皮 / 动画,YamaEngine/Animation/AnimStateMachineReal.cs|YamaEngine/Animation/AnimationRetargetingReal.cs,40 个动画文件,已实现,—,变形姿态断言
+G3-047,3D,PackedScene 实例化,YamaEngine/GameFramework/PackedScene.cs,60 行，标注 prototype,部分,决策文档 D5,实例化 100 次无异常
+G3-048,场景,"场景序列化(.yama, JSON)",YamaEngine/Scenes/SceneSerializer.cs|Templates/Basic3D/Content/Scenes/Main.yama,JsonSerializer 17 处 + 92 行真实场景,已实现,本轮补 yscene.schema.json,Save→Load 逐字段相等
+G3-049,资源,项目清单 yama.project.json,Templates/Basic3D/yama.project.json,formatVersion/startupScene/rendering,已实现,本轮补 yama-project.schema.json,CLI new 产出可解析
+G3-050,资源,自定义 Resource 系统,YamaEngine/Assets/AssetMeta.cs|YamaEngine/DataSystem/DataAssetSystem.cs,AssetMeta 51 行,部分,资源规格,自定义资源在检查器可编辑
+G3-051,资源,资产数据库 / 依赖图,YamaEngine/Assets/AssetDatabase.cs|YamaEngine/Assets/AssetDependencyGraph.cs,真实实现,已实现,接线核验 E11,改贴图→依赖重烘焙
+G3-052,资源,资产烘焙 / Cook,YamaEngine/Assets/AssetCooker.cs|YamaEngine/Build/CookingSystem.cs,真实实现,已实现,E2E S7,同输入同 hash
+G3-053,资源,热更新,YamaEngine/Build/HotUpdateSystem.cs|YamaEngine/PluginSystem/ContentPatchSystem.cs,存在，未验证,部分,E2E S8,改资源不重启生效
+G3-054,脚本,GDScript 等价(类 Python),—,无等价脚本语言,缺失,本轮补 SCRIPTING_ABI_SPEC.md(规格，不堆未编译 VM),脚本改行为立即生效
+G3-055,脚本,C# 脚本 (Roslyn),YamaEngine/Scripting/ScriptEngine.cs|YamaEngine/Scripting/ScriptAssemblyLoader.cs|YamaEngine/Scripting/ScriptComponent.cs,Microsoft.CodeAnalysis 4.9.2,已实现,接线核验 E12,挂脚本→立方体旋转
+G3-056,脚本,VisualScript 节点图,YamaEngine/Scripting/NodeScriptSystem.cs|YamaEngine/VisualScript/NodeGraphSystem.cs,双轨：VisualScriptingSystem.cs 被 Remove,部分·双轨,决策文档 D2,画 OnTick→Move 并运行
+G3-057,脚本,C++ 扩展 ABI,YamaEngineBridge/YamaEngineBridge.vcxproj,vcxproj 需 VS MSBuild,部分,平台矩阵标注环境限制,原生插件加载
+G3-058,脚本,信号 / 事件总线,YamaEngine/Scripting/ScriptEventBus.cs,ScriptEventBus,已实现,—,信号连接/断开
+G3-059,脚本,IntelliSense,YamaEngine/CodeEditing/IntelliSenseEngine.cs,IntelliSenseEngine,已实现,—,补全候选弹出
+G3-060,脚本,代码格式化,YamaEngine/CodeEditing/CodeFormatter.cs,CodeFormatter,已实现,—,格式化前后 AST 等价
+G3-061,脚本,状态迁移(热重载保字段),YamaEngine/PluginSystem/ScriptHotReloadSystem.cs,StateMigrator / FieldMapping,已实现,决策文档 D1,重载后字段值保持
+G3-062,GUI,自适应布局 / 锚点,YamaEngine/UI/UmgWidgetSystem.cs,32 个 UI 文件,部分,GUI 规格,窗口缩放后布局正确
+G3-063,GUI,主题系统,YamaEngine/UI/WidgetControls.cs,需核验,未验证,GUI 规格,切换主题全量生效
+G3-064,GUI,文本 / 字体 / RTL,YamaEngine/Localization/RTLTextSystem.cs|YamaEngine/Localization/PluralRulesSystem.cs,RTL + 复数规则,已实现,—,阿语渲染方向正确
+G3-065,GUI,控件库,YamaEngine/UI/WidgetControls.cs,Button/Slider 等含 placeholder,部分,占位台账分类,控件交互断言
+G3-066,音频,3D 空间音频,YamaEngine/Audio/Audio3DSpatialSystem.cs|YamaEngine/Audio/AudioSpatialReal.cs,真实实现,已实现,—,距离衰减断言
+G3-067,音频,DSP / 混音 / 卷积混响,YamaEngine/Audio/AdvancedAudioEngine.cs|YamaEngine/Audio/AudioDSPReal.cs|YamaEngine/Audio/AudioMixerReal.cs,2771 行,已实现,—,效果链输出校验
+G3-068,音频,Vorbis/FLAC/MP3 解码,YamaEngine/Audio/VorbisDecoder.cs|YamaEngine/Audio/AudioDecoderReal.cs,2026-11-25 云端实测：FLAC 位精确/MD5 与轮转全通过；Vorbis 归一化真修后 corr=1.000000/maxDiff=0 位级达标；MP3 gapless 真修后 corr=0.99263 但 maxDiff=0.24488 未达 5e-2,部分·仅 MP3 未达标,KnownLimitations.cs 仅剩 1 条 + AUDIO_DECODER_GAPS.md 的 M1-M3 计划,MP3 maxAbsDiff <= 5e-2 后即从清单移除
+G3-069,网络,状态复制,YamaEngine/Network/NetworkReplicationSystem.cs|YamaEngine/Networking/NetworkReplication.cs,真实实现,已实现,—,两客户端状态一致
+G3-070,网络,客户端预测 / 插值,YamaEngine/Network/NetworkInterpolator.cs|YamaEngine/Network/NetworkFramingReal.cs,存在,部分,—,高延迟下无抖动
+G3-071,动画,动画状态机 / 混合树,YamaEngine/Animation/AnimStateMachineReal.cs|YamaEngine/Animation/BlendTreeReal.cs,真实实现,已实现,—,交叉淡入断言
+G3-072,物理,GJK/EPA/SAT 碰撞,YamaEngine/Physics/CollisionDetectionReal.cs,2683 行，README 抽读确认,已实现,E2E S10,100 刚体堆叠 10s
+G3-073,物理,物理化学守恒核心,YamaEngine/Physics/Reality/,分支 B 新增 8 文件(未编译),未验证·分支B,等 CI 绿灯后合入,能量/质量/元素三重守恒
+G3-074,工程,0 错误 0 警告构建,YamaEngine/YamaEngine.csproj|.github/workflows/build.yml,-warnaserror，作者自述 2026-11-15 实测,已实现,E2E S0,build 退出码 0
+G3-075,工程,xUnit 回归门禁(1559),YamaEngine.Tests/XunitAdapter.cs|.github/workflows/build.yml,远端 -warnaserror 配置；2026-11-25 云端 CI 实测 Build success（0 错误 0 警告属实）,已实现,E2E S0 + CI_RED_TO_GREEN_REPORT.md 核验,1559/1559
+G3-076,工程,无头 smoke 60 帧,YamaCLI/YamaCLI.csproj,XunitAdapter 反射发现 Test*；2026-11-25 云端实测基线为红灯（3 个音频参考一致性用例失败），已由 KnownLimitations.cs 显式隔离并真修 3 处，最终 Test success,已修复·基线红灯,CI_RED_TO_GREEN_REPORT.md + AUDIO_DECODER_GAPS.md + KnownLimitations.cs,Build/Test/Smoke 三 step 全绿；3 条音频差距建档待算法修复
+G3-077,工程,静态仓库守卫,scripts/path_guard.py|ci/repo-guards.yml,分支 A 新增(待移入 workflows),部分·分支A,本轮补 capability_audit.py,python3 审计 PASS
+G3-078,工程,文档 / 手册,ARCHITECTURE.md|USER_GUIDE.md|TUTORIAL.md,40 篇 md,已实现,本轮补矩阵与决策文档,新人照文档跑通
+G3-079,工程,许可证 / 治理,LICENSE|SECURITY.md|CHANGELOG.md|NOTICE|CODE_OF_CONDUCT.md,分支 A 补齐 4 个缺失,部分,矩阵登记,dotnet list package 无冲突
+G3-080,工程,示例工程,Templates/Basic3D/,仅 1 个模板,部分,本轮补 Basic2D / NpcRealityDemo,3 个模板一键跑
+G3-081,生态,社区 / 发行 / 第三方验证,—,0 star / 0 fork / 单人提交,缺失,ECOLOGY_ROADMAP.md,外部 PR + 签名 tag

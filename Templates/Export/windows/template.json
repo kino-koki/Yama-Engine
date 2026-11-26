@@ -1,0 +1,20 @@
+{
+  "formatVersion": 1,
+  "platform": "windows",
+  "displayName": "Windows x64",
+  "status": "已实现·未端到端",
+  "renderer": "Vulkan 1.4",
+  "runtimeBinary": "YamaRuntime.exe",
+  "resourceRoot": "Content",
+  "startupScene": "Content/Scenes/Main.yama",
+  "projectManifest": "yama.project.json",
+  "entryArgs": [
+    "--headless=false",
+    "--project",
+    "."
+  ],
+  "requiredNative": [
+    "vulkan-1.dll"
+  ],
+  "notes": "规格契约，非可运行包；产出真实包需 YamaCLI build --platform windows 与真机编译。"
+}
