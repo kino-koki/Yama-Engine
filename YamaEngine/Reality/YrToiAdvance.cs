@@ -29,6 +29,9 @@ namespace YamaEngine.Reality
         public const float ToiSlop = 1e-3f;
         public const float MinStep = 1e-6f;
 
+        /// <summary>启用角速度保守膨胀的 CCD（默认 false）。</summary>
+        public bool UseAngularInflation { get; set; } = false;
+        public int LastCcdPairs { get; private set; }
         public int LastSubsteps { get; private set; }
         public int LastHits { get; private set; }
         public int LastContactPoints { get; private set; }
@@ -41,7 +44,8 @@ namespace YamaEngine.Reality
         public void Advance(RigidBody3D[] bodies, YrObb[] obbs, RVec3[] halfExtents,
                             YrNarrowPhase narrow, YrContactSolver contacts,
                             YrJointSolver joints, float dt, YrSurface surface,
-                            int iterations, int maxSubsteps)
+                            int iterations, int maxSubsteps,
+                            (int, int)[]? ccdPairs = null)
         {
             if (bodies == null || obbs == null || halfExtents == null)
                 throw new ArgumentNullException(nameof(bodies));
@@ -61,8 +65,24 @@ namespace YamaEngine.Reality
 
             for (int guard = 0; guard < cap && remaining > MinStep; guard++)
             {
-                float toi = contactResolved
-                    ? -1f : YrSweptObb.EarliestToiAll(obbs, bodies, remaining);
+                float toi;
+                if (contactResolved) toi = -1f;
+                else if (ccdPairs != null)
+                {
+                    // 候选对由整帧扫掠 AABB BVH 提供，是「整帧」超集；
+                    // 子步 remaining 变小后仍是保守超集，不会漏报。
+                    // 注意：BVH 的轨迹盒本身已含角速度膨胀，因此此分支下
+                    // UseAngularInflation 不再叠加（避免双重保守）。
+                    LastCcdPairs = ccdPairs.Length;
+                    toi = YrSweptObb.EarliestToi(ccdPairs, obbs, bodies, remaining);
+                }
+                else
+                {
+                    LastCcdPairs = -1;
+                    toi = UseAngularInflation
+                        ? YrSweptObb.EarliestToiAllAngular(obbs, bodies, remaining)
+                        : YrSweptObb.EarliestToiAll(obbs, bodies, remaining);
+                }
                 float span;
                 if (toi >= 0f && toi < remaining)
                 {

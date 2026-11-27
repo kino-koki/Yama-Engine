@@ -84,6 +84,20 @@ namespace YamaEngine.Reality
         /// </summary>
         public bool UseToiSubsteps { get; set; } = false;
         public int ToiMaxSubsteps { get; set; } = 8;
+        /// <summary>
+        /// 用扫掠 AABB BVH 的候选对替代 O(n²) 全对 CCD。默认 false，
+        /// 保持第六轮语义；开启后 LastCcdPairs 可观测候选对数量。
+        /// </summary>
+        public bool UseBvhCcdPairs { get; set; } = false;
+        /// <summary>启用角速度保守膨胀 CCD（默认 false）。</summary>
+        public bool UseAngularSweep { get; set; } = false;
+        /// <summary>窄相使用 Sutherland-Hodgman 面裁剪流形（默认 false）。</summary>
+        public bool UseFaceClipping
+        {
+            get => _narrow.UseFaceClipping;
+            set => _narrow.UseFaceClipping = value;
+        }
+        public int LastCcdPairs => _toi.LastCcdPairs;
         public int LastToiSubsteps => _toi.LastSubsteps;
         public int LastToiHits => _toi.LastHits;
         public int LastToiContactPoints => _toi.LastContactPoints;
@@ -127,8 +141,12 @@ namespace YamaEngine.Reality
             for (int k = 0; k < js.Length; k++) edges.Add((js[k].A, js[k].B));
             _islands.Build(_bodies.Length, edges.ToArray());
 
+            _toi.UseAngularInflation = UseAngularSweep;
+            (int, int)[]? ccdPairs = UseBvhCcdPairs
+                ? YrSweptBroadphase.SweptPairs(_obbs, _bodies, dt)
+                : null;
             _toi.Advance(_bodies, _obbs, _halfExtents, _narrow, _contacts, _joints,
-                         dt, Surface, SolverIterations, ToiMaxSubsteps);
+                         dt, Surface, SolverIterations, ToiMaxSubsteps, ccdPairs);
 
             var vx = new float[_bodies.Length];
             var vy = new float[_bodies.Length];

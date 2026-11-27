@@ -28,6 +28,11 @@ namespace YamaEngine.Reality
         public float LastEarliestToi { get; private set; } = -1f;
         public int LastCandidatePairs { get; private set; }
         public int LastHitPairs { get; private set; }
+        /// <summary>
+        /// 默认 false = 第五轮的顶点侵入近似（保持既有回归语义）；
+        /// true = 使用 Sutherland-Hodgman 面裁剪完整接触流形。
+        /// </summary>
+        public bool UseFaceClipping { get; set; } = false;
 
         public void ClearWarmCache() => _warmNormal.Clear();
 
@@ -71,7 +76,9 @@ namespace YamaEngine.Reality
                 float toi = ContinuousCollision.SweptSphereSphere(
                     obbs[i].Center, bodies[i].LinearVelocity, BoundingRadius(obbs[i]),
                     obbs[j].Center, bodies[j].LinearVelocity, BoundingRadius(obbs[j]), dt);
-                RVec3[] pts = YrContactManifold.Build(obbs[i], obbs[j], hit);
+                RVec3[] pts = UseFaceClipping
+                    ? YrFaceClipping.Build(obbs[i], obbs[j], hit)
+                    : YrContactManifold.Build(obbs[i], obbs[j], hit);
                 hits.Add((i, j, toi, hit, pts));
             }
             LastHitPairs = hits.Count;
