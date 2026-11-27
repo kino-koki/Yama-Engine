@@ -36,6 +36,11 @@ namespace YamaEngine.Reality
         /// CA 用局部 t 而非整帧 dt 的旋转上界，比第七轮更精确且不漏报。
         /// </summary>
         public bool UseExactCa { get; set; } = false;
+        /// <summary>
+        /// 启用完整旋转 CA（默认 false，优先级高于 UseExactCa / UseAngularInflation）。
+        /// 每步积分姿态并重枚举 15 轴，比第十轮线性化 CA 更精确。
+        /// </summary>
+        public bool UseFullRotationalCa { get; set; } = false;
         public int LastCcdPairs { get; private set; }
         public int LastSubsteps { get; private set; }
         public int LastHits { get; private set; }
@@ -79,18 +84,22 @@ namespace YamaEngine.Reality
                     // 注意：BVH 的轨迹盒本身已含角速度膨胀，因此此分支下
                     // UseAngularInflation 不再叠加（避免双重保守）。
                     LastCcdPairs = ccdPairs.Length;
-                    toi = UseExactCa
-                        ? YrConservativeAdvancement.EarliestToi(ccdPairs, obbs, bodies, remaining)
-                        : YrSweptObb.EarliestToi(ccdPairs, obbs, bodies, remaining);
+                    toi = UseFullRotationalCa
+                        ? YrFullRotationalCa.EarliestToi(ccdPairs, obbs, bodies, remaining)
+                        : (UseExactCa
+                            ? YrConservativeAdvancement.EarliestToi(ccdPairs, obbs, bodies, remaining)
+                            : YrSweptObb.EarliestToi(ccdPairs, obbs, bodies, remaining));
                 }
                 else
                 {
                     LastCcdPairs = -1;
-                    toi = UseExactCa
-                        ? YrConservativeAdvancement.EarliestToiAll(obbs, bodies, remaining)
-                        : (UseAngularInflation
-                            ? YrSweptObb.EarliestToiAllAngular(obbs, bodies, remaining)
-                            : YrSweptObb.EarliestToiAll(obbs, bodies, remaining));
+                    toi = UseFullRotationalCa
+                        ? YrFullRotationalCa.EarliestToiAll(obbs, bodies, remaining)
+                        : (UseExactCa
+                            ? YrConservativeAdvancement.EarliestToiAll(obbs, bodies, remaining)
+                            : (UseAngularInflation
+                                ? YrSweptObb.EarliestToiAllAngular(obbs, bodies, remaining)
+                                : YrSweptObb.EarliestToiAll(obbs, bodies, remaining)));
                 }
                 float span;
                 if (toi >= 0f && toi < remaining)

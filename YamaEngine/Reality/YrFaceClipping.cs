@@ -98,6 +98,32 @@ namespace YamaEngine.Reality
             };
         }
 
+        /// <summary>
+        /// 正确的入射面选择（第十一轮）：取与 faceNormal **最反向**的那个面，
+        /// 即 |faceNormal·ax[k]| 最大的轴、sign = −sign(dot)。
+        ///
+        /// 既有 `IncidentFace(b, n)` 是「取 n·ax[k] 最小者」的启发式，对轴对齐
+        /// 场景会落到侧面而非朝向 A 的面；单面路径保留它不动以维持零回归，
+        /// 多面路径改用这个正确版本。
+        /// </summary>
+        public static RVec3[] IncidentFaceFor(in YrObb b, RVec3 faceNormal)
+        {
+            RVec3[] ax = AxesOf(b);
+            int kinc = 0; float best = -1f; int sign = -1;
+            for (int k = 0; k < 3; k++)
+            {
+                float d = faceNormal.Dot(ax[k]);
+                if (MathF.Abs(d) > best) { best = MathF.Abs(d); kinc = k; sign = d >= 0f ? -1 : 1; }
+            }
+            RVec3 center = b.Center + ax[kinc] * (sign * Half(b, kinc));
+            int k1 = (kinc + 1) % 3, k2 = (kinc + 2) % 3;
+            RVec3 t1 = ax[k1] * Half(b, k1), t2 = ax[k2] * Half(b, k2);
+            return new RVec3[] {
+                center - t1 - t2, center + t1 - t2,
+                center + t1 + t2, center - t1 + t2
+            };
+        }
+
         /// <summary>线性边函数 f(u,v)=au·u+av·v+c，f &gt;= -Eps 为内侧。</summary>
         private static float Edge(float u, float v, int edge, float h1, float h2)
             => edge == 0 ? u + h1 : edge == 1 ? h1 - u
@@ -219,9 +245,11 @@ namespace YamaEngine.Reality
         /// 多面同时接触时不同面可能复用同一 Id」。现在不同面的 Id 段不重叠，
         /// 逐点 warm start 在多面接触下也不会串台。
         ///
-        /// 诚实边界：入射面仍按**全局碰撞法向**选一次（与 BuildTagged 一致），
-        /// 不是每个参考面各自重选；轴对齐盒的共面接触可覆盖，斜角多面接触
-        /// 仍是启发式。输出经 YrContactReduction 缩减到默认 4 点。
+        /// 第十一轮：入射面改为**每个参考面各自按该面法向重选**
+        /// （`IncidentFaceFor`，修正旧启发式落到侧面的问题）；深度沿各自面法向测。
+        /// 诚实边界：参考面候选仍按全局法向的 |dot| 筛，± 同轴的
+        /// 正反两面会同时入候选；斜角多面接触仍是启发式。
+        /// 输出经 YrContactReduction.ReduceByWrench 按 Jacobian 独立性缩到 4 点。
         /// </summary>
         public static YrClippedPoint[] BuildMultiFace(in YrObb a, in YrObb b,
                                                       in YrSatHit hit, int maxFaces = 3)
@@ -246,12 +274,14 @@ namespace YamaEngine.Reality
             });
             int use = Math.Min(Math.Max(1, maxFaces), faces.Count);
 
-            RVec3[] incident = IncidentFace(b, n);
             var all = new System.Collections.Generic.List<YrClippedPoint>();
             for (int f = 0; f < use; f++)
             {
                 RefFace rf = RefFaceFor(a, faces[f].Axis, faces[f].Sign);
                 int fid = faces[f].FaceId;
+                // 第十一轮：每个参考面各自重选入射面（用该面法向），
+                // 不再整对共用一次全局法向的启发式选择。
+                RVec3[] incident = IncidentFaceFor(b, rf.Normal);
 
                 var poly = new System.Collections.Generic.List<ClipPoint>();
                 for (int i = 0; i < incident.Length; i++)
@@ -260,7 +290,7 @@ namespace YamaEngine.Reality
                     RVec3 rel = pt - rf.Center;
                     poly.Add(new ClipPoint {
                         U = rel.Dot(rf.T1), V = rel.Dot(rf.T2),
-                        D = (rf.Center - pt).Dot(n), P = pt, Id = i
+                        D = (rf.Center - pt).Dot(rf.Normal), P = pt, Id = i
                     });
                 }
                 for (int e = 0; e < 4; e++) poly = Clip(poly, e, rf.H1, rf.H2);
@@ -282,12 +312,27 @@ namespace YamaEngine.Reality
                     cand.Insert(pos, item);
                 }
                 int cnt = Math.Min(MaxPoints, cand.Count);
+                // 第十一轮真修：Sutherland-Hodgman 的交点在 Lerp 里**继承起点 Id**，
+                // 同一参考面内多个交点可能落到同一个 incident 顶点 Id。
+                // 第十轮直接用 fid*4+cp.Id 会让面内出现重复 Id（CI 46006257966
+                // 实测「多面 Id 冲突: 0」），逐点 warm start 会串台。
+                // 修法：保留顶点原 Id 的跨帧稳定性；若该槽位已被占用（或越界），
+                // 在该面内分配最小空闲槽位。面内 0..3 唯一，不同面段不重叠。
+                var used = new bool[MaxPoints];
                 for (int i = 0; i < cnt; i++)
                 {
                     ClipPoint cp = cand[i].Point;
+                    int local = cp.Id;
+                    if (local < 0 || local >= MaxPoints || used[local])
+                    {
+                        local = 0;
+                        while (local < MaxPoints && used[local]) local++;
+                    }
+                    if (local >= MaxPoints) continue;
+                    used[local] = true;
                     all.Add(new YrClippedPoint(
                         rf.Center + rf.T1 * cp.U + rf.T2 * cp.V,
-                        fid * MaxPoints + cp.Id));
+                        fid * MaxPoints + local));
                 }
             }
             if (all.Count == 0) return BuildTagged(a, b, hit);
@@ -304,12 +349,15 @@ namespace YamaEngine.Reality
             var pts = new RVec3[all.Length];
             var ids = new int[all.Length];
             var dep = new float[all.Length];
+            RVec3 nn = hit.Normal.Normalized();
+            float ra = YrContactManifold.ProjectedRadius(a, nn);
             for (int i = 0; i < all.Length; i++)
             {
                 pts[i] = all[i].Point; ids[i] = all[i].Id;
-                dep[i] = (all[i].Point - a.Center).Length();
+                // 物理侵入深度（沿碰撞法向），替代第十轮的「到中心距离」伪深度
+                dep[i] = ra - (all[i].Point - a.Center).Dot(nn);
             }
-            var red = YrContactReduction.Reduce(pts, ids, dep, 4);
+            var red = YrContactReduction.ReduceByWrench(pts, ids, dep, nn, a.Center, 4);
             var result = new YrClippedPoint[red.Length];
             for (int i = 0; i < red.Length; i++)
                 result[i] = new YrClippedPoint(red[i].Point, red[i].Id);

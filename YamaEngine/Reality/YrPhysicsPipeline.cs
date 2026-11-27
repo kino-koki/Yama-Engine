@@ -100,6 +100,15 @@ namespace YamaEngine.Reality
             get => _toi.UseExactCa;
             set => _toi.UseExactCa = value;
         }
+        /// <summary>
+        /// 启用完整旋转 CA（默认 false，优先级高于 UseExactCa / UseAngularSweep）。
+        /// 每步四元数积分 + 重枚举 15 轴，替代线性化 CA 的累积旋转上界。
+        /// </summary>
+        public bool UseFullRotationalCa
+        {
+            get => _toi.UseFullRotationalCa;
+            set => _toi.UseFullRotationalCa = value;
+        }
         /// <summary>窄相使用多面接触流形（默认 false）。</summary>
         public bool UseMultiFace
         {
