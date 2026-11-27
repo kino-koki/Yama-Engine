@@ -42,6 +42,11 @@ namespace YamaEngine.Reality
         /// 开启时自动启用面裁剪以获得稳定 Id。
         /// </summary>
         public bool UsePointWarmCache { get; set; } = false;
+        /// <summary>
+        /// 多面接触流形（(faceId,pointId) 稳定 Id + 几何缩减到 4 点）。
+        /// 默认 false = 第八轮单面语义，零回归。
+        /// </summary>
+        public bool UseMultiFace { get; set; } = false;
         public int PointWarmCacheCount => _warmPoints.Count;
 
         public void ClearWarmCache()
@@ -93,7 +98,18 @@ namespace YamaEngine.Reality
                     obbs[j].Center, bodies[j].LinearVelocity, BoundingRadius(obbs[j]), dt);
                 RVec3[] pts;
                 int[] ids;
-                if (UsePointWarmCache || UseFaceClipping)
+                if (UseMultiFace)
+                {
+                    var tagged = YrFaceClipping.BuildMultiFaceReduced(obbs[i], obbs[j], hit);
+                    pts = new RVec3[tagged.Length];
+                    ids = new int[tagged.Length];
+                    for (int q = 0; q < tagged.Length; q++)
+                    {
+                        pts[q] = tagged[q].Point;
+                        ids[q] = tagged[q].Id;
+                    }
+                }
+                else if (UsePointWarmCache || UseFaceClipping)
                 {
                     var tagged = YrFaceClipping.BuildTagged(obbs[i], obbs[j], hit);
                     pts = new RVec3[tagged.Length];

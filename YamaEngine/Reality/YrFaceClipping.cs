@@ -12,9 +12,9 @@ namespace YamaEngine.Reality
     ///      用参考面矩形的 4 条侧边做 Sutherland-Hodgman 裁剪；
     ///   ④ 按侵入深度 d 保留至多 4 点，输出参考面上的 3D 接触点。
     ///
-    /// 诚实边界：这仍是**面-面**近似（取单对参考/入射面），不处理多面同时接触、
-    /// 也不生成带持久 id 的逐点 warm start 缓存；旋转盒的 incident 面选择是启发式。
-    /// 但它已经不再是「顶点侵入近似」，是真正的面裁剪流形。
+    /// 诚实边界：单面路径仍是面-面近似；第十轮新增 BuildMultiFace 支持多参考面，
+    /// 但入射面仍按全局法向选一次、斜角多面接触仍是启发式。
+    /// 逐点 Id 已稳定（第八轮），多面下按 (faceId,pointId) 分段（第十轮）。
     /// </summary>
     public static class YrFaceClipping
     {
@@ -196,6 +196,123 @@ namespace YamaEngine.Reality
             var tagged = BuildTagged(a, b, hit);
             var result = new RVec3[tagged.Length];
             for (int i = 0; i < tagged.Length; i++) result[i] = tagged[i].Point;
+            return result;
+        }
+
+        /// <summary>按显式 (axis,sign) 取 A 的某个面，faceId = axis*2 + (sign>0?1:0)。</summary>
+        public static RefFace RefFaceFor(in YrObb a, int axis, int sign)
+        {
+            RVec3[] ax = AxesOf(a);
+            RVec3 n = ax[axis] * (float)sign;
+            RVec3 center = a.Center + n * Half(a, axis);
+            int k1 = (axis + 1) % 3, k2 = (axis + 2) % 3;
+            return new RefFace(center, ax[k1], ax[k2], Half(a, k1), Half(a, k2), n);
+        }
+
+        public static int FaceId(int axis, int sign) => axis * 2 + (sign > 0 ? 1 : 0);
+
+        /// <summary>
+        /// 多面接触流形：对 A 上与碰撞法向足够对齐的多个参考面分别做面裁剪，
+        /// 每个点的稳定 Id = faceId*4 + 局部顶点/交点 Id（0..23）。
+        ///
+        /// 这解决第八轮留下的局限：「逐点 Id 只在单对参考/入射面内稳定，
+        /// 多面同时接触时不同面可能复用同一 Id」。现在不同面的 Id 段不重叠，
+        /// 逐点 warm start 在多面接触下也不会串台。
+        ///
+        /// 诚实边界：入射面仍按**全局碰撞法向**选一次（与 BuildTagged 一致），
+        /// 不是每个参考面各自重选；轴对齐盒的共面接触可覆盖，斜角多面接触
+        /// 仍是启发式。输出经 YrContactReduction 缩减到默认 4 点。
+        /// </summary>
+        public static YrClippedPoint[] BuildMultiFace(in YrObb a, in YrObb b,
+                                                      in YrSatHit hit, int maxFaces = 3)
+        {
+            if (!hit.Hit) return Array.Empty<YrClippedPoint>();
+            RVec3 n = hit.Normal.Normalized();
+            RVec3[] ax = AxesOf(a);
+
+            // 候选参考面：|n·faceNormal| >= 0.4，按 (|dot| desc, faceId asc) 排序
+            var faces = new System.Collections.Generic.List<(float Align, int FaceId, int Axis, int Sign)>();
+            for (int axis = 0; axis < 3; axis++)
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    float al = MathF.Abs(n.Dot(ax[axis] * (float)sign));
+                    if (al >= 0.4f) faces.Add((al, FaceId(axis, sign), axis, sign));
+                }
+            if (faces.Count == 0) return BuildTagged(a, b, hit);
+            faces.Sort((x, y) => {
+                if (x.Align > y.Align + 1e-9f) return -1;
+                if (x.Align < y.Align - 1e-9f) return 1;
+                return x.FaceId.CompareTo(y.FaceId);
+            });
+            int use = Math.Min(Math.Max(1, maxFaces), faces.Count);
+
+            RVec3[] incident = IncidentFace(b, n);
+            var all = new System.Collections.Generic.List<YrClippedPoint>();
+            for (int f = 0; f < use; f++)
+            {
+                RefFace rf = RefFaceFor(a, faces[f].Axis, faces[f].Sign);
+                int fid = faces[f].FaceId;
+
+                var poly = new System.Collections.Generic.List<ClipPoint>();
+                for (int i = 0; i < incident.Length; i++)
+                {
+                    RVec3 pt = incident[i];
+                    RVec3 rel = pt - rf.Center;
+                    poly.Add(new ClipPoint {
+                        U = rel.Dot(rf.T1), V = rel.Dot(rf.T2),
+                        D = (rf.Center - pt).Dot(n), P = pt, Id = i
+                    });
+                }
+                for (int e = 0; e < 4; e++) poly = Clip(poly, e, rf.H1, rf.H2);
+
+                // 按侵入深度取该面至多 4 点
+                var cand = new System.Collections.Generic.List<(float D, int Index, ClipPoint Point)>();
+                for (int i = 0; i < poly.Count; i++)
+                {
+                    if (poly[i].D < -Eps) continue;
+                    (float D, int Index, ClipPoint Point) item = (poly[i].D, i, poly[i]);
+                    int pos = cand.Count;
+                    for (int q = 0; q < cand.Count; q++)
+                    {
+                        bool before = item.D > cand[q].D + 1e-9f
+                                   || (MathF.Abs(item.D - cand[q].D) <= 1e-9f
+                                       && item.Index < cand[q].Index);
+                        if (before) { pos = q; break; }
+                    }
+                    cand.Insert(pos, item);
+                }
+                int cnt = Math.Min(MaxPoints, cand.Count);
+                for (int i = 0; i < cnt; i++)
+                {
+                    ClipPoint cp = cand[i].Point;
+                    all.Add(new YrClippedPoint(
+                        rf.Center + rf.T1 * cp.U + rf.T2 * cp.V,
+                        fid * MaxPoints + cp.Id));
+                }
+            }
+            if (all.Count == 0) return BuildTagged(a, b, hit);
+            all.Sort((x, y) => x.Id.CompareTo(y.Id));
+            return all.ToArray();
+        }
+
+        /// <summary>多面 + 缩减的一体入口：返回至多 4 点，Id 保持 (faceId,pointId) 编码。</summary>
+        public static YrClippedPoint[] BuildMultiFaceReduced(in YrObb a, in YrObb b,
+                                                            in YrSatHit hit, int maxFaces = 3)
+        {
+            var all = BuildMultiFace(a, b, hit, maxFaces);
+            if (all.Length <= 4) return all;
+            var pts = new RVec3[all.Length];
+            var ids = new int[all.Length];
+            var dep = new float[all.Length];
+            for (int i = 0; i < all.Length; i++)
+            {
+                pts[i] = all[i].Point; ids[i] = all[i].Id;
+                dep[i] = (all[i].Point - a.Center).Length();
+            }
+            var red = YrContactReduction.Reduce(pts, ids, dep, 4);
+            var result = new YrClippedPoint[red.Length];
+            for (int i = 0; i < red.Length; i++)
+                result[i] = new YrClippedPoint(red[i].Point, red[i].Id);
             return result;
         }
 

@@ -31,6 +31,11 @@ namespace YamaEngine.Reality
 
         /// <summary>启用角速度保守膨胀的 CCD（默认 false）。</summary>
         public bool UseAngularInflation { get; set; } = false;
+        /// <summary>
+        /// 启用迭代式 Conservative Advancement（默认 false，优先于 UseAngularInflation）。
+        /// CA 用局部 t 而非整帧 dt 的旋转上界，比第七轮更精确且不漏报。
+        /// </summary>
+        public bool UseExactCa { get; set; } = false;
         public int LastCcdPairs { get; private set; }
         public int LastSubsteps { get; private set; }
         public int LastHits { get; private set; }
@@ -74,14 +79,18 @@ namespace YamaEngine.Reality
                     // 注意：BVH 的轨迹盒本身已含角速度膨胀，因此此分支下
                     // UseAngularInflation 不再叠加（避免双重保守）。
                     LastCcdPairs = ccdPairs.Length;
-                    toi = YrSweptObb.EarliestToi(ccdPairs, obbs, bodies, remaining);
+                    toi = UseExactCa
+                        ? YrConservativeAdvancement.EarliestToi(ccdPairs, obbs, bodies, remaining)
+                        : YrSweptObb.EarliestToi(ccdPairs, obbs, bodies, remaining);
                 }
                 else
                 {
                     LastCcdPairs = -1;
-                    toi = UseAngularInflation
-                        ? YrSweptObb.EarliestToiAllAngular(obbs, bodies, remaining)
-                        : YrSweptObb.EarliestToiAll(obbs, bodies, remaining);
+                    toi = UseExactCa
+                        ? YrConservativeAdvancement.EarliestToiAll(obbs, bodies, remaining)
+                        : (UseAngularInflation
+                            ? YrSweptObb.EarliestToiAllAngular(obbs, bodies, remaining)
+                            : YrSweptObb.EarliestToiAll(obbs, bodies, remaining));
                 }
                 float span;
                 if (toi >= 0f && toi < remaining)

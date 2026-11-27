@@ -91,6 +91,21 @@ namespace YamaEngine.Reality
         public bool UseBvhCcdPairs { get; set; } = false;
         /// <summary>启用角速度保守膨胀 CCD（默认 false）。</summary>
         public bool UseAngularSweep { get; set; } = false;
+        /// <summary>
+        /// 启用精确迭代 CA（默认 false，优先于 UseAngularSweep）。
+        /// 用局部推进量 t 的旋转上界替代整帧 dt 膨胀，更精确且不漏报。
+        /// </summary>
+        public bool UseExactCa
+        {
+            get => _toi.UseExactCa;
+            set => _toi.UseExactCa = value;
+        }
+        /// <summary>窄相使用多面接触流形（默认 false）。</summary>
+        public bool UseMultiFace
+        {
+            get => _narrow.UseMultiFace;
+            set => _narrow.UseMultiFace = value;
+        }
         /// <summary>窄相使用 Sutherland-Hodgman 面裁剪流形（默认 false）。</summary>
         public bool UseFaceClipping
         {
