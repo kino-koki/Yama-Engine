@@ -109,6 +109,15 @@ namespace YamaEngine.Reality
             get => _toi.UseFullRotationalCa;
             set => _toi.UseFullRotationalCa = value;
         }
+        /// <summary>
+        /// 启用角动量版 CA（默认 false，优先级高于其余所有 CCD 开关）。
+        /// 以守恒量 L 积分姿态，处理各向异性惯量下的自由进动。
+        /// </summary>
+        public bool UseAngularMomentumCa
+        {
+            get => _toi.UseAngularMomentumCa;
+            set => _toi.UseAngularMomentumCa = value;
+        }
         /// <summary>窄相使用多面接触流形（默认 false）。</summary>
         public bool UseMultiFace
         {

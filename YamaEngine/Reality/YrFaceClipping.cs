@@ -247,9 +247,10 @@ namespace YamaEngine.Reality
         ///
         /// 第十一轮：入射面改为**每个参考面各自按该面法向重选**
         /// （`IncidentFaceFor`，修正旧启发式落到侧面的问题）；深度沿各自面法向测。
-        /// 诚实边界：参考面候选仍按全局法向的 |dot| 筛，± 同轴的
-        /// 正反两面会同时入候选；斜角多面接触仍是启发式。
-        /// 输出经 YrContactReduction.ReduceByWrench 按 Jacobian 独立性缩到 4 点。
+        /// 第十二轮：参考面候选改为「每轴只取与 n 同向的一侧 + 按 B 的
+        /// 侵入粗筛」，不再让正反两面同时入候选；斜角多面接触仍是启发式。
+        /// 输出经 YrContactReduction.ReduceByContactJacobian（含摩擦切向）
+        /// 按 18D 接触 Jacobian 独立性缩到 4 点。
         /// </summary>
         public static YrClippedPoint[] BuildMultiFace(in YrObb a, in YrObb b,
                                                       in YrSatHit hit, int maxFaces = 3)
@@ -258,15 +259,39 @@ namespace YamaEngine.Reality
             RVec3 n = hit.Normal.Normalized();
             RVec3[] ax = AxesOf(a);
 
-            // 候选参考面：|n·faceNormal| >= 0.4，按 (|dot| desc, faceId asc) 排序
+            // 第十二轮：每轴**只取与 n 同向的那一侧**（hit.Normal 从 A 指向 B，
+            // A 上朝向 B 的接触面法向应与 n 同向）。第十轮用 |dot| 让 ± 同轴
+            // 的正反面同时入候选，会把背面也裁一遍；这里改成每轴至多 1 面。
+            // 再加粗筛：B 中心沿该面法向到参考面的分离已大于 B 的投影半径时，
+            // 该面不可能接触，直接剔除。
             var faces = new System.Collections.Generic.List<(float Align, int FaceId, int Axis, int Sign)>();
             for (int axis = 0; axis < 3; axis++)
-                for (int sign = -1; sign <= 1; sign += 2)
+            {
+                float d = n.Dot(ax[axis]);
+                float al = MathF.Abs(d);
+                if (al < 0.4f) continue;
+                int sign = d >= 0f ? 1 : -1;
+                RVec3 fn = ax[axis] * (float)sign;
+                RVec3 faceCenter = a.Center + fn * Half(a, axis);
+                float sep = (b.Center - faceCenter).Dot(fn);
+                float rb = YrContactManifold.ProjectedRadius(b, fn);
+                if (sep > rb + Eps) continue;   // 该面完全在 B 之外
+                faces.Add((al, FaceId(axis, sign), axis, sign));
+            }
+            // 保底：若粗筛把面全剔了，取 |dot| 最大轴的同向面（不再回退
+            // BuildTagged —— 它的 Id 段 0..3 与多面 (faceId,pointId) 编码冲突，
+            // 会让「点落在自己 Id 对应的参考面内」的断言失效）。
+            if (faces.Count == 0)
+            {
+                int bestAxis = 0; float best = -1f;
+                for (int axis = 0; axis < 3; axis++)
                 {
-                    float al = MathF.Abs(n.Dot(ax[axis] * (float)sign));
-                    if (al >= 0.4f) faces.Add((al, FaceId(axis, sign), axis, sign));
+                    float al = MathF.Abs(n.Dot(ax[axis]));
+                    if (al > best) { best = al; bestAxis = axis; }
                 }
-            if (faces.Count == 0) return BuildTagged(a, b, hit);
+                int sign = n.Dot(ax[bestAxis]) >= 0f ? 1 : -1;
+                faces.Add((best, FaceId(bestAxis, sign), bestAxis, sign));
+            }
             faces.Sort((x, y) => {
                 if (x.Align > y.Align + 1e-9f) return -1;
                 if (x.Align < y.Align - 1e-9f) return 1;
@@ -357,7 +382,8 @@ namespace YamaEngine.Reality
                 // 物理侵入深度（沿碰撞法向），替代第十轮的「到中心距离」伪深度
                 dep[i] = ra - (all[i].Point - a.Center).Dot(nn);
             }
-            var red = YrContactReduction.ReduceByWrench(pts, ids, dep, nn, a.Center, 4);
+            var red = YrContactReduction.ReduceByContactJacobian(
+                pts, ids, dep, nn, a.Center, 4);
             var result = new YrClippedPoint[red.Length];
             for (int i = 0; i < red.Length; i++)
                 result[i] = new YrClippedPoint(red[i].Point, red[i].Id);

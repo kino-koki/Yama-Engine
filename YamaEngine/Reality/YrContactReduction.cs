@@ -226,6 +226,159 @@ namespace YamaEngine.Reality
             return sum;
         }
 
+        /// <summary>
+        /// 按完整接触 Jacobian（含摩擦切向）缩减（第十二轮）。
+        ///
+        /// `ReduceByWrench` 只构造法向的 6D 行 `[n, r×n]`，丢掉了两个摩擦切向
+        /// 方向上的力臂信息。这里每个接触点构造 **18D 行**：
+        ///   `[ n, r×n, t1, r×t1, t2, r×t2 ]`（t1,t2 为法向的正交基）
+        /// 即法向 + 两个切向各自的 6D wrench，做严格 modified Gram-Schmidt
+        /// 挑残差最大的点，等价于在含摩擦的约束空间里选线性最独立的接触。
+        ///
+        /// linearWeight / angularWeight 允许按两体有效质量给线性段与角段加权；
+        /// 默认是 1:1。诚实边界：这是**外部标量权重**，不是从两体惯量张量算出的
+        /// 完整有效质量矩阵；仍未含摩擦锥的非线性边界与切向耦合。
+        /// </summary>
+        public static YrReducedPoint[] ReduceByContactJacobian(
+            RVec3[] points, int[] ids, float[] depths, RVec3 normal, RVec3 center,
+            int max = DefaultMax, float linearWeight = 1f, float angularWeight = 1f)
+        {
+            if (points == null || ids == null || depths == null)
+                throw new ArgumentNullException(nameof(points));
+            int n = Math.Min(points.Length, Math.Min(ids.Length, depths.Length));
+            if (n == 0 || max <= 0) return Array.Empty<YrReducedPoint>();
+            int take = Math.Min(max, n);
+            TangentBasis(normal, out RVec3 nn, out RVec3 t1, out RVec3 t2);
+
+            var rows = new float[n][];
+            for (int i = 0; i < n; i++)
+                rows[i] = ContactRow(points[i], center, nn, t1, t2,
+                                     linearWeight, angularWeight);
+
+            float[] dp = depths; int[] idp = ids;
+            var order = new int[n];
+            for (int i = 0; i < n; i++) order[i] = i;
+            Array.Sort(order, (x, y) => {
+                if (dp[x] > dp[y] + 1e-9f) return -1;
+                if (dp[x] < dp[y] - 1e-9f) return 1;
+                return idp[x].CompareTo(idp[y]);
+            });
+
+            var chosen = new System.Collections.Generic.List<int>(take);
+            var basis = new System.Collections.Generic.List<float[]>(take);
+            chosen.Add(order[0]);
+            basis.Add(NormalizeN((float[])rows[order[0]].Clone()));
+
+            while (chosen.Count < take)
+            {
+                int bestIdx = -1;
+                float bestResidual = -1f;
+                int bestId = int.MaxValue;
+                for (int c = 0; c < n; c++)
+                {
+                    int idx = order[c];
+                    bool already = false;
+                    for (int q = 0; q < chosen.Count; q++)
+                        if (chosen[q] == idx) { already = true; break; }
+                    if (already) continue;
+                    float r = ResidualNormN(rows[idx], basis);
+                    bool better = r > bestResidual + 1e-9f
+                               || (MathF.Abs(r - bestResidual) <= 1e-9f
+                                   && ids[idx] < bestId);
+                    if (better) { bestResidual = r; bestIdx = idx; bestId = ids[idx]; }
+                }
+                if (bestIdx < 0) break;
+                chosen.Add(bestIdx);
+                var ortho = OrthogonalizeN(rows[bestIdx], basis);
+                basis.Add(NormN(ortho) > 1e-9f ? NormalizeN(ortho) : new float[18]);
+            }
+
+            var result = new YrReducedPoint[chosen.Count];
+            for (int i = 0; i < chosen.Count; i++)
+            {
+                int idx = chosen[i];
+                result[i] = new YrReducedPoint(points[idx], ids[idx], depths[idx]);
+            }
+            Array.Sort(result, (x, y) => x.Id.CompareTo(y.Id));
+            return result;
+        }
+
+        /// <summary>确定性法向正交基：取与 n 最不平行的坐标轴做 Gram-Schmidt。</summary>
+        public static void TangentBasis(RVec3 normal, out RVec3 n,
+                                        out RVec3 t1, out RVec3 t2)
+        {
+            n = normal.Normalized();
+            if (n.LengthSq() < 0.5f) n = new RVec3(0f, 0f, 1f);
+            float ax = MathF.Abs(n.X), ay = MathF.Abs(n.Y), az = MathF.Abs(n.Z);
+            RVec3 e = (ax <= ay && ax <= az) ? new RVec3(1f, 0f, 0f)
+                    : (ay <= az ? new RVec3(0f, 1f, 0f) : new RVec3(0f, 0f, 1f));
+            t1 = (e - n * n.Dot(e)).Normalized();
+            t2 = n.Cross(t1).Normalized();
+        }
+
+        /// <summary>暴露 18D 接触 Jacobian 行，供测试断言切向力臂非零。</summary>
+        public static float[] ContactJacobianRow(RVec3 p, RVec3 center, RVec3 normal,
+                                                 float linearWeight = 1f,
+                                                 float angularWeight = 1f)
+        {
+            TangentBasis(normal, out RVec3 nn, out RVec3 t1, out RVec3 t2);
+            return ContactRow(p, center, nn, t1, t2, linearWeight, angularWeight);
+        }
+
+        private static float[] ContactRow(RVec3 p, RVec3 center, RVec3 n,
+                                          RVec3 t1, RVec3 t2,
+                                          float lw, float aw)
+        {
+            RVec3 r = p - center;
+            RVec3[] dirs = new RVec3[] { n, t1, t2 };
+            var j = new float[18];
+            for (int k = 0; k < 3; k++)
+            {
+                RVec3 v = dirs[k];
+                j[k * 6 + 0] = v.X * lw;
+                j[k * 6 + 1] = v.Y * lw;
+                j[k * 6 + 2] = v.Z * lw;
+                RVec3 c = r.Cross(v);
+                j[k * 6 + 3] = c.X * aw;
+                j[k * 6 + 4] = c.Y * aw;
+                j[k * 6 + 5] = c.Z * aw;
+            }
+            return NormalizeN(j);
+        }
+
+        private static float[] OrthogonalizeN(float[] j,
+            System.Collections.Generic.List<float[]> basis)
+        {
+            var v = (float[])j.Clone();
+            for (int q = 0; q < basis.Count; q++)
+            {
+                float d = 0f;
+                for (int k = 0; k < v.Length; k++) d += v[k] * basis[q][k];
+                for (int k = 0; k < v.Length; k++) v[k] -= d * basis[q][k];
+            }
+            return v;
+        }
+
+        private static float NormN(float[] v)
+        {
+            float s = 0f;
+            for (int k = 0; k < v.Length; k++) s += v[k] * v[k];
+            return MathF.Sqrt(s);
+        }
+
+        private static float[] NormalizeN(float[] v)
+        {
+            float nrm = NormN(v);
+            if (nrm <= 1e-9f) return new float[v.Length];
+            var r = new float[v.Length];
+            for (int k = 0; k < v.Length; k++) r[k] = v[k] / nrm;
+            return r;
+        }
+
+        private static float ResidualNormN(float[] j,
+            System.Collections.Generic.List<float[]> basis)
+            => NormN(OrthogonalizeN(j, basis));
+
         /// <summary>供测试：最远点采样的覆盖度（所选点到最近所选点的最小距离均值）。</summary>
         public static float Spread(RVec3[] points)
         {
