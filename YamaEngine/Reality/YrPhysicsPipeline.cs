@@ -118,6 +118,15 @@ namespace YamaEngine.Reality
             get => _toi.UseAngularMomentumCa;
             set => _toi.UseAngularMomentumCa = value;
         }
+        /// <summary>
+        /// 启用割线/根细化加速 CA（默认 false，优先级高于其余所有 CCD 开关）。
+        /// L 版姿态 + 不漏报骨架，实测斜率把带旋转时的迭代数压到约 1/4。
+        /// </summary>
+        public bool UseSecantCa
+        {
+            get => _toi.UseSecantCa;
+            set => _toi.UseSecantCa = value;
+        }
         /// <summary>窄相使用多面接触流形（默认 false）。</summary>
         public bool UseMultiFace
         {

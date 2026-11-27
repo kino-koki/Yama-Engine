@@ -379,6 +379,103 @@ namespace YamaEngine.Reality
             System.Collections.Generic.List<float[]> basis)
             => NormN(OrthogonalizeN(j, basis));
 
+        /// <summary>
+        /// 通用缩减入口：直接给一组（已归一化、等长的）约束行，按严格 MGS
+        /// 线性独立性挑至多 max 个。第十三轮把矩阵构造与选点解耦，
+        /// 第十/十一/十二轮的 Reduce / ReduceByWrench / ReduceByContactJacobian
+        /// 语义都保持不变。
+        /// </summary>
+        public static YrReducedPoint[] ReduceByRows(float[][] rows, int[] ids,
+                                                     float[] depths, int max = DefaultMax)
+        {
+            if (rows == null || ids == null || depths == null)
+                throw new ArgumentNullException(nameof(rows));
+            int n = Math.Min(rows.Length, Math.Min(ids.Length, depths.Length));
+            if (n == 0 || max <= 0) return Array.Empty<YrReducedPoint>();
+            int dim = rows[0] == null ? 0 : rows[0].Length;
+            if (dim <= 0) return Array.Empty<YrReducedPoint>();
+            int take = Math.Min(max, n);
+
+            float[] dp = depths; int[] idp = ids;
+            var order = new int[n];
+            for (int i = 0; i < n; i++) order[i] = i;
+            Array.Sort(order, (x, y) => {
+                if (dp[x] > dp[y] + 1e-9f) return -1;
+                if (dp[x] < dp[y] - 1e-9f) return 1;
+                return idp[x].CompareTo(idp[y]);
+            });
+
+            var chosen = new System.Collections.Generic.List<int>(take);
+            var basis = new System.Collections.Generic.List<float[]>(take);
+            chosen.Add(order[0]);
+            basis.Add(NormalizeN((float[])rows[order[0]].Clone()));
+
+            while (chosen.Count < take)
+            {
+                int bestIdx = -1;
+                float bestResidual = -1f;
+                int bestId = int.MaxValue;
+                for (int c = 0; c < n; c++)
+                {
+                    int idx = order[c];
+                    bool already = false;
+                    for (int q = 0; q < chosen.Count; q++)
+                        if (chosen[q] == idx) { already = true; break; }
+                    if (already) continue;
+                    float r = ResidualNormN(rows[idx], basis);
+                    bool better = r > bestResidual + 1e-9f
+                               || (MathF.Abs(r - bestResidual) <= 1e-9f
+                                   && ids[idx] < bestId);
+                    if (better) { bestResidual = r; bestIdx = idx; bestId = ids[idx]; }
+                }
+                if (bestIdx < 0) break;
+                chosen.Add(bestIdx);
+                var ortho = OrthogonalizeN(rows[bestIdx], basis);
+                basis.Add(NormN(ortho) > 1e-9f ? NormalizeN(ortho) : new float[dim]);
+            }
+
+            // 注意：通用入口只返回 Id/Depth/Point 的载体，调用方负责回填 Point。
+            var result = new YrReducedPoint[chosen.Count];
+            for (int i = 0; i < chosen.Count; i++)
+            {
+                int idx = chosen[i];
+                result[i] = new YrReducedPoint(RVec3.Zero, ids[idx], depths[idx]);
+            }
+            Array.Sort(result, (x, y) => x.Id.CompareTo(y.Id));
+            return result;
+        }
+
+        /// <summary>
+        /// 按两体有效质量矩阵 + 摩擦锥加权的 18D 接触 Jacobian 缩减（第十三轮）。
+        /// 每一行的权重从 `YrContactEffectiveMass.WeightedContactRow` 算出，
+        /// 不再是外部标量。返回的 Point 已回填。
+        /// </summary>
+        public static YrReducedPoint[] ReduceByEffectiveMass(
+            RVec3[] points, int[] ids, float[] depths, RVec3 normal,
+            in YrContactMass mass, int max = DefaultMax)
+        {
+            if (points == null) throw new ArgumentNullException(nameof(points));
+            int n = Math.Min(points.Length,
+                             Math.Min(ids == null ? 0 : ids.Length,
+                                      depths == null ? 0 : depths.Length));
+            if (n == 0 || max <= 0) return Array.Empty<YrReducedPoint>();
+            var rows = new float[n][];
+            for (int i = 0; i < n; i++)
+                rows[i] = YrContactEffectiveMass.WeightedContactRow(
+                    mass, points[i], normal);
+            var red = ReduceByRows(rows, ids, depths, max);
+            // 回填 3D 点（Id 唯一，用 Id 查原点集）
+            var byId = new System.Collections.Generic.Dictionary<int, RVec3>();
+            for (int i = 0; i < n; i++) byId[ids[i]] = points[i];
+            var result = new YrReducedPoint[red.Length];
+            for (int i = 0; i < red.Length; i++)
+            {
+                RVec3 pt = byId.TryGetValue(red[i].Id, out RVec3 v) ? v : RVec3.Zero;
+                result[i] = new YrReducedPoint(pt, red[i].Id, red[i].Depth);
+            }
+            return result;
+        }
+
         /// <summary>供测试：最远点采样的覆盖度（所选点到最近所选点的最小距离均值）。</summary>
         public static float Spread(RVec3[] points)
         {

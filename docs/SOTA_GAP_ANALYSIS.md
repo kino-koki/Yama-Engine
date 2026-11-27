@@ -28,7 +28,9 @@
 | 迭代式 Conservative Advancement（线性化） | 第十轮 | ✅ CI |
 | 音频 FLAC/Vorbis/MP3 参考一致性、看板清零 | 第九轮 | ✅ CI |
 | 81 项能力矩阵 + xUnit 静态契约门禁 | `RepoContractTests` | ✅ CI |
-| **121 项物理断言 + 5 个音频用例真实执行** | `build.yml` Test step | ✅ CI |
+| 迭代式 CA → 完整旋转 CA → 角动量 L 版 CA → 割线加速 CA | 第十~十三轮 | ✅ CI |
+| 6D wrench → 18D 接触 Jacobian → 两体有效质量 + 摩擦锥缩减 | 第十一~十三轮 | ✅ CI |
+| **164 项物理断言 + 5 个音频用例真实执行** | `build.yml` Test step | ✅ CI |
 
 这一层是**确定性、可回放、云端编译并执行**的，属于可信的工程基线。
 
