@@ -1,0 +1,22 @@
+{
+  "nameShort": "Yama Code - OSS",
+  "nameLong": "Yama Engine · Code - OSS (clean MIT build)",
+  "applicationName": "yama-code-oss",
+  "licenseName": "MIT",
+  "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
+  "quality": "stable",
+  "version": "1.148.0",
+  "commit": "661626d0e72f97806550790a98fb87116c9db825",
+  "reportIssueUrl": "",
+  "urlProtocol": "yama",
+  "enableTelemetry": false,
+  "telemetryEndpoint": "",
+  "extensionsGallery": {},
+  "builtInExtensions": [],
+  "yama": {
+    "bridge": "YamaEngine.Editor.CodeOss.YamaCodeOssBridge",
+    "lsp": "self-developed (YamaLspClient, LSP 3.17 framing)",
+    "dap": "self-developed (YamaDapClient, DAP 1.x framing)",
+    "extensionManifest": "self-developed (YamaExtensionManifest)"
+  }
+}

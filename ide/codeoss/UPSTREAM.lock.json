@@ -1,0 +1,13 @@
+{
+  "name": "Code - OSS",
+  "upstream": "https://github.com/microsoft/vscode",
+  "tag": "1.148.0",
+  "commit": "661626d0e72f97806550790a98fb87116c9db825",
+  "license": "MIT",
+  "license_url": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
+  "distribution": "clean-mit-build",
+  "product_override": "ide/codeoss/product.json",
+  "fetch_script": "scripts/fetch_codeoss.py",
+  "note": "GitHub 上的 microsoft/vscode 仓库为 MIT (Code - OSS)；微软官方发行的 Visual Studio Code 构建时替换 product.json 并适用微软产品许可。本仓库只内置去品牌/去遥测/无 Marketplace 的干净 MIT 构建配置，不分发官方 VS Code 二进制或商标。",
+  "size_note": "upstream 仓库约 1.8 GB，故以 submodule gitlink 锁定精确 commit，不把完整源码 blob 复制进本仓库；CI 现有 Node/Electron 链另见 ci/codeoss-gate.yml。"
+}

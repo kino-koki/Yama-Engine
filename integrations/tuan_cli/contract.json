@@ -1,0 +1,49 @@
+{
+  "integration_mode": "yama-side-only",
+  "target_repo": "kino-koki/Tuan-CLI",
+  "target_license": "MIT",
+  "write_policy": "本轮不向 Tuan-CLI 仓库写入任何文件；遵循其 TUAN.md 「push 必须每次明确确认 / 历史同意不代表授权」规则",
+  "codeoss_version": "1.148.0",
+  "codeoss_commit": "661626d0e72f97806550790a98fb87116c9db825",
+  "skills": [
+    "yama-build",
+    "yama-test",
+    "yama-physics-gate",
+    "yama-sota-audit"
+  ],
+  "hook_events": [
+    "PostToolUse",
+    "Stop"
+  ],
+  "mcp_tools": [
+    "yama_build",
+    "yama_test",
+    "yama_smoke",
+    "yama_snapshot",
+    "yama_rollback",
+    "yama_ledger",
+    "yama_sota_status"
+  ],
+  "subcommands": [
+    "build",
+    "test",
+    "smoke",
+    "snapshot",
+    "rollback",
+    "ledger",
+    "sota"
+  ],
+  "files": [
+    "README.md",
+    "contract.json",
+    "skills/yama-build/SKILL.md",
+    "skills/yama-test/SKILL.md",
+    "skills/yama-physics-gate/SKILL.md",
+    "skills/yama-sota-audit/SKILL.md",
+    "hooks/yama_hooks.yaml",
+    "hooks/yama_gate.py",
+    "mcp_server.py",
+    "subcommand.py",
+    "tests/test_tuan_integration.py"
+  ]
+}

@@ -30,7 +30,11 @@
 | 81 项能力矩阵 + xUnit 静态契约门禁 | `RepoContractTests` | ✅ CI |
 | 迭代式 CA → 完整旋转 CA → 角动量 L 版 CA → 割线加速 CA | 第十~十三轮 | ✅ CI |
 | 6D wrench → 18D 接触 Jacobian → 两体有效质量 + 摩擦锥缩减 | 第十一~十三轮 | ✅ CI |
-| **164 项物理断言 + 5 个音频用例真实执行** | `build.yml` Test step | ✅ CI |
+| 完整 3×3 接触有效质量矩阵（Cholesky / Jacobi / K^-1/2 白化） | 第十四轮 | ✅ CI |
+| 自研边界审计 + 13 个 PackageReference 全 SPDX 署名 | 第十四轮 | ✅ CI |
+| Code - OSS 1.148.0 干净 MIT 内置 + 自研 LSP/DAP 桥接 | 第十四轮 | ✅ CI（配置/桥接层） |
+| Tuan-CLI skill/hook/MCP/子命令适配层（Yama 侧） | 第十四轮 | ✅ CI（契约层） |
+| **190 项反射断言 + 5 个音频用例真实执行** | `build.yml` Test step | ✅ CI |
 
 这一层是**确定性、可回放、云端编译并执行**的，属于可信的工程基线。
 

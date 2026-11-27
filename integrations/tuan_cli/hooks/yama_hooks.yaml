@@ -1,0 +1,11 @@
+# Tuan-CLI hooks 配置（事件名来自 tuan_cli/hooks/manager.py 的 CORE_HOOK_EVENTS）
+# 协议：stdin JSON / stdout JSON；脚本纯 stdlib，不依赖 .NET 即可运行。
+# 放到 Tuan 工作区 config 后由用户 /hooks approve + /hooks on 激活（TUAN.md 安全规则）。
+hooks:
+  PostToolUse:
+    - matcher: "fs_write|edit_file|write_file|bash"
+      command: "python integrations/tuan_cli/hooks/yama_gate.py --event PostToolUse"
+      timeout_ms: 60000
+  Stop:
+    - command: "python integrations/tuan_cli/hooks/yama_gate.py --event Stop"
+      timeout_ms: 90000

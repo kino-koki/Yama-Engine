@@ -122,5 +122,100 @@ namespace YamaEngine.Tests
             Assert.Contains("YamaEngine.Scripting.Abi.PropertyBag", asm.GetTypes().Select(t => t.FullName ?? string.Empty));
             Assert.Contains("YamaEngine.Scripting.Abi.SignalBus", asm.GetTypes().Select(t => t.FullName ?? string.Empty));
         }
+
+        [Fact]
+        public void TestSelfResearchBoundarySpdxCoversEveryPackageReference()
+        {
+            var csproj = File.ReadAllText(Path.Combine(Root, "YamaEngine", "YamaEngine.csproj"));
+            var spdx = File.ReadAllText(Path.Combine(Root, "docs", "THIRD_PARTY_SPX.md"));
+            const string marker = "<PackageReference Include=\"";
+            int idx = 0, count = 0;
+            while ((idx = csproj.IndexOf(marker, idx, StringComparison.Ordinal)) >= 0)
+            {
+                int s = idx + marker.Length;
+                int e = csproj.IndexOf('"', s);
+                var name = csproj.Substring(s, e - s);
+                Assert.Contains(name, spdx);
+                count++;
+                idx = e + 1;
+            }
+            Assert.Equal(13, count);
+            Assert.Contains("Apache-2.0", spdx);
+            Assert.Contains("MIT", spdx);
+            Assert.True(File.Exists(Path.Combine(Root, "docs", "SELF_RESEARCH_BOUNDARY.md")));
+            Assert.True(File.Exists(Path.Combine(Root, "scripts", "audit_no_engine_copy.py")));
+        }
+
+        [Fact]
+        public void TestCodeOssUpstreamLockPinnedAndCleanProduct()
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "ide", "codeoss", "UPSTREAM.lock.json")));
+            var r = doc.RootElement;
+            Assert.Equal("1.148.0", r.GetProperty("tag").GetString());
+            Assert.Equal("661626d0e72f97806550790a98fb87116c9db825",
+                         r.GetProperty("commit").GetString());
+            Assert.Equal("MIT", r.GetProperty("license").GetString());
+            using var pd = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "ide", "codeoss", "product.json")));
+            var p = pd.RootElement;
+            Assert.Equal("MIT", p.GetProperty("licenseName").GetString());
+            Assert.False(p.GetProperty("enableTelemetry").GetBoolean());
+            Assert.Equal(string.Empty, p.GetProperty("telemetryEndpoint").GetString());
+            Assert.Equal(JsonValueKind.Object, p.GetProperty("extensionsGallery").ValueKind);
+            int galleryEntries = 0;
+            foreach (var _ in p.GetProperty("extensionsGallery").EnumerateObject())
+                galleryEntries++;
+            Assert.Equal(0, galleryEntries);
+            Assert.DoesNotContain("Visual Studio Code", p.GetProperty("nameShort").GetString()!);
+            Assert.Contains("microsoft/vscode", File.ReadAllText(Path.Combine(Root, ".gitmodules")));
+        }
+
+        [Fact]
+        public void TestTuanCliIntegrationContract()
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "integrations", "tuan_cli", "contract.json")));
+            var r = doc.RootElement;
+            Assert.Equal("1.148.0", r.GetProperty("codeoss_version").GetString());
+            Assert.Equal("yama-side-only", r.GetProperty("integration_mode").GetString());
+            Assert.Contains("TUAN.md", r.GetProperty("write_policy").GetString()!);
+            foreach (var f in r.GetProperty("files").EnumerateArray())
+                Assert.True(File.Exists(Path.Combine(Root, "integrations", "tuan_cli",
+                    (f.GetString() ?? "").Replace('/', Path.DirectorySeparatorChar))),
+                    "适配层文件缺失: " + f.GetString());
+            int skills = 0;
+            foreach (var _ in r.GetProperty("skills").EnumerateArray()) skills++;
+            Assert.Equal(4, skills);
+            int tools = 0;
+            foreach (var _ in r.GetProperty("mcp_tools").EnumerateArray()) tools++;
+            Assert.Equal(7, tools);
+        }
+
+        [Fact]
+        public void TestNoForeignEngineCopyrightHeadersInSources()
+        {
+            var forbidden = new[]
+            {
+                "Godot Engine contributors", "Copyright Epic Games",
+                "Copyright Unity Technologies", "Copyright NVIDIA PhysX",
+                "#include \"godot/", "#include \"PhysX/",
+                "namespace godot", "namespace physx"
+            };
+            int files = 0;
+            foreach (var f in Directory.GetFiles(Path.Combine(Root, "YamaEngine"),
+                                                 "*.cs", SearchOption.AllDirectories))
+            {
+                files++;
+                var head = new System.Text.StringBuilder();
+                using var sr = new StreamReader(f);
+                for (int i = 0; i < 40 && !sr.EndOfStream; i++) head.AppendLine(sr.ReadLine());
+                string h = head.ToString();
+                foreach (var bad in forbidden)
+                    Assert.DoesNotContain(bad, h);
+            }
+            Assert.True(files > 700, $"扫描源文件过少: {files}");
+        }
+
     }
 }
