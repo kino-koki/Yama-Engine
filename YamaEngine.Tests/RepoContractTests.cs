@@ -21,15 +21,27 @@ namespace YamaEngine.Tests
     /// </summary>
     public class RepoContractTests
     {
+        private static bool IsRepoRoot(string dir)
+            => File.Exists(Path.Combine(dir, "docs", "capability_matrix.csv"))
+            || File.Exists(Path.Combine(dir, "ide", "codeoss", "UPSTREAM.lock.json"));
+
         private static string FindRepoRoot()
         {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            for (int i = 0; i < 14 && dir != null; i++, dir = dir.Parent)
+            // 2026-11-27 稳定性加固：main 首次 CI 出现过一次偶发 Test 红，
+            // 同 commit 的 develop / rerun attempt2 均全绿。仓库根定位改为
+            // 多锚点 + 双起点（BaseDirectory / CurrentDirectory）+ 环境变量兜底，
+            // 避免 testhost 工作目录偶发差异导致单锚点回溯失败。
+            string? env = Environment.GetEnvironmentVariable("YAMA_REPO_ROOT");
+            if (!string.IsNullOrEmpty(env) && IsRepoRoot(env)) return env;
+            var starts = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() };
+            foreach (var start in starts)
             {
-                if (File.Exists(Path.Combine(dir.FullName, "docs", "capability_matrix.csv")))
-                    return dir.FullName;
+                var dir = new DirectoryInfo(start);
+                for (int i = 0; i < 16 && dir != null; i++, dir = dir.Parent)
+                    if (IsRepoRoot(dir.FullName)) return dir.FullName;
             }
-            throw new InvalidOperationException("未找到仓库根（docs/capability_matrix.csv）");
+            throw new InvalidOperationException(
+                "未找到仓库根（docs/capability_matrix.csv 或 ide/codeoss/UPSTREAM.lock.json）");
         }
 
         private static string Root => _root ??= FindRepoRoot();

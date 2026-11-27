@@ -71,6 +71,13 @@ K_ij = (invM_a+invM_b)(d_i·d_j)
 另有 `RepoContractTests` 的 xunit `[Fact]` 契约门禁（原有 + 新增 4 个）。
 全部真实执行：无 Skip、无吞异常、无阈值放宽。
 
+## CI 稳定性（不粉饰）
+
+main 首次 CI 出现过一次**同 commit 偶发 Test 红**：develop 全绿、
+失败落盘诊断零失败、`rerun` attempt 2 全绿。已把两个测试类里的仓库根定位
+改成多锚点 + 双起点 + 环境变量兜底，并重新跑 develop/main 双 CI。
+不因此删断言或放宽阈值，详见 `docs/ROUND14_DELIVERY.md`。
+
 ## 不能宣称的（不变且不缩小）
 
 `docs/SOTA_GAP_ANALYSIS.md` 的 G0–G3 已闭合；**G4–G8**（真机 GPU 帧 /

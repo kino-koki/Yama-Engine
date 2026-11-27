@@ -21,6 +21,19 @@
 4. **完整 3×3 接触有效质量矩阵**：自研 Cholesky / Jacobi / K^{-1/2} / 耦合 18D 行，
    对角退化 parity 与 `C·K·C=I` 白化恒等式可判定。
 
+## CI 稳定性事件（诚实记录）
+
+- develop `46021464790`（commit `e2719b361180`）**全绿** → 推 main。
+- main 首次 run `46022019428` **Test step 偶发红**（无具体失败注解，仅 exit 1）。
+- 同一 commit 的 `rerun-failed-jobs` attempt 2 **全绿**；注入失败落盘诊断的
+  run `46022443962` 记录 `count=0`（零失败）。三者共同表明是 runner 偶发，
+  非确定性回归。
+- 加固：`RepoContractTests.FindRepoRoot` / `CodeOssBridgeTests.FindRoot`
+  改为多锚点（`capability_matrix.csv` 或 `UPSTREAM.lock.json`）+ 双起点
+  （`AppContext.BaseDirectory` / cwd）+ `YAMA_REPO_ROOT` 兜底，消除 testhost
+  工作目录偶发差异这一可能性。加固后重新走 develop → main 双 CI 验证。
+- **没有删断言、没有放宽容差、没有隔离用例。**
+
 ## 不能翻转的
 
 - **不宣称已达 SOTA**：G4–G8 未闭合，Code - OSS Electron 完整构建未在现有 CI 编译。

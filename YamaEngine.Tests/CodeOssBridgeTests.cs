@@ -18,13 +18,22 @@ namespace YamaEngine.Tests
         {
             if (!ok) throw new InvalidOperationException("CODEOSS_R14_FAIL: " + msg);
         }
+        private static bool IsRoot(string dir)
+            => File.Exists(Path.Combine(dir, "docs", "capability_matrix.csv"))
+            || File.Exists(Path.Combine(dir, "ide", "codeoss", "UPSTREAM.lock.json"));
+
         private static string FindRoot()
         {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            for (int i = 0; i < 14 && dir != null; i++, dir = dir.Parent)
-                if (File.Exists(Path.Combine(dir.FullName, "docs", "capability_matrix.csv")))
-                    return dir.FullName;
-            throw new InvalidOperationException("未找到仓库根");
+            string? env = Environment.GetEnvironmentVariable("YAMA_REPO_ROOT");
+            if (!string.IsNullOrEmpty(env) && IsRoot(env)) return env;
+            var starts = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() };
+            foreach (var start in starts)
+            {
+                var dir = new DirectoryInfo(start);
+                for (int i = 0; i < 16 && dir != null; i++, dir = dir.Parent)
+                    if (IsRoot(dir.FullName)) return dir.FullName;
+            }
+            throw new InvalidOperationException("未找到仓库根（多锚点均失败）");
         }
         private static string R => _r ??= FindRoot();
         private static string? _r;
