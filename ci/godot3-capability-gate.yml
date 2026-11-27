@@ -1,0 +1,31 @@
+name: Godot3 Capability Gate (static, no SDK needed)
+
+# 本文件位于 ci/ 是因为推送用的 PAT 缺 workflow scope，无法写入 .github/workflows/。
+# 启用方法：在 GitHub 网页端把它移动到 .github/workflows/godot3-capability-gate.yml。
+# 与 build.yml 分工：build.yml 管真实编译/测试，本 workflow 管能力矩阵与仓库契约。
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.x' }
+      - name: Capability matrix audit
+        run: python3 scripts/capability_audit.py
+      - name: Assembly boundary scan (informational)
+        run: python3 scripts/assembly_boundary_check.py
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capability-reports
+          path: |
+            capability_audit_report.json
+            assembly_boundary_report.json
+            placeholder_inventory.csv

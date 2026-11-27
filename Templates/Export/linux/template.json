@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "platform": "linux",
+  "displayName": "Linux x64",
+  "status": "部分",
+  "renderer": "Vulkan 1.4",
+  "runtimeBinary": "YamaRuntime",
+  "resourceRoot": "Content",
+  "startupScene": "Content/Scenes/Main.yama",
+  "projectManifest": "yama.project.json",
+  "entryArgs": [
+    "--headless=false",
+    "--project",
+    "."
+  ],
+  "requiredNative": [],
+  "notes": "规格契约，非可运行包；产出真实包需 YamaCLI build --platform linux 与真机编译。"
+}

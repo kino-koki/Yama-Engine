@@ -241,6 +241,47 @@ namespace YamaEngine.Audio
         /// <summary>
         /// 解码全部样本为 float[-1,1] (声道交错)。
         /// </summary>
+        /// <summary>
+        /// 解析首帧 Xing/Info + LAME 的 gapless 信息。
+        /// 返回 (是否元数据帧, 编码延迟, 尾部填充)。CBR/VBR 编码的标准做法：
+        /// 参考解码器(mpg123/libsndfile)按 enc_delay / enc_padding 裁剪输出。
+        /// </summary>
+        private (bool metaFrame, int encDelay, int encPadding) ParseGapless()
+        {
+            int pos = _frameOffset;
+            if (_fileData == null || pos < 0 || pos + 4 > _fileData.Length) return (false, 0, 0);
+            int frameSize = HdrFrameBytes(_fileData, pos, _freeFormatBytes) + HdrPadding(_fileData, pos);
+            int end = Math.Min(_fileData.Length, pos + Math.Max(frameSize, 4));
+            int k = -1;
+            for (int i = pos + 4; i + 4 <= end; i++)
+            {
+                bool xing = _fileData[i] == (byte)'X' && _fileData[i + 1] == (byte)'i'
+                         && _fileData[i + 2] == (byte)'n' && _fileData[i + 3] == (byte)'g';
+                bool info = _fileData[i] == (byte)'I' && _fileData[i + 1] == (byte)'n'
+                         && _fileData[i + 2] == (byte)'f' && _fileData[i + 3] == (byte)'o';
+                if (xing || info) { k = i; break; }
+            }
+            if (k < 0) return (false, 0, 0);
+            int p = k + 4;
+            if (p + 4 > end) return (true, 0, 0);
+            uint flags = (uint)((_fileData[p] << 24) | (_fileData[p + 1] << 16)
+                              | (_fileData[p + 2] << 8) | _fileData[p + 3]);
+            int q = p + 4;
+            if ((flags & 1) != 0) q += 4;   // frame count
+            if ((flags & 2) != 0) q += 4;   // byte count
+            if ((flags & 4) != 0) q += 100; // TOC
+            if ((flags & 8) != 0) q += 4;   // quality
+            int encDelay = 0, encPadding = 0;
+            if (q + 24 <= end && _fileData[q] == (byte)'L' && _fileData[q + 1] == (byte)'A'
+             && _fileData[q + 2] == (byte)'M' && _fileData[q + 3] == (byte)'E')
+            {
+                int b0 = _fileData[q + 21], b1 = _fileData[q + 22], b2 = _fileData[q + 23];
+                encDelay = (b0 << 4) | (b1 >> 4);
+                encPadding = ((b1 & 0x0F) << 8) | b2;
+            }
+            return (true, encDelay, encPadding);
+        }
+
         public float[] DecodeAll()
         {
             if (_fileData == null || _info == null)
@@ -252,17 +293,32 @@ namespace YamaEngine.Audio
             var info = new FrameInfo();
             int pos = _frameOffset;
             int total = _fileData.Length;
+            var gap = ParseGapless();
+            bool first = true;
 
             while (pos < total)
             {
                 int samples = DecodeFrame(_fileData, pos, total - pos, pcm, info);
                 if (info.FrameBytes <= 0) break;
-                if (samples > 0)
+                // Xing/Info 帧只含元数据，不计入 PCM 输出（Xing 的 frame count 亦不含它）。
+                if (samples > 0 && !(gap.metaFrame && first))
                 {
                     int n = samples * info.Channels;
                     for (int i = 0; i < n; i++) output.Add(pcm[i]);
                 }
+                first = false;
                 pos += info.FrameBytes;
+            }
+
+            // Gapless 裁剪：跳过编码延迟、丢弃尾部填充，与 mpg123/libsndfile 口径一致。
+            if (gap.encDelay > 0 || gap.encPadding > 0)
+            {
+                int skip = Math.Min(gap.encDelay, output.Count);
+                int keep = output.Count - skip - gap.encPadding;
+                if (keep <= 0) return output.ToArray();
+                var trimmed = new float[keep];
+                output.CopyTo(skip, trimmed, 0, keep);
+                return trimmed;
             }
             return output.ToArray();
         }

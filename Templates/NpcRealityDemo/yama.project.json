@@ -1,0 +1,16 @@
+{
+  "name": "NpcRealityDemo",
+  "engine": "Yama Engine",
+  "formatVersion": 1,
+  "template": "AI NPC + Reality Physics Demo",
+  "startupScene": "Content/Scenes/Main.yama",
+  "folders": [
+    "Content/Scenes",
+    "Content/Scripts",
+    "Builds"
+  ],
+  "rendering": {
+    "pipeline": "ForwardPreview",
+    "defaultMaterial": ""
+  }
+}

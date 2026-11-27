@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "platform": "macos",
+  "displayName": "macOS x86/ARM",
+  "status": "缺失适配层",
+  "renderer": "需 Metal/MoltenVK",
+  "runtimeBinary": "YamaRuntime.app",
+  "resourceRoot": "Content",
+  "startupScene": "Content/Scenes/Main.yama",
+  "projectManifest": "yama.project.json",
+  "entryArgs": [
+    "--headless=false",
+    "--project",
+    "."
+  ],
+  "requiredNative": [],
+  "notes": "规格契约，非可运行包；产出真实包需 YamaCLI build --platform macos 与真机编译。"
+}
