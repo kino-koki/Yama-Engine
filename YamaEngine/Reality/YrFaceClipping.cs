@@ -25,6 +25,20 @@ namespace YamaEngine.Reality
         {
             public float U, V, D;
             public RVec3 P;
+            /// <summary>
+            /// 稳定接触点标识：初始为 incident 面顶点序号 0..3；
+            /// 裁剪交点继承起点 Id（Lerp 里 Id = A.Id）。
+            /// 因此同一接触特征跨帧保持同一 Id，可驱动逐点 warm start。
+            /// </summary>
+            public int Id;
+        }
+
+        /// <summary>带稳定 Id 的接触点。</summary>
+        public readonly struct YrClippedPoint
+        {
+            public readonly RVec3 Point;
+            public readonly int Id;
+            public YrClippedPoint(RVec3 point, int id) { Point = point; Id = id; }
         }
 
         private static readonly RVec3 Ex = new RVec3(1f, 0f, 0f);
@@ -94,7 +108,8 @@ namespace YamaEngine.Reality
                 U = A.U + (B.U - A.U) * t,
                 V = A.V + (B.V - A.V) * t,
                 D = A.D + (B.D - A.D) * t,
-                P = A.P + (B.P - A.P) * t
+                P = A.P + (B.P - A.P) * t,
+                Id = A.Id
             };
 
         private static System.Collections.Generic.List<ClipPoint> Clip(
@@ -124,12 +139,12 @@ namespace YamaEngine.Reality
         }
 
         /// <summary>
-        /// 面裁剪生成接触流形。返回参考面上的 3D 点（最多 4 个）；
-        /// 无有效点时回退到 SAT 的单近似点，保证不返回空。
+        /// 面裁剪生成带稳定 Id 的接触流形（最多 4 点）；
+        /// 无有效点时回退到 SAT 的单近似点（Id=0），保证不返回空。
         /// </summary>
-        public static RVec3[] Build(in YrObb a, in YrObb b, in YrSatHit hit)
+        public static YrClippedPoint[] BuildTagged(in YrObb a, in YrObb b, in YrSatHit hit)
         {
-            if (!hit.Hit) return Array.Empty<RVec3>();
+            if (!hit.Hit) return Array.Empty<YrClippedPoint>();
             RVec3 n = hit.Normal.Normalized();
             RefFace rf = ReferenceFace(a, n);
             RVec3[] incident = IncidentFace(b, n);
@@ -141,7 +156,7 @@ namespace YamaEngine.Reality
                 RVec3 rel = p - rf.Center;
                 poly.Add(new ClipPoint {
                     U = rel.Dot(rf.T1), V = rel.Dot(rf.T2),
-                    D = (rf.Center - p).Dot(n), P = p
+                    D = (rf.Center - p).Dot(n), P = p, Id = i
                 });
             }
             for (int e = 0; e < 4; e++) poly = Clip(poly, e, rf.H1, rf.H2);
@@ -162,14 +177,25 @@ namespace YamaEngine.Reality
                 cand.Insert(pos, item);
             }
             int take = Math.Min(MaxPoints, cand.Count);
-            if (take == 0) return new RVec3[] { hit.ContactPoint };
+            if (take == 0)
+                return new YrClippedPoint[] { new YrClippedPoint(hit.ContactPoint, 0) };
 
-            var result = new RVec3[take];
+            var result = new YrClippedPoint[take];
             for (int i = 0; i < take; i++)
             {
                 ClipPoint cp = cand[i].Point;
-                result[i] = rf.Center + rf.T1 * cp.U + rf.T2 * cp.V;
+                result[i] = new YrClippedPoint(
+                    rf.Center + rf.T1 * cp.U + rf.T2 * cp.V, cp.Id);
             }
+            return result;
+        }
+
+        /// <summary>兼容既有调用：只返回 3D 点（语义与第七轮完全一致）。</summary>
+        public static RVec3[] Build(in YrObb a, in YrObb b, in YrSatHit hit)
+        {
+            var tagged = BuildTagged(a, b, hit);
+            var result = new RVec3[tagged.Length];
+            for (int i = 0; i < tagged.Length; i++) result[i] = tagged[i].Point;
             return result;
         }
 

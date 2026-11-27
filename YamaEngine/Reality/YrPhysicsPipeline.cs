@@ -97,6 +97,20 @@ namespace YamaEngine.Reality
             get => _narrow.UseFaceClipping;
             set => _narrow.UseFaceClipping = value;
         }
+        /// <summary>
+        /// 逐点持久 warm start（按稳定 pointId 缓存 λ_n）。默认 false；
+        /// 开启后快照会多一段逐点缓存，Restore 仍兼容旧格式。
+        /// </summary>
+        public bool UsePointWarmCache
+        {
+            get => _narrow.UsePointWarmCache;
+            set => _narrow.UsePointWarmCache = value;
+        }
+        public int PointWarmCacheCount => _narrow.PointWarmCacheCount;
+        /// <summary>用增量动态 AABB 树给出常规窄相的宽相对（默认 false = SAP）。</summary>
+        public bool UseDynamicTree { get; set; } = false;
+        public YrDynamicAabbTree? DynamicTree { get; private set; }
+        public int LastDynamicTreeHeight => DynamicTree == null ? 0 : DynamicTree.Height;
         public int LastCcdPairs => _toi.LastCcdPairs;
         public int LastToiSubsteps => _toi.LastSubsteps;
         public int LastToiHits => _toi.LastHits;
@@ -109,6 +123,27 @@ namespace YamaEngine.Reality
             for (int i = 0; i < _bodies.Length; i++)
                 _obbs[i] = new YrObb(_bodies[i].Position, _bodies[i].Orientation,
                                      _halfExtents[i]);
+        }
+
+        /// <summary>
+        /// 常规窄相的宽相对来源。默认用第五轮的 SAP；
+        /// 开启 UseDynamicTree 后改用增量动态 AABB 树（跨帧复用节点）。
+        /// </summary>
+        private (int, int)[] BroadPhasePairs(float dt)
+        {
+            if (!UseDynamicTree) return YrBroadPhase.SweepAndPrune(_obbs);
+            if (DynamicTree == null)
+            {
+                DynamicTree = new YrDynamicAabbTree(Math.Max(8, _obbs.Length));
+                var boxes = YrSweptBroadphase.BuildSweptBoxes(_obbs, _bodies, dt);
+                for (int i = 0; i < boxes.Length; i++) DynamicTree.Insert(i, boxes[i]);
+            }
+            else
+            {
+                var boxes = YrSweptBroadphase.BuildSweptBoxes(_obbs, _bodies, dt);
+                for (int i = 0; i < boxes.Length; i++) DynamicTree.Update(i, boxes[i]);
+            }
+            return DynamicTree.QueryPairs();
         }
 
         /// <summary>真实帧 dt → 固定步数（Godot `_physics_process` 语义）。</summary>
@@ -132,7 +167,7 @@ namespace YamaEngine.Reality
             if (dt <= 0f) throw new ArgumentOutOfRangeException(nameof(dt));
             SyncObbs();
 
-            var pairs0 = YrBroadPhase.SweepAndPrune(_obbs);
+            var pairs0 = BroadPhasePairs(dt);
             YrContact[] initial = _narrow.Build(pairs0, _obbs, _bodies, dt, Surface);
             var edges = new System.Collections.Generic.List<(int, int)>();
             for (int k = 0; k < initial.Length; k++)
@@ -171,7 +206,7 @@ namespace YamaEngine.Reality
             if (dt <= 0f) throw new ArgumentOutOfRangeException(nameof(dt));
             SyncObbs();
 
-            var pairs = YrBroadPhase.SweepAndPrune(_obbs);
+            var pairs = BroadPhasePairs(dt);
             YrContact[] cs = _narrow.Build(pairs, _obbs, _bodies, dt, Surface);
 
             // 约束岛：接触图 + 关节图共同决定连通分量
@@ -243,6 +278,16 @@ namespace YamaEngine.Reality
                 list.Add((float)warm[i].Item2);
                 list.Add(warm[i].Item3);
             }
+            // 追加逐点 warm 段：旧快照没有这一段，Restore 会按「长度 0」兼容。
+            var wp = _narrow.ExportWarmPoints();
+            list.Add((float)wp.Length);
+            for (int i = 0; i < wp.Length; i++)
+            {
+                list.Add((float)wp[i].Item1);
+                list.Add((float)wp[i].Item2);
+                list.Add((float)wp[i].Item3);
+                list.Add(wp[i].Item4);
+            }
             return list.ToArray();
         }
 
@@ -276,6 +321,22 @@ namespace YamaEngine.Reality
                 p += 3;
             }
             _narrow.ImportWarm(warm);
+            // 向前兼容：p == state.Length 表示这是第七轮及以前的旧快照（无逐点段）。
+            if (p < state.Length)
+            {
+                int mp = (int)state[p]; p++;
+                if (p + 4 * mp > state.Length)
+                    throw new ArgumentException("快照逐点 warm 段长度不足");
+                var wp = new (int, int, int, float)[mp];
+                for (int i = 0; i < mp; i++)
+                {
+                    wp[i] = ((int)state[p], (int)state[p + 1],
+                             (int)state[p + 2], state[p + 3]);
+                    p += 4;
+                }
+                _narrow.ImportWarmPoints(wp);
+            }
+            else _narrow.ImportWarmPoints(Array.Empty<(int, int, int, float)>());
             SyncObbs();
         }
 
