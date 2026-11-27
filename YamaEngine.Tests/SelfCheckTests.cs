@@ -22,16 +22,17 @@ namespace YamaEngine.Tests
         [Fact]
         public void TestKnownLimitationsAreExplicitAndMinimal()
         {
-            // 第四轮：FLAC / Vorbis 均已真修并回归门禁，看板目标 1 条（MP3）。
-            // 上界 3 防止悄悄新增隔离项，下界 1 锚定剩余算法债。
-            Assert.InRange(KnownLimitations.Count, 1, 3);
+            // 第九轮：FLAC / Vorbis / MP3 全部真修并回归门禁，看板已清空为 0 条。
+            // 上界 3 防止悄悄新增隔离项；下界 0 表示「零隔离」是合法且期望的状态。
+            Assert.InRange(KnownLimitations.Count, 0, 3);
             Assert.True(KnownLimitations.AllEntriesWellFormed(), "每条差距必须带实测/目标/路径/证据");
             foreach (var gap in KnownLimitations.Gaps)
             {
                 Assert.Contains(">= ", gap.Target);
                 Assert.StartsWith("AUDIO-", gap.Id);
             }
-            Assert.True(KnownLimitations.IsSkipped(
+            // 已修用例绝不能再被隔离（防止回归时把用例藏回去）
+            Assert.False(KnownLimitations.IsSkipped(
                 "YamaEngine.Tests.AudioRealDecoderTests", "TestMp3SineDecode"));
             Assert.False(KnownLimitations.IsSkipped(
                 "YamaEngine.Tests.ScriptAbiTests", "TestScriptVariantRoundtrip"));
