@@ -43,14 +43,18 @@ public sealed class AiNpcRuntime
     public IReadOnlyList<AiNpcAgent> Agents => _agents;
     public int AgentCount => _agents.Count;
 
-    /// <summary>为角色创建 Agent；avatar 为空时仍可对话/请求动作（动作仅进事件流，不驱动场景）。</summary>
-    public AiNpcAgent CreateAgent(NpcCharacter character, SceneObject? avatar = null, bool autoStart = true)
+    /// <summary>为角色创建 Agent；avatar 为空时仍可对话/请求动作（动作仅进事件流，不驱动场景）。
+    /// 自动为角色创建 <see cref="NpcBrain"/> 心智，使语音/动作 Agent 与 OCEAN 个性/情感/记忆共享同一模型。</summary>
+    public AiNpcAgent CreateAgent(NpcCharacter character, SceneObject? avatar = null, bool autoStart = true,
+        NpcBrain? brain = null)
     {
         if (character == null) throw new ArgumentNullException(nameof(character));
         var moss = Config.MossLive.Enabled
             ? new MossLiveClient(Config.MossLive)
             : null;
-        var agent = new AiNpcAgent(Config, character, MotionSource, moss, Animation, avatar);
+        // 未显式提供大脑时，为每个 Agent 装配独立心智（个性/情感/记忆/关系/日程）。
+        brain ??= new NpcBrain(character);
+        var agent = new AiNpcAgent(Config, character, MotionSource, moss, Animation, avatar, brain: brain);
         _agents.Add(agent);
         if (autoStart) _ = agent.StartAsync();
         return agent;

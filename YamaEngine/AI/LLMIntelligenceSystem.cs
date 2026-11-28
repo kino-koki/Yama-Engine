@@ -990,8 +990,41 @@ namespace YamaEngine.AI
             catch { return AnthropicProvider.LocalEmbed(text); }
         }
 
-        public Task StreamChatAsync(LLMConversation conv, Action<string> onToken, CancellationToken ct = default)
-            => GetProvider().StreamChatAsync(conv, _config, onToken, ct);
+        /// <summary>
+        /// 流式聊天：带速率限制和本地回退（与 ChatAsync 一致的韧性保障）。
+        /// 重试逻辑简化——流式接口不返回完整 Response，只做速率控制 + 异常降级到 LocalRuleInference。
+        /// </summary>
+        public async Task StreamChatAsync(LLMConversation conv, Action<string> onToken, CancellationToken ct = default)
+        {
+            // 速率限制：等待直到可调用
+            while (!TryAcquireRate())
+            {
+                ct.ThrowIfCancellationRequested();
+                await Task.Delay(1000, ct).ConfigureAwait(false);
+            }
+
+            try
+            {
+                await GetProvider().StreamChatAsync(conv, _config, onToken, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw; // 调用方主动取消
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke($"StreamChatAsync failed: {ex.Message}", ex);
+                if (_config.FallbackToLocal)
+                {
+                    var fallback = _fallback.Respond("stream_fallback");
+                    onToken(fallback);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
     }
 
     // ========================================================================

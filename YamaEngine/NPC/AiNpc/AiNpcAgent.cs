@@ -74,19 +74,30 @@ public sealed class AiNpcAgent : IAsyncDisposable
         MossLiveClient? moss = null,
         AnimationRuntime? animationRuntime = null,
         SceneObject? avatar = null,
-        KimodoMotionConverter? converter = null)
+        KimodoMotionConverter? converter = null,
+        NpcBrain? brain = null)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         Character = character ?? throw new ArgumentNullException(nameof(character));
+        Brain = brain;
         _motionSource = motionSource;
         _moss = moss;
         _animation = animationRuntime;
         _avatar = avatar;
         _converter = converter ?? new KimodoMotionConverter(_config.Kimodo);
         _state = AiNpcState.Idle;
+        Emotion = NpcEmotionState.NameOf(character.Emotion.Dominant);
     }
 
     public NpcCharacter Character { get; }
+    /// <summary>
+    /// 可选的 NPC 心智（OCEAN 个性/情感/记忆/关系/日程）。
+    /// 绑定后，语音/动作 Agent 与文本决策大脑共享同一心智模型：
+    ///   - 人格提示注入完整心智（而非仅名字/职业/阵营）
+    ///   - MOSS-Live 的情绪事件回写心智情感，记忆回写心智记忆
+    ///   - 动作提示随主导情感变化
+    /// </summary>
+    public NpcBrain? Brain { get; }
     public AiNpcState State => _state;
     public string Emotion { get; private set; } = "neutral";
     public string PartialResponse { get; private set; } = "";
@@ -242,6 +253,7 @@ public sealed class AiNpcAgent : IAsyncDisposable
                 PartialResponse = "";
                 _transcript.Add(("npc", LastResponse));
                 if (_transcript.Count > 24) _transcript.RemoveAt(0);
+                RecordMemory("NPC", LastResponse);
                 break;
 
             case "text_in":
@@ -249,6 +261,7 @@ public sealed class AiNpcAgent : IAsyncDisposable
                 {
                     _transcript.Add(("player", evt.Text!));
                     if (_transcript.Count > 24) _transcript.RemoveAt(0);
+                    RecordMemory("玩家", evt.Text!);
                 }
                 break;
 
@@ -269,6 +282,7 @@ public sealed class AiNpcAgent : IAsyncDisposable
 
             case "emotion":
                 Emotion = evt.Label ?? "neutral";
+                SyncMindEmotion(Emotion);
                 break;
 
             case "action":
@@ -590,15 +604,67 @@ public sealed class AiNpcAgent : IAsyncDisposable
 
     private string BuildPersona()
     {
-        return $"{Character.Name}，{Character.Occupation}，{Character.Faction}；" +
-               $"当前情绪={Emotion}。请保持角色一致，用口语短句回应，并在需要肢体表达时输出 action。";
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"{Character.Name}，{Character.Occupation}，阵营{Character.Faction}。");
+        if (Brain != null)
+        {
+            var npc = Character;
+            sb.Append($"性格：{npc.Personality.Describe()}。");
+            sb.Append($"心情：{NpcEmotionState.NameOf(npc.Emotion.Dominant)}（强度{npc.Emotion.DominantIntensity:0.0}）。");
+            sb.Append($"日程：{NpcSchedule.NameOf(npc.CurrentActivity(NpcWorld.DefaultHour))}。");
+            sb.Append($"与玩家关系：{npc.GetRelationship("玩家").Value:0}（{npc.GetRelationship("玩家").Describe()}）。");
+            sb.Append($"记忆：{npc.Memory.Summarize(3)}。");
+        }
+        sb.Append($"当前情绪={Emotion}。请保持角色一致，用口语短句回应，并在需要肢体表达时输出 action。");
+        return sb.ToString();
+    }
+
+    /// <summary>把 MOSS-Live 的情绪标签回写到心智情感系统，保证语音 NPC 与决策大脑情感一致。</summary>
+    private void SyncMindEmotion(string label)
+    {
+        if (Brain == null || string.IsNullOrWhiteSpace(label)) return;
+        var emotion = ParseEmotionLabel(label);
+        if (emotion == NpcEmotionType.Neutral) return;
+        Character.Emotion.Trigger(emotion, 0.6f);
+    }
+
+    /// <summary>把对话片段写入心智记忆，保证语音 NPC 拥有跨轮记忆（供后续决策/人格注入）。</summary>
+    private void RecordMemory(string subject, string content)
+    {
+        if (Brain == null || string.IsNullOrWhiteSpace(content)) return;
+        Character.Memory.Remember(NpcMemoryKind.Dialogue, subject, content, importance: 0.6f);
+    }
+
+    /// <summary>把 MOSS-Live 的英文情绪标签解析为 Plutchik 情感枚举。</summary>
+    private static NpcEmotionType ParseEmotionLabel(string label)
+    {
+        return label.Trim().ToLowerInvariant() switch
+        {
+            "joy" or "happy" or "happiness" => NpcEmotionType.Joy,
+            "trust" => NpcEmotionType.Trust,
+            "fear" or "afraid" or "scared" => NpcEmotionType.Fear,
+            "surprise" or "surprised" => NpcEmotionType.Surprise,
+            "sadness" or "sad" => NpcEmotionType.Sadness,
+            "anger" or "angry" => NpcEmotionType.Anger,
+            "disgust" or "disgusted" => NpcEmotionType.Disgust,
+            "anticipation" or "excited" => NpcEmotionType.Anticipation,
+            _ => NpcEmotionType.Neutral
+        };
     }
 
     private string BuildActionPrompt(MossServerEvent evt)
     {
         string action = evt.Name ?? "respond";
-        var mood = Emotion == "neutral" ? "" : $"，情绪 {Emotion}";
-        return $"NPC 执行动作 {action}{mood}，自然、完整、脚部稳定";
+        string mood = Emotion == "neutral" ? "" : $"，情绪 {Emotion}";
+        // 绑定心智时，动作提示随个性倾向微调（外向者动作更舒展，神经质者更拘谨）。
+        string trait = "";
+        if (Brain != null)
+        {
+            var p = Character.Personality;
+            if (p.Extraversion >= 0.6f) trait = "，舒展有力";
+            else if (p.Neuroticism >= 0.6f) trait = "，略显拘谨";
+        }
+        return $"NPC 执行动作 {action}{mood}{trait}，自然、完整、脚部稳定";
     }
 
     public async ValueTask DisposeAsync()
