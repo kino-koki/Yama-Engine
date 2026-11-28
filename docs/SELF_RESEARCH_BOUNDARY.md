@@ -24,6 +24,13 @@
 - 第三方基础设施逐项清单见 `docs/THIRD_PARTY_SPX.md`，由
   `RepoContractTests.TestSelfResearchBoundarySpdxCoversEveryPackageReference`
   在每次 CI 中强制覆盖 `YamaEngine.csproj` 的**每一个** `PackageReference`。
+- **可选第三方物理后端显式披露**：`YamaEngine/Physics/JoltPhysicsBridge.cs` 是
+  对原生 `YamaJolt.dll`（封装 Jolt Physics，MIT）的 P/Invoke 适配层，属于
+  「用库」而非「抄引擎」；它**不是自研物理内核**，不参与 `YamaEngine/Reality/`
+  的自研接触 / CCD / 守恒链，也不得计入自研成果。许可、版本与来源已在
+  `docs/THIRD_PARTY_INVENTORY.json` 的 `optional_physics_backends` 逐项登记；
+  源码文件内不再保留该引擎的源码仓库 URL，由
+  `RepoContractTests.TestNoForeignEngineSourceUrlsInWholeSources` 全文强制。
 
 ## 3. 可判定审计
 

@@ -229,5 +229,67 @@ namespace YamaEngine.Tests
             Assert.True(files > 700, $"扫描源文件过少: {files}");
         }
 
+
+        [Fact]
+        public void TestThirdPartyInventoryMatchesCsprojAndSubmodule()
+        {
+            using var inv = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "docs", "THIRD_PARTY_INVENTORY.json")));
+            var r = inv.RootElement;
+            Assert.Equal("docs/SELF_RESEARCH_BOUNDARY.md", r.GetProperty("policy").GetString());
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var p in r.GetProperty("package_references").EnumerateArray())
+            {
+                string n = p.GetProperty("name").GetString()!;
+                Assert.True(names.Add(n), "清单重复: " + n);
+                Assert.False(string.IsNullOrEmpty(p.GetProperty("spdx").GetString()));
+                Assert.False(string.IsNullOrEmpty(p.GetProperty("version").GetString()));
+            }
+            // 与 YamaEngine.csproj 的 PackageReference 集合逐项一致
+            var csproj = File.ReadAllText(Path.Combine(Root, "YamaEngine", "YamaEngine.csproj"));
+            const string marker = "<PackageReference Include=\"";
+            int idx = 0, count = 0;
+            while ((idx = csproj.IndexOf(marker, idx, StringComparison.Ordinal)) >= 0)
+            {
+                int a = idx + marker.Length, b = csproj.IndexOf('"', a);
+                string n = csproj.Substring(a, b - a);
+                Assert.True(names.Contains(n), "csproj 包未进清单: " + n);
+                count++; idx = b + 1;
+            }
+            Assert.Equal(13, count);
+            Assert.Equal(13, names.Count);
+            string sub = File.ReadAllText(Path.Combine(Root, ".gitmodules"));
+            Assert.Contains("microsoft/vscode", sub);
+            var sm = r.GetProperty("submodules")[0];
+            Assert.Equal("1.148.0", sm.GetProperty("tag").GetString());
+            Assert.Equal("661626d0e72f97806550790a98fb87116c9db825",
+                         sm.GetProperty("commit").GetString());
+            Assert.Equal("MIT", sm.GetProperty("spdx").GetString());
+            Assert.True(File.Exists(Path.Combine(Root, "ide", "codeoss", "UPSTREAM.lock.json")));
+        }
+
+        [Fact]
+        public void TestNoForeignEngineSourceUrlsInWholeSources()
+        {
+            // 第十六轮深化：不只扫文件头，全文都不得出现其他引擎的源码 URL /
+            // 仓库标识。README/文档里的「对标 UE5」等描述性文字不在扫描范围。
+            var bad = new[] {
+                "github.com/godotengine/godot", "github.com/EpicGames/UnrealEngine",
+                "github.com/Unity-Technologies", "github.com/NVIDIAGameWorks/PhysX",
+                "github.com/bulletphysics", "github.com/erincatto/box2d",
+                "github.com/jrouwe/JoltPhysics"
+            };
+            int scanned = 0;
+            foreach (var f in Directory.GetFiles(Path.Combine(Root, "YamaEngine"),
+                                                 "*.cs", SearchOption.AllDirectories))
+            {
+                scanned++;
+                string all = File.ReadAllText(f);
+                foreach (var b in bad)
+                    Assert.DoesNotContain(b, all);
+            }
+            Assert.True(scanned > 700, $"扫描源文件过少: {scanned}");
+        }
+
     }
 }

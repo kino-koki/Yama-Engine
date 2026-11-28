@@ -32,6 +32,9 @@ def checks():
     has(".gitmodules", "microsoft/vscode")
     has("YamaEngine.Tests/RepoContractTests.cs", "TestSelfResearchBoundarySpdx")
     has("YamaEngine/Reality/YrContactSolver.cs", "UseCoupledMassMatrix")
+    has("YamaEngine/Reality/YrNarrowPhase.cs", "UseCoupledMassReduction")
+    has("docs/THIRD_PARTY_INVENTORY.json", "package_references")
+    has("docs/THIRD_PARTY_INVENTORY.json", "optional_physics_backends")
     has("YamaEngine.Tests/RealityPhysicsFifteenthTests.cs", "TestR15")
     return out
 

@@ -85,6 +85,13 @@ namespace YamaEngine.Reality
         }
         public YrCoupledSolveTrace LastCoupledTrace => _contacts.LastCoupledTrace;
         public void ResetCoupledTrace() => _contacts.ResetCoupledTrace();
+        /// <summary>第十六轮：转发窄相的耦合质量选点缩减开关（默认 false）。</summary>
+        public bool UseCoupledMassReduction
+        {
+            get => _narrow.UseCoupledMassReduction;
+            set => _narrow.UseCoupledMassReduction = value;
+        }
+        public int LastReducedPoints => _narrow.LastReducedPoints;
         /// <summary>
         /// 穿透位置投影强度。默认 0.4；设 0 可关闭。
         /// 注意：位置瞬移是非物理修正，会改变轨道角动量项 r×(mv)，

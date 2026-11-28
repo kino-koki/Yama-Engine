@@ -31,6 +31,11 @@ class TestSkills(unittest.TestCase):
             steps = re.findall(r"^\d+\. ", txt, re.M)
             self.assertGreaterEqual(len(steps), 3, s + " needs >=3 numbered steps")
 
+    def test_coupled_skill_mentions_reduction_switch(self):
+        txt = read("skills/yama-coupled-mass/SKILL.md")
+        self.assertIn("UseCoupledMassReduction", txt)
+        self.assertIn("LastReducedPoints", txt)
+
     def test_sota_skill_forbids_false_claim(self):
         txt = read("skills/yama-sota-audit/SKILL.md")
         self.assertIn("禁止", txt)
