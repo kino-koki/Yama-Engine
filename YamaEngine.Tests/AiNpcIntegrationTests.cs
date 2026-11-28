@@ -273,6 +273,60 @@ namespace YamaEngine.Tests
             agent.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
 
+        /// <summary>语音/动作 Agent 绑定 NpcBrain 后：人格注入完整心智、情绪回写、对话记忆回写。</summary>
+        public static void TestAiNpcAgentSharesMindModelWithNpcBrain()
+        {
+            var config = AiNpcConfig.CreateDefault();
+            config.MossLive.Enabled = false; // 不连 MOSS，纯本地验证事件处理路径
+
+            var npc = new NpcCharacter
+            {
+                Name = "艾莉",
+                Occupation = "吟游诗人",
+                Faction = "吟游者公会",
+                Personality = new NpcPersonality(0.8f, 0.4f, 0.9f, 0.6f, 0.2f)
+            };
+            npc.GetRelationship("玩家").Change(35f);
+            npc.Memory.Remember(NpcMemoryKind.Event, "酒馆", "昨晚酒馆有人唱跑调", importance: 0.7f);
+
+            var brain = new NpcBrain(npc);
+            var agent = new AiNpcAgent(config, npc, brain: brain);
+
+            // 1) 人格提示应注入完整心智（个性/情感/关系/记忆），而非仅名字/职业/阵营。
+            var persona = agent.GetType()
+                .GetMethod("BuildPersona", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(agent, null) as string;
+            AssertTrue(persona != null, "BuildPersona 应返回字符串。");
+            AssertTrue(persona!.Contains("艾莉"), "人格应含名字。");
+            AssertTrue(persona.Contains("吟游诗人"), "人格应含职业。");
+            AssertTrue(persona.Contains("外向"), "人格应注入 OCEAN 个性描述。");
+            AssertTrue(persona.Contains("35"), "人格应注入与玩家的关系值。");
+            AssertTrue(persona.Contains("跑调"), "人格应注入记忆摘要。");
+
+            // 2) MOSS 情绪事件应回写心智情感（英文标签 → Plutchik 枚举）。
+            float joyBefore = npc.Emotion.Get(NpcEmotionType.Joy);
+            var handleEmotion = agent.GetType()
+                .GetMethod("HandleMossEvent", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            handleEmotion.Invoke(agent, new object[] { new MossServerEvent { Type = "emotion", Label = "joy" } });
+            AssertTrue(npc.Emotion.Get(NpcEmotionType.Joy) > joyBefore, "joy 情绪事件应提升心智 Joy 强度。");
+            AssertTrue(agent.Emotion == "joy", "Agent 顶层情绪标签应更新。");
+
+            // 未知标签应安全忽略，不写心智。
+            float before = npc.Emotion.Get(NpcEmotionType.Fear);
+            handleEmotion.Invoke(agent, new object[] { new MossServerEvent { Type = "emotion", Label = "unknown_xyz" } });
+            AssertTrue(npc.Emotion.Get(NpcEmotionType.Fear) == before, "未知情绪标签不应改动心智。");
+
+            // 3) 对话片段应写入心智记忆（玩家/NPC 双向）。
+            int memBefore = npc.Memory.Entries.Count;
+            handleEmotion.Invoke(agent, new object[] { new MossServerEvent { Type = "text_in", Text = "你好，艾莉。" } });
+            handleEmotion.Invoke(agent, new object[] { new MossServerEvent { Type = "text_done", Text = "嗨，旅人。" } });
+            AssertTrue(npc.Memory.Entries.Count >= memBefore + 2, "text_in/text_done 应各写入一条记忆。");
+            AssertTrue(npc.Memory.Recall("玩家").Any(), "玩家对话应记入玩家主体记忆。");
+            AssertTrue(npc.Memory.Recall("NPC").Any(), "NPC 回复应记入 NPC 主体记忆。");
+
+            agent.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
+
         // ───────────────────────── helpers ─────────────────────────
 
         private static KimodoMotionResponse BuildSyntheticMotion()

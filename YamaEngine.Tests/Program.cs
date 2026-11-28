@@ -34,6 +34,7 @@ try
     AiNpcIntegrationTests.TestKimodoHttpClientRoundtrip();
     AiNpcIntegrationTests.TestMossLiveDuplexTransport();
     AiNpcIntegrationTests.TestAiNpcActionFusionAndBargeIn();
+    AiNpcIntegrationTests.TestAiNpcAgentSharesMindModelWithNpcBrain();
     AiNpcIntegrationTests.TestFootContactExtractionByFrame();
     AiNpcIntegrationTests.TestMotionPostProcessorPipelineIsStable();
     ProjectSystemTests.TestProjectSystemCreatesBasic3DProject(tempRoot);
