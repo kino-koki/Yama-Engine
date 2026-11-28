@@ -39,6 +39,9 @@ def checks():
     has("YamaEngine/Reality/YrContactBlockMatrix.cs", "BuildGlobalK")
     has("YamaEngine/Reality/YrContactSolver.cs", "UseGlobalBlockSolve")
     has("YamaEngine.Tests/RealityPhysicsSeventeenthTests.cs", "TestR17")
+    has("YamaEngine/Reality/YrBlockLinearSolvers.cs", "YrBlockSolveMode")
+    has("YamaEngine/Reality/YrContactSolver.cs", "GlobalBlockSolveMode")
+    has("YamaEngine.Tests/RealityPhysicsEighteenthTests.cs", "TestR18")
     return out
 
 

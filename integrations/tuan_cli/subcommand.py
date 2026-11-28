@@ -8,7 +8,7 @@ from __future__ import annotations
 import argparse
 
 SUBCOMMANDS = ("build", "test", "smoke", "snapshot", "rollback", "ledger", "sota",
-                "coupled", "globalblocks")
+                "coupled", "globalblocks", "solver-spectrum")
 
 
 def build_parser():
@@ -42,6 +42,16 @@ def handle(argv):
                 "trace_fields": ["Groups", "MaxPointsPerGroup", "TotalIterations",
                                  "SolvedGroups", "FallbackGroups", "MaxCrossBlock",
                                  "LastUsedGlobal"]}
+    if a.yama_cmd == "solver-spectrum":
+        return {"ok": True, "command": "solver-spectrum",
+                "intent": "YrBlockLinearSolvers + YrBlockLinearTrace",
+                "modes": ["Direct", "BlockJacobi", "BlockGaussSeidel",
+                          "PreconditionedCG"],
+                "trace_fields": ["Mode", "InnerIterations", "InitialResidual",
+                                 "FinalResidual", "MaxResidual",
+                                 "SolutionDiscrepancy", "Converged",
+                                 "UsedFallback", "ResidualMonotonic"],
+                "gate": "residual AND solution drift -> safe fallback to Direct"}
     if a.yama_cmd == "smoke" and a.frames <= 0:
         return {"ok": False, "error": "frames must be > 0"}
     if a.yama_cmd == "rollback" and a.tick < 0:

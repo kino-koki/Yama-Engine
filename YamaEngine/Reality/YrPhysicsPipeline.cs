@@ -109,6 +109,33 @@ namespace YamaEngine.Reality
         public YrGlobalBlockTrace LastGlobalBlockTrace => _contacts.LastGlobalBlockTrace;
         public void ResetGlobalBlockTrace() => _contacts.ResetGlobalBlockTrace();
         /// <summary>
+        /// 第十八轮：转发块线性求解模式（默认 Direct = 第十七轮逐字不变）。
+        /// trace / 退回计数是纯观测量，不进 Snapshot。
+        /// </summary>
+        public YrBlockSolveMode GlobalBlockSolveMode
+        {
+            get => _contacts.GlobalBlockSolveMode;
+            set => _contacts.GlobalBlockSolveMode = value;
+        }
+        public int GlobalBlockInnerIterations
+        {
+            get => _contacts.GlobalBlockInnerIterations;
+            set => _contacts.GlobalBlockInnerIterations = value;
+        }
+        public float GlobalBlockInnerTolerance
+        {
+            get => _contacts.GlobalBlockInnerTolerance;
+            set => _contacts.GlobalBlockInnerTolerance = value;
+        }
+        public float GlobalBlockSolutionTolerance
+        {
+            get => _contacts.GlobalBlockSolutionTolerance;
+            set => _contacts.GlobalBlockSolutionTolerance = value;
+        }
+        public YrBlockLinearTrace LastBlockLinearTrace => _contacts.LastBlockLinearTrace;
+        public int BlockLinearFallbackCount => _contacts.BlockLinearFallbackCount;
+        public void ResetBlockLinearTrace() => _contacts.ResetBlockLinearTrace();
+        /// <summary>
         /// 穿透位置投影强度。默认 0.4；设 0 可关闭。
         /// 注意：位置瞬移是非物理修正，会改变轨道角动量项 r×(mv)，
         /// 因此严格角动量守恒要求 beta=0（见第五轮文档）。

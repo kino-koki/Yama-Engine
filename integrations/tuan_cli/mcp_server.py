@@ -31,6 +31,8 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {}, "required": []}},
     {"name": "yama_global_blocks", "description": "3m×3m 跨接触点全局块求解 trace（只读意图）",
      "inputSchema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "yama_solver_spectrum", "description": "块线性求解器谱系 / 收敛诊断 / 双判据退回（只读意图）",
+     "inputSchema": {"type": "object", "properties": {}, "required": []}},
 ]
 
 INTENTS = {
@@ -46,6 +48,11 @@ INTENTS = {
     "yama_global_blocks": ("YrPhysicsPipeline.UseGlobalBlockSolve + LastGlobalBlockTrace -> "
                            "Groups/MaxPointsPerGroup/TotalIterations/SolvedGroups/"
                            "FallbackGroups/MaxCrossBlock/LastUsedGlobal"),
+    "yama_solver_spectrum": ("YrBlockLinearSolvers(Direct/BlockJacobi/BlockGaussSeidel/"
+                             "PreconditionedCG) + YrBlockLinearTrace -> "
+                             "InnerIterations/InitialResidual/FinalResidual/MaxResidual/"
+                             "SolutionDiscrepancy/Converged/UsedFallback/ResidualMonotonic "
+                             "| dual-gate: residual AND solution drift"),
 }
 
 

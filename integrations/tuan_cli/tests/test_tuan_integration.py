@@ -41,6 +41,12 @@ class TestSkills(unittest.TestCase):
         self.assertIn("UseGlobalBlockSolve", txt)
         self.assertIn("LastGlobalBlockTrace", txt)
 
+    def test_coupled_skill_mentions_solver_spectrum(self):
+        txt = read("skills/yama-coupled-mass/SKILL.md")
+        self.assertIn("GlobalBlockSolveMode", txt)
+        self.assertIn("YrBlockLinearTrace", txt)
+        self.assertIn("SolutionDiscrepancy", txt)
+
     def test_sota_skill_forbids_false_claim(self):
         txt = read("skills/yama-sota-audit/SKILL.md")
         self.assertIn("禁止", txt)
@@ -83,7 +89,7 @@ class TestMcpServer(unittest.TestCase):
         ])
         self.assertEqual(len(rs), 2)
         self.assertEqual(rs[0]["result"]["serverInfo"]["name"], "yama-engine")
-        self.assertEqual(len(rs[1]["result"]["tools"]), 9)
+        self.assertEqual(len(rs[1]["result"]["tools"]), 10)
 
     def test_coupled_mass_tool_is_exposed(self):
         rs = self._rpc([
@@ -98,6 +104,13 @@ class TestMcpServer(unittest.TestCase):
                         "params": {"name": "yama_global_blocks", "arguments": {}}}),
         ])
         self.assertIn("LastGlobalBlockTrace", rs[0]["result"]["content"][0]["text"])
+
+    def test_solver_spectrum_tool_is_exposed(self):
+        rs = self._rpc([
+            json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                        "params": {"name": "yama_solver_spectrum", "arguments": {}}}),
+        ])
+        self.assertIn("YrBlockLinearTrace", rs[0]["result"]["content"][0]["text"])
 
     def test_tools_call_smoke_and_unknown(self):
         rs = self._rpc([
@@ -121,6 +134,9 @@ class TestSubcommand(unittest.TestCase):
         self.assertIn("CoupledSteps", subcommand.handle(["coupled"])["trace_fields"])
         self.assertIn("MaxCrossBlock",
                       subcommand.handle(["globalblocks"])["trace_fields"])
+        r = subcommand.handle(["solver-spectrum"])
+        self.assertIn("SolutionDiscrepancy", r["trace_fields"])
+        self.assertEqual(len(r["modes"]), 4)
 
 
 class TestContract(unittest.TestCase):

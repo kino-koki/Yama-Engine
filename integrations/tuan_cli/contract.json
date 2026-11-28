@@ -25,7 +25,8 @@
     "yama_ledger",
     "yama_sota_status",
     "yama_coupled_mass",
-    "yama_global_blocks"
+    "yama_global_blocks",
+    "yama_solver_spectrum"
   ],
   "subcommands": [
     "build",
@@ -36,7 +37,8 @@
     "ledger",
     "sota",
     "coupled",
-    "globalblocks"
+    "globalblocks",
+    "solver-spectrum"
   ],
   "files": [
     "README.md",

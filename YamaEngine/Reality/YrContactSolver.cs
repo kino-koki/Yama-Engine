@@ -81,6 +81,27 @@ namespace YamaEngine.Reality
         /// <summary>Cholesky 主元阻尼；设 0 可让奇异上下文强制走安全退回路径。</summary>
         public float GlobalBlockDamping { get; set; } = YrContactBlockMatrix.DefaultDamping;
 
+        /// <summary>
+        /// 第十八轮：全局块线性系统的求解模式（默认 **Direct**）。
+        /// Direct 时 SolveOneGroup 与第十七轮逐字相同 → 234 项断言零回归。
+        /// 迭代模式未通过「残差 + 解漂移」双判据时自动安全退回 Direct。
+        /// </summary>
+        public YrBlockSolveMode GlobalBlockSolveMode { get; set; } = YrBlockSolveMode.Direct;
+        public int GlobalBlockInnerIterations { get; set; }
+            = YrBlockLinearSolvers.DefaultMaxInnerIterations;
+        public float GlobalBlockInnerTolerance { get; set; }
+            = YrBlockLinearSolvers.DefaultTolerance;
+        public float GlobalBlockSolutionTolerance { get; set; }
+            = YrBlockLinearSolvers.DefaultSolutionTolerance;
+
+        private YrBlockLinearTrace _lastLinearTrace;
+        private int _gLinearFallback;
+
+        public YrBlockLinearTrace LastBlockLinearTrace => _lastLinearTrace;
+        public int BlockLinearFallbackCount => _gLinearFallback;
+        public void ResetBlockLinearTrace()
+        { _lastLinearTrace = default; _gLinearFallback = 0; }
+
         private int _gGroups, _gMaxPts, _gIters, _gSolved, _gFallback;
         private float _gMaxCross;
         private bool _gLastUsed;
@@ -222,6 +243,7 @@ namespace YamaEngine.Reality
         private void SolveGlobalBlocks(int iterations)
         {
             ResetGlobalBlockTrace();
+            ResetBlockLinearTrace();
             var valid = new System.Collections.Generic.List<int>();
             for (int k = 0; k < _contacts.Length; k++)
                 if (Valid(_contacts[k])) valid.Add(k);
@@ -314,7 +336,16 @@ namespace YamaEngine.Reality
                     rhs[3 * q + 2] = -v2;
                 }
 
-                float[] dl = YrContactBlockMatrix.Solve(lower, n, rhs);
+                float[] dl = YrBlockLinearSolvers.TrySolve(
+                    GlobalBlockSolveMode, k, n, m, GlobalBlockDamping,
+                    lower, rhs, GlobalBlockInnerIterations,
+                    GlobalBlockInnerTolerance, GlobalBlockSolutionTolerance,
+                    out YrBlockLinearTrace lt);
+                if (GlobalBlockSolveMode != YrBlockSolveMode.Direct)
+                {
+                    _lastLinearTrace = lt;
+                    if (lt.UsedFallback) _gLinearFallback++;
+                }
                 // 先算好全部新 λ 与合成冲量，再统一施加 → Jacobi 语义
                 for (int q = 0; q < m; q++)
                 {
