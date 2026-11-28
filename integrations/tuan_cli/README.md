@@ -66,3 +66,11 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"yama_codeo
 主语言 `yama` 强制、7 个可插拔语言模块默认零内置、项目契约门禁
 `scripts/check_yama_project.py`。引擎侧命令表由 10 扩到 12，
 新增 `yama.languageProfile` / `yama.newGameProject`。
+
+
+## YAMA 行为层（第二十二轮）
+
+契约新增 `script_binding` 字段：`schemas/yama-script.schema.json` +
+`YamaEngine/Scripting/Abi/YamaScriptDeclaration.cs`，`vm_implemented=false`
+如实标注**不是 VM**。引擎侧命令表由 12 扩到 14，新增
+`yama.scriptBinding` / `yama.newScript`。

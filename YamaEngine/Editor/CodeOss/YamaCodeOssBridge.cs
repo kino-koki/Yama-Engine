@@ -71,6 +71,13 @@ namespace YamaEngine.Editor.CodeOss
                 case "yama.newGameProject":
                     return (true, "scaffold",
                         "Templates/Basic2D|yama.project.json primaryLanguage=yama + Content/Scenes/Main.yama (read-only intent)");
+                // 第二十二轮：YAMA 行为层声明接线（非 VM）
+                case "yama.scriptBinding":
+                    return (true, "verify",
+                        "schemas/yama-script.schema.json -> YamaScriptDeclaration -> ScriptBinding / PropertyBag (declarative, no VM)");
+                case "yama.newScript":
+                    return (true, "scaffold",
+                        "Templates/*/Content/Scripts/*.yama : typeName + typed properties + signals + lifecycle (read-only intent)");
                 default:
                     return (false, string.Empty, string.Empty);
             }

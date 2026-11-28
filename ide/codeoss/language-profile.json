@@ -103,5 +103,14 @@
     "checkScript": "scripts/check_yama_project.py",
     "csharpGate": "YamaEngine.Tests/YamaLanguageProfileTests.cs",
     "boundary": "强制仅在本仓库项目契约 / 脚手架 / CI 层生效；workbench 未编译，不宣称已改编辑器内核或锁死 UI。"
+  },
+  "scriptBinding": {
+    "schema": "schemas/yama-script.schema.json",
+    "abi": "YamaEngine/Scripting/Abi/ (ScriptBinding / PropertyBag / NodeRef / SignalBus / LifecycleDispatcher / ScriptRegistry)",
+    "implementation": "YamaEngine/Scripting/Abi/YamaScriptDeclaration.cs",
+    "projectFolder": "Content/Scripts",
+    "declarationExtension": ".yama",
+    "vmImplemented": false,
+    "note": "声明式绑定，不是 VM / 不是 DSL 解释器；L2 绑定 ABI 早已实现，本轮只补 L1↔L2 的声明接线。不谎报 YAMA 脚本语言已实现。"
   }
 }

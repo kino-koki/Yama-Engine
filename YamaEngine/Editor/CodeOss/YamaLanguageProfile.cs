@@ -22,6 +22,12 @@ namespace YamaEngine.Editor.CodeOss
         public List<string> InstalledOptionalIds { get; } = new List<string>();
         public List<string> ForbiddenDefaults { get; } = new List<string>();
 
+        // 第二十二轮：行为层声明（language-profile.json 的 scriptBinding 段）
+        public bool HasScriptBindingSection { get; private set; }
+        public string ScriptBindingSchema { get; private set; } = string.Empty;
+        public string ScriptBindingAbi { get; private set; } = string.Empty;
+        public bool VmImplemented { get; private set; }
+
         public static YamaLanguageProfile FromJson(string json)
         {
             if (json == null) throw new ArgumentNullException(nameof(json));
@@ -61,6 +67,14 @@ namespace YamaEngine.Editor.CodeOss
             if (r.TryGetProperty("enforcement", out var enf)
                 && enf.ValueKind == JsonValueKind.Object)
                 p.StrictYamaProject = Bool(enf, "strictYamaProject");
+            if (r.TryGetProperty("scriptBinding", out var sb)
+                && sb.ValueKind == JsonValueKind.Object)
+            {
+                p.HasScriptBindingSection = true;
+                p.ScriptBindingSchema = Str(sb, "schema");
+                p.ScriptBindingAbi = Str(sb, "abi");
+                p.VmImplemented = Bool(sb, "vmImplemented");
+            }
             return p;
         }
 
@@ -84,6 +98,10 @@ namespace YamaEngine.Editor.CodeOss
                 foreach (var f in new[] { "builtin_language_packs",
                                           "marketplace_auto_install", "builtInExtensions" })
                     p.ForbiddenDefaults.Add(f);
+                p.HasScriptBindingSection = true;
+                p.ScriptBindingSchema = "schemas/yama-script.schema.json";
+                p.ScriptBindingAbi = "YamaEngine/Scripting/Abi/";
+                p.VmImplemented = false;
                 return p;
             }
         }
@@ -103,6 +121,12 @@ namespace YamaEngine.Editor.CodeOss
             && StrictYamaProject
             && InstalledOptionalIds.Count == 0
             && OptionalIds.Count > 0;
+
+        /// <summary>行为层声明必须是「声明式绑定 / 未实现 VM」，不得谎报。</summary>
+        public bool HasHonestDeclaredScriptBinding =>
+            HasScriptBindingSection
+            && ScriptBindingSchema == "schemas/yama-script.schema.json"
+            && !VmImplemented;
 
         public bool IsBuiltIn(string id)
             => id == PrimaryId || RequiredSystemIds.Contains(id);

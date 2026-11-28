@@ -57,6 +57,9 @@ def checks():
     # 第二十一轮：YAMA 主语言面收口 + 项目契约门禁
     has("ide/codeoss/language-profile.json", "strictYamaProject")
     has("scripts/check_yama_project.py", "primaryLanguage")
+    # 第二十二轮：YAMA 行为层声明 + L2 ABI 真接线 + 规格文档口径更正
+    has("schemas/yama-script.schema.json", "yama.script-binding.v1")
+    has("YamaEngine/Scripting/Abi/YamaScriptDeclaration.cs", "CreateBinding")
     return out
 
 

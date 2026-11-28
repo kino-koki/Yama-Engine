@@ -89,3 +89,10 @@ C# xUnit + 两个 `--check` 脚本的 CI 断言。把 `enforced` 改 false、
 Python 门禁；按 `TUAN.md` 逐次授权后合并适配层；`docs/SCRIPTING_ABI_SPEC.md`
 里的 YamaScript 等价物仍是规格、不是实现；零空间投影预条件、精确锥互补、
 真机 GPU 帧循环。
+
+
+> 后续（第二十二轮）：命令表由 12 扩到 **14**（新增 `yama.scriptBinding` /
+> `yama.newScript`），摘要由 7 文件扩到 9 文件，并把 YAMA 从「场景数据」
+> 推进到「可声明行为」——声明经 `YamaScriptDeclaration` 还原为已实现的
+> L2 绑定 ABI；同时更正 `docs/SCRIPTING_ABI_SPEC.md` 的陈旧口径。
+> 本文件保留第二十一轮当时的历史口径，详见 `docs/ROUND22_DELIVERY.md`。

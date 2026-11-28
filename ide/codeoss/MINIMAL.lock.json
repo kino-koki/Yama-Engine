@@ -38,19 +38,23 @@
     "ci/codeoss-gate.yml",
     "scripts/fetch_codeoss.py",
     "scripts/build_codeoss_minimal.py",
-    "ide/codeoss/language-profile.json"
+    "ide/codeoss/language-profile.json",
+    "schemas/yama-script.schema.json",
+    "scripts/check_yama_project.py"
   ],
   "config_sha256": {
     "ide/codeoss/product.json": "D86A5E85755853F0ABE1FD16B99ECDFEFA7AA55730E622841313228A734129F8",
     "ide/codeoss/UPSTREAM.lock.json": "E3A3274301ECA5E83FF640EB609077D26F41D32BF2B59B90FCC4592497AE8B6D",
     ".gitmodules": "CBA285B3B0576816A62B4F3AB71701690280F18074069D01C0E8976472A5E4AB",
-    "ci/codeoss-gate.yml": "77F5D726B34E85E16AA6049EA2E273F319587223434BA490DAFF602847848511",
-    "scripts/fetch_codeoss.py": "98240191519FFC338F62539DB858BF6FF5F440D07E6480CA37EC19D8F25F9AC7",
-    "scripts/build_codeoss_minimal.py": "27BF1C5E89F33C74A5BF86C54A5A482E20B659880A6BD439A72AE92A233F8110",
-    "ide/codeoss/language-profile.json": "4C01D5E04530FEC2620D4D3A86434507D269AC3BF7BABA2A9D16B1588A9DDB22"
+    "ci/codeoss-gate.yml": "65BB86953B81FC91B1F8019526060F28963489B8F358A3C1F5A7EA6F5E05A26C",
+    "scripts/fetch_codeoss.py": "ADA793D5749C90BE8584259479278E24AE13FACC620FC1E0A4810E78E7424D2D",
+    "scripts/build_codeoss_minimal.py": "F28AA6B636F20995E0E09FB80ED93C36E6A8A9CE4D390AF0801BF3251D0B843D",
+    "ide/codeoss/language-profile.json": "7E07E9796A6527D9930E907C1118D7C557AC47EF5150E8B72FE9F15CEE7AA6FF",
+    "schemas/yama-script.schema.json": "84C0DB64CFAD83494DF5D7AC047938C7C4D5D2D64CD0CB14F587AF9FE09A0414",
+    "scripts/check_yama_project.py": "80D7273A7E63E0EC259EB27C6542CE30E48DE678522BECE13ECDED50B96F1CB5"
   },
   "minimal_build_script": "scripts/build_codeoss_minimal.py",
   "ci_gate": "ci/codeoss-gate.yml",
   "tuan_action": "verify_codeoss_minimal",
-  "note": "1.148.0（2026-11-24）是当前最新稳定版；本锁把「最轻量」定义为去掉 Electron/原生模块/Marketplace/遥测/品牌/内置扩展下载/更新服务的 web-only 干净 MIT 构建面。MINIMAL.lock.json 自身不进 config_sha256 以避免自引用循环。config_sha256 统一按 LF 归一化后计算（Windows runner 的 core.autocrlf=true 会 checkout 成 CRLF，Python 与 C# 两实现都必须先归一化再算摘要）。 第二十轮：fetch 脚本口径统一、离线校验加反回漂断言、等价门禁语义双实现进 C# xUnit（workflow 写入实测 404，模板仍未启用）；6 个摘要按改动后重新定标。 第二十一轮：加入 language-profile.json 作第 7 个受校验配置，YAMA 主语言强制 / 可插拔语言模块默认零内置；仅收口能力面，未物理裁剪上游源码。"
+  "note": "1.148.0（2026-11-24）是当前最新稳定版；本锁把「最轻量」定义为去掉 Electron/原生模块/Marketplace/遥测/品牌/内置扩展下载/更新服务的 web-only 干净 MIT 构建面。MINIMAL.lock.json 自身不进 config_sha256 以避免自引用循环。config_sha256 统一按 LF 归一化后计算（Windows runner 的 core.autocrlf=true 会 checkout 成 CRLF，Python 与 C# 两实现都必须先归一化再算摘要）。 第二十轮：fetch 脚本口径统一、离线校验加反回漂断言、等价门禁语义双实现进 C# xUnit（workflow 写入实测 404，模板仍未启用）；6 个摘要按改动后重新定标。 第二十一轮：加入 language-profile.json 作第 7 个受校验配置，YAMA 主语言强制 / 可插拔语言模块默认零内置；仅收口能力面，未物理裁剪上游源码。 第二十二轮：加入 yama-script.schema.json 与 check_yama_project.py 作第 8/9 个受校验配置；YAMA 行为层声明接线（非 VM），并更正 ABI 规格文档口径。"
 }

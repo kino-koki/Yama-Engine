@@ -10,7 +10,7 @@
 | 未压缩 web build 包 | 约 **528 MB** | ❌ |
 | 从源码构建所需机器 | 4 核 / **9 GB** 内存起，Node 24 + 网络 | ❌ 本环境不具备 |
 | 默认语言/扩展面 | 官方称支持「数百种语言」，内置若干 + Marketplace 自动补齐 | ⚠️ **这才是该裁的** |
-| 本仓库实际 Code-OSS 侧资产 | 7 个轻量配置文件 + 12 个命令 + 自研 LSP/DAP/扩展清单/命令路由 | ✅ 全部在仓库里 |
+| 本仓库实际 Code-OSS 侧资产 | 9 个轻量配置文件 + 14 个命令 + 自研 LSP/DAP/扩展清单/命令路由（第二十二轮后） | ✅ 全部在仓库里 |
 
 结论：**「大」是上游源码与默认发行版的属性，不是本仓库引入的属性。**
 第十九轮起本仓库硬声明 `compiledInThisRepo=false`，从来没把 1.8 GB
@@ -101,3 +101,25 @@ L2 的价值：即便将来 L3 由带编译环境的机器完成，它照着
   `.github/workflows/` 实测 404；需网页端人工移入。等价语义由 C# xUnit 覆盖。
 - G4–G8 未闭合，不宣称已达 SOTA；未向 `kino-koki/Tuan-CLI` 写入任何文件。
 - 不删断言、不放宽容差、不吞异常。
+
+
+## 8. 第二十二轮：行为层声明（不是 VM）
+
+第二十一轮收口的是「项目契约 + 内置语言面」，但 `.yama` 场景的
+`Components` 只有内置组件，`yscene.schema.json` 的 `Components.items`
+是裸 `{"type":"object"}`——**没有任何脚本绑定声明**，所以「用 YAMA
+开发游戏」当时只能摆场景。
+
+本轮不改 `SceneSerializer` 的强类型组件路径（`ComponentRecord` 只 switch
+Camera/Light，动它会牵动场景序列化、零回归不成立），改走独立声明文件：
+`schemas/yama-script.schema.json` + `Templates/*/Content/Scripts/*.yama` +
+`YamaEngine/Scripting/Abi/YamaScriptDeclaration.cs`。声明被**真实还原**
+成 `ScriptBinding` / `PropertyBag` / `NodeRef`：类型名未注册即拒绝、
+属性 kind 只放行 9 种 variant 子集、生命周期只认 `IScriptLifecycle`、
+信号只是连接点声明。项目契约补 `scriptBinding: "Content/Scripts"`。
+
+**边界**：不是 VM、不是 DSL 解释器、不执行字节码；
+`vmImplemented=false` 是硬声明。第二十一轮说的「YamaScript 等价物
+仍是规格」依然成立——本轮补的是 L1↔L2 的声明接线，不是跨过最后一步。
+另更正 `docs/SCRIPTING_ABI_SPEC.md`：L2/L3 绑定 ABI 早已实现并在 CI
+执行，原文「规格文档，不是实现 / 沙盒无 dotnet」是口径回漂。

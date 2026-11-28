@@ -38,7 +38,7 @@ jobs:
         run: python scripts/fetch_codeoss.py --check
       - name: Verify minimal web-only build lock + config digests
         run: python scripts/build_codeoss_minimal.py --check
-      - name: Verify YAMA-first language profile + project contracts
+      - name: Verify YAMA-first language + project + script-binding declarations
         run: |
           python scripts/check_yama_project.py --check
           python scripts/check_yama_project.py --emit > yama-language-manifest.json

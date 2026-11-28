@@ -38,7 +38,12 @@ CONFIG_FILES = [
     "scripts/fetch_codeoss.py",
     "scripts/build_codeoss_minimal.py",
     "ide/codeoss/language-profile.json",
+    "schemas/yama-script.schema.json",
+    "scripts/check_yama_project.py",
 ]
+
+KINDS = ["bool", "int32", "int64", "single", "double", "string",
+         "vector2", "vector3", "vector4"]
 
 EXPECTED_EXCLUSIONS = [
     "electron", "native_modules", "marketplace", "telemetry", "branding",
@@ -67,7 +72,7 @@ def check():
     for e in EXPECTED_EXCLUSIONS:
         if e not in ex:
             errs.append("排除项缺失: " + e)
-    # 7 个轻量配置文件 SHA-256 逐位比对
+    # 9 个轻量配置文件 SHA-256 逐位比对
     declared = lock.get("config_sha256", {})
     actual = {}
     for rel in CONFIG_FILES:
@@ -147,6 +152,23 @@ def check():
         errs.append("language-profile 未开启严格项目门禁")
     if "builtin_language_packs" not in lp.get("forbidden_defaults", []):
         errs.append("language-profile 未禁止内置全量语言包")
+    # 第二十二轮：行为层声明契约（不是 VM，不谎报）
+    sb = lp.get("scriptBinding", {})
+    if sb.get("schema") != "schemas/yama-script.schema.json":
+        errs.append("language-profile 未指向 yama-script.schema.json")
+    if sb.get("vmImplemented") is not False:
+        errs.append("language-profile 谎报 VM 已实现")
+    if "YamaScriptDeclaration.cs" not in str(sb.get("implementation", "")):
+        errs.append("language-profile 未指向声明层实现")
+    if "不是 VM" not in str(sb.get("note", "")):
+        errs.append("scriptBinding 缺诚实边界声明")
+    try:
+        ss = json.load(open(p("schemas/yama-script.schema.json"), "r", encoding="utf-8"))
+        if ss.get("$defs", {}).get("TypedValue", {}).get("properties", {}) \
+                .get("kind", {}).get("enum") != KINDS:
+            errs.append("yama-script.schema.json kind 白名单与 C# 不一致")
+    except Exception as e:
+        errs.append("yama-script.schema.json 读取失败: " + str(e))
     # gitmodules 锁
     try:
         gm = open(p(".gitmodules"), "r", encoding="utf-8").read()

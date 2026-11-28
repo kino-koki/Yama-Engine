@@ -4,6 +4,7 @@
   "formatVersion": 1,
   "template": "Basic 3D Project",
   "primaryLanguage": "yama",
+  "scriptBinding": "Content/Scripts",
   "startupScene": "Content/Scenes/Main.yama",
   "folders": [
     "Content/Scenes",

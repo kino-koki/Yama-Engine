@@ -72,13 +72,30 @@ namespace YamaEngine.Tests
         {
             var dir = Path.Combine(Root, "schemas");
             var files = Directory.GetFiles(dir, "*.json").OrderBy(x => x).ToArray();
-            Assert.Equal(4, files.Length);
+            // 第二十二轮新增 schemas/yama-script.schema.json，精确同步为 5。
+            Assert.Equal(5, files.Length);
+            bool sawScriptBindingSchema = false;
             foreach (var f in files)
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(f));
-                Assert.True(doc.RootElement.TryGetProperty("$schema", out _), f);
-                Assert.True(doc.RootElement.TryGetProperty("type", out _), f);
+                var root = doc.RootElement;
+                Assert.True(root.TryGetProperty("$schema", out _), f);
+                Assert.True(root.TryGetProperty("type", out _), f);
+                if (root.TryGetProperty("$id", out var id)
+                    && id.ValueKind == JsonValueKind.String
+                    && (id.GetString() ?? "").Contains("yama-script.schema.json",
+                        StringComparison.Ordinal))
+                {
+                    sawScriptBindingSchema = true;
+                    // 新 schema 必须真的声明带 kind 白名单的 TypedValue，不能是空壳。
+                    var defs = root.GetProperty("$defs");
+                    Assert.True(defs.TryGetProperty("TypedValue", out var tv), f);
+                    Assert.Equal(JsonValueKind.Array,
+                        tv.GetProperty("properties").GetProperty("kind")
+                          .GetProperty("enum").ValueKind);
+                }
             }
+            Assert.True(sawScriptBindingSchema, "行为层声明 schema 缺失");
         }
 
         [Fact]
@@ -90,11 +107,25 @@ namespace YamaEngine.Tests
                 using var doc = JsonDocument.Parse(File.ReadAllText(f));
                 Assert.Equal(JsonValueKind.Object, doc.RootElement.ValueKind);
             }
+            // 第二十二轮：Templates 下出现两类 .yama —— 场景文件与脚本绑定声明。
+            // 按 schema 字段分流，两类都施加真实门禁，不跳过任何文件、不吞异常。
             foreach (var f in Directory.GetFiles(troot, "*.yama", SearchOption.AllDirectories))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(f));
-                Assert.Equal(1, doc.RootElement.GetProperty("Version").GetInt32());
-                Assert.Equal(JsonValueKind.Array, doc.RootElement.GetProperty("Objects").ValueKind);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("schema", out var sc)
+                    && sc.ValueKind == JsonValueKind.String
+                    && sc.GetString() == "yama.script-binding.v1")
+                {
+                    Assert.True(root.TryGetProperty("typeName", out var tn), f);
+                    Assert.False(string.IsNullOrWhiteSpace(tn.GetString()), f);
+                    Assert.Equal(JsonValueKind.Object,
+                        root.GetProperty("properties").ValueKind);
+                    Assert.True(root.TryGetProperty("lifecycle", out _), f);
+                    continue;
+                }
+                Assert.Equal(1, root.GetProperty("Version").GetInt32());
+                Assert.Equal(JsonValueKind.Array, root.GetProperty("Objects").ValueKind);
             }
             foreach (var f in Directory.GetFiles(troot, "*.tileset.json", SearchOption.AllDirectories))
             {
@@ -322,7 +353,7 @@ namespace YamaEngine.Tests
         public void TestRound20EngineSideBridgeExposesMinimalBuild()
         {
             // 证明最轻量能力真的编进了被引用的程序集，不只是磁盘上的脚本。
-            Assert.Equal(12, YamaExtensionManifest.Commands.Length);
+            Assert.Equal(14, YamaExtensionManifest.Commands.Length);
             Assert.Contains("yama.languageProfile", YamaExtensionManifest.Commands);
             Assert.Contains("yama.newGameProject", YamaExtensionManifest.Commands);
             Assert.Contains("yama.codeossMinimal", YamaExtensionManifest.Commands);
@@ -390,6 +421,34 @@ namespace YamaEngine.Tests
                     p.RootElement.GetProperty("startupScene").GetString()!);
             }
             Assert.True(File.Exists(Path.Combine(Root, "scripts", "check_yama_project.py")));
+        }
+
+        [Fact]
+        public void TestRound22YamaScriptDeclarationRestoresBindingAbi()
+        {
+            // 行为层声明真的编进被测程序集，且能还原成 L2 绑定 ABI 对象。
+            string json = File.ReadAllText(Path.Combine(Root, "Templates", "Basic2D",
+                "Content", "Scripts", "PlayerController.yama"));
+            Assert.True(YamaEngine.Scripting.Abi.YamaScriptDeclaration.TryParse(
+                json, out var decl, out var error), error);
+            Assert.NotNull(decl);
+            Assert.Equal("PlayerController", decl!.TypeName);
+            Assert.Equal(5, decl.Properties.Count);
+            var handles = new YamaEngine.Scripting.Abi.NodeHandleTable();
+            var registry = new YamaEngine.Scripting.Abi.ScriptRegistry();
+            registry.Register("PlayerController", b => new object());
+            var target = new object();
+            var binding = decl.CreateBinding(handles, registry, target);
+            Assert.True(binding.Node.IsValid);
+            Assert.True(binding.Properties.Get("speed",
+                YamaEngine.Scripting.Abi.ScriptVariant.Null).AsDouble() > 6.24);
+            Assert.Contains("yama.scriptBinding",
+                YamaEngine.Editor.CodeOss.YamaExtensionManifest.Commands);
+            Assert.Contains("yama.newScript",
+                YamaEngine.Editor.CodeOss.YamaExtensionManifest.Commands);
+            string spec = File.ReadAllText(Path.Combine(Root, "docs", "SCRIPTING_ABI_SPEC.md"));
+            Assert.DoesNotContain("规格文档，不是实现", spec);
+            Assert.Contains("L2 已实现", spec);
         }
 
         [Fact]

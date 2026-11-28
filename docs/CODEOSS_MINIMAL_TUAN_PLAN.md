@@ -44,7 +44,7 @@ G4 仍未闭合。
   MCP / 插件子命令 / 独立 CLI **三入口统一委派**到同一个 dispatcher。
 - **C. 双实现门禁**：Python 侧（unittest + `build_codeoss_minimal.py --check`）
   与 C# 侧（12 项新反射断言 + 1 个新 `[Fact]`（第二十轮再加 12 项 + 1 个 `[Fact]`））用同一套 SHA-256 口径，
-  任何一侧漂移都红灯。累计 **282 项**反射断言 + **15** 个 `[Fact]`（第二十一轮后）。
+  任何一侧漂移都红灯。累计 **295 项**反射断言 + **16** 个 `[Fact]`（第二十二轮后）。
 
 ## 2. 阶段与里程碑（每阶段都有可判定验收，不靠口头汇报）
 
@@ -178,8 +178,31 @@ M3 的 `verify_codeoss_minimal` 动作依赖 M1 的脚本，故 M3 单测放在 
 | 语言面契约 | `ide/codeoss/language-profile.json`：yama 强制、csharp/json 系统级保留（不作写游戏语言）、7 个可插拔模块默认零内置、禁止内置全量语言包 | `YamaLanguageProfileTests` 12 项 + 1 个 `[Fact]` |
 | 强制使用 YAMA | 3 个模板补 `primaryLanguage=yama`；`scripts/check_yama_project.py` 离线 fail-closed；两个 `--check` 脚本与 CI 断言 | 篡改 enforced / installed / strict / `.tscn` 入口均红灯 |
 | 模块化拆卸 | `contributes.languages` 只生成 yama/csharp/json；`IsWellFormed` 反向拒绝可选模块 id；`allowOptionalModules` 默认 false | `TestR21ManifestLanguagesExcludeOptionalModules` |
-| 引擎侧接线 | 新增 `YamaLanguageProfile.cs`；命令 10→12；Product 解析 `yamaLanguageProfile` 段 | `TestR21ExtensionManifestHasTwelveCommandsAndYamaLanguage` 等 |
+| 引擎侧接线 | 新增 `YamaLanguageProfile.cs`；命令 10→12；Product 解析 `yamaLanguageProfile` 段 | `TestR21ExtensionManifestHasFourteenCommandsAndYamaLanguage` 等 |
 
 同步：摘要 6→7 文件、hook 28→30、反射断言 270→282、`[Fact]` 14→15。
 详细设计与诚实边界见 `docs/YAMA_LANGUAGE_PROFILE.md` 与
 `docs/ROUND21_DELIVERY.md`。
+
+
+## 9. M7（第二十二轮，2026-11-28）——YAMA 行为层接线 + 规格文档口径更正
+
+扫描发现两处「说了没对齐」：
+
+1. `docs/SCRIPTING_ABI_SPEC.md` 仍自称「规格文档，不是实现」、
+   「沙盒无 dotnet 无法编译」，但 `YamaEngine/Scripting/Abi/*.cs`
+   与 `ScriptAbiTests.cs` 7 项早已落地并被 CI 真实执行 → **更正为
+   L2/L3 已实现、L1 的 VM/DSL 仍未实现**。与第二十轮 fetch 脚本同类回漂。
+2. `.yama` 场景 `Components` 只有内置组件，`yscene.schema.json` 的
+   `Components.items` 无约束，**没有任何脚本绑定声明** →
+   「用 YAMA 开发游戏」此前只能摆场景。
+
+| 项 | 落地 | 验收 |
+|---|---|---|
+| 声明 schema | `schemas/yama-script.schema.json`（9 种 kind 白名单、4 个生命周期钩子、禁止额外字段） | `TestR22SchemaDeclaresStrictBindingContract` |
+| 声明 → ABI 真接线 | `YamaScriptDeclaration.cs`：`CreateBinding` 产出 `ScriptBinding` + `PropertyBag` + `NodeRef`；未注册类型 fail-closed；生命周期只认 `IScriptLifecycle`；信号不谎报已连接 | `YamaScriptBindingTests` 12 项 + 1 个 `[Fact]` |
+| 项目契约 | 3 个模板补 `scriptBinding: "Content/Scripts"` + 各一个 `.yama` 声明；`check_yama_project.py` 扩白名单校验 | `TestR22ProjectContractsPointAtScriptFolder` |
+| 诚实边界 | `vmImplemented=false` 写进 language-profile / contract / 规格文档；**不是 VM、不是 DSL** | `TestR22LanguageProfileDeclaresHonestScriptBinding` |
+
+同步：命令 12→14、摘要 7→9 文件、hook 30→32、反射断言 282→295、
+`[Fact]` 15→16。详见 `docs/ROUND22_DELIVERY.md`。

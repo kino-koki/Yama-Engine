@@ -42,6 +42,8 @@ def check():
     lp_path = os.path.join(ROOT, "ide", "codeoss", "language-profile.json")
     if not os.path.isfile(lp_path):
         errs.append("language-profile.json 缺失")
+    if not os.path.isfile(os.path.join(ROOT, "schemas", "yama-script.schema.json")):
+        errs.append("yama-script.schema.json 缺失")
     else:
         lp = load(lp_path)
         pri = lp.get("primary", {})
@@ -51,6 +53,8 @@ def check():
             errs.append("language-profile 存在默认内置语言模块")
         if lp.get("enforcement", {}).get("strictYamaProject") is not True:
             errs.append("language-profile 未开启严格项目门禁")
+        if lp.get("scriptBinding", {}).get("vmImplemented") is not False:
+            errs.append("language-profile 谎报 VM 已实现")
     if prod.get("licenseName") != "MIT":
         errs.append("product.json licenseName 不是 MIT")
     if "Visual Studio Code" in str(prod.get("nameShort", "")):
@@ -112,7 +116,7 @@ def main():
         "steps": ([] if a.apply_only else [
             "git submodule update --init --depth 1 ide/codeoss/upstream",
             "python scripts/fetch_codeoss.py --apply-only",
-            "python scripts/build_codeoss_minimal.py --check  # 最轻量锁 + 7 文件 SHA-256",
+            "python scripts/build_codeoss_minimal.py --check  # 最轻量锁 + 9 文件 SHA-256",
             "python scripts/check_yama_project.py --check  # YAMA 主语言强制 + 项目契约",
             "web-only 最小构建步骤见 scripts/build_codeoss_minimal.py --plan",
             "本仓库不编译 1.8GB 上游 workbench，不宣称产物存在；不得替换为官方 VS Code 二进制/商标",

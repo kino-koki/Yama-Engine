@@ -49,7 +49,8 @@ namespace YamaEngine.Tests
         private static readonly string[] ConfigFiles = {
             "ide/codeoss/product.json", "ide/codeoss/UPSTREAM.lock.json", ".gitmodules",
             "ci/codeoss-gate.yml", "scripts/fetch_codeoss.py",
-            "scripts/build_codeoss_minimal.py", "ide/codeoss/language-profile.json" };
+            "scripts/build_codeoss_minimal.py", "ide/codeoss/language-profile.json",
+            "schemas/yama-script.schema.json", "scripts/check_yama_project.py" };
 
         public static void TestR21ProfileDeclaresYamaPrimaryAndEnforced()
         {
@@ -153,9 +154,9 @@ namespace YamaEngine.Tests
             Require(ids.Count == 3, "内置语言数应为 3，实际 " + ids.Count);
         }
 
-        public static void TestR21ExtensionManifestHasTwelveCommandsAndYamaLanguage()
+        public static void TestR21ExtensionManifestHasFourteenCommandsAndYamaLanguage()
         {
-            Require(YamaExtensionManifest.Commands.Length == 12, "命令表应为 12");
+            Require(YamaExtensionManifest.Commands.Length == 14, "命令表应为 14");
             foreach (var extra in new[] { "yama.languageProfile", "yama.newGameProject" })
                 Require(Array.IndexOf(YamaExtensionManifest.Commands, extra) >= 0, "缺命令 " + extra);
             string m = YamaExtensionManifest.Build("1.148.0");
@@ -164,7 +165,7 @@ namespace YamaEngine.Tests
             var contrib = doc.RootElement.GetProperty("contributes");
             int n = 0;
             foreach (var _ in contrib.GetProperty("commands").EnumerateArray()) n++;
-            Require(n == 12, "contributes.commands 应为 12，实际 " + n);
+            Require(n == 14, "contributes.commands 应为 14，实际 " + n);
             var langs = contrib.GetProperty("languages");
             bool hasYama = false;
             foreach (var l in langs.EnumerateArray())
@@ -177,7 +178,7 @@ namespace YamaEngine.Tests
                        .GetProperty("default").GetBoolean(), "可选模块应默认关闭");
         }
 
-        public static void TestR21BridgeRoutesAllTwelveCommands()
+        public static void TestR21BridgeRoutesAllFourteenCommands()
         {
             var b = new YamaCodeOssBridge(Rd("ide/codeoss/product.json"), "1.148.0");
             Require(b.IsCleanMitBuild, "干净 MIT 判定不应回退");
@@ -263,10 +264,10 @@ namespace YamaEngine.Tests
             }
             int n = 0;
             foreach (var _ in declared.EnumerateObject()) n++;
-            Require(n == 7, "摘要键数应为 7，实际 " + n);
+            Require(n == 9, "摘要键数应为 9，实际 " + n);
             int cf = 0;
             foreach (var _ in m.GetProperty("config_files").EnumerateArray()) cf++;
-            Require(cf == 7, "config_files 应为 7");
+            Require(cf == 9, "config_files 应为 9");
             // 诚实边界：不得宣称已物理裁剪上游源码
             var p = J("ide/codeoss/language-profile.json");
             string note = p.GetProperty("note").GetString() ?? "";

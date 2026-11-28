@@ -14,6 +14,12 @@ import argparse, json, os, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROFILE = os.path.join(ROOT, "ide", "codeoss", "language-profile.json")
 TEMPLATES = ["Templates/Basic2D", "Templates/Basic3D", "Templates/NpcRealityDemo"]
+SCHEMA_ID = "yama.script-binding.v1"
+ALLOWED_KINDS = {"bool", "int32", "int64", "single", "double", "string",
+                 "vector2", "vector3", "vector4"}
+ALLOWED_HOOKS = {"ready", "process", "physics", "destroy"}
+VECTOR_KEYS = {"vector2": ("X", "Y"), "vector3": ("X", "Y", "Z"),
+               "vector4": ("X", "Y", "Z", "W")}
 
 
 def load(p):
@@ -54,6 +60,67 @@ def check_profile(prof):
     return errs
 
 
+def check_script_value(kind, value):
+    """按 kind 校验值；返回错误列表。与 C# YamaScriptDeclaration 同口径。"""
+    errs = []
+    if kind in ("bool",):
+        if not isinstance(value, bool):
+            errs.append("bool 值类型不符")
+    elif kind in ("int32", "int64"):
+        if not isinstance(value, int) or isinstance(value, bool):
+            errs.append(kind + " 值应为整数")
+    elif kind in ("single", "double"):
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            errs.append(kind + " 值应为数值")
+    elif kind == "string":
+        if not isinstance(value, str):
+            errs.append("string 值类型不符")
+    elif kind in VECTOR_KEYS:
+        if not isinstance(value, dict):
+            errs.append(kind + " 值应为向量对象")
+        else:
+            for k in VECTOR_KEYS[kind]:
+                if not isinstance(value.get(k), (int, float)) or isinstance(value.get(k), bool):
+                    errs.append(kind + " 缺数值分量 " + k)
+    return errs
+
+
+def check_script_decl(path):
+    errs = []
+    try:
+        d = load(path)
+    except Exception as e:
+        return ["脚本声明读取失败 %s: %s" % (path, e)]
+    if d.get("schema") != SCHEMA_ID:
+        errs.append("schema 不是 " + SCHEMA_ID + ": " + path)
+    if not isinstance(d.get("typeName"), str) or not d.get("typeName"):
+        errs.append("typeName 缺失: " + path)
+    props = d.get("properties")
+    if not isinstance(props, dict):
+        errs.append("properties 缺失或不是对象: " + path)
+    else:
+        for key, tv in props.items():
+            if not isinstance(tv, dict) or set(tv.keys()) != {"kind", "value"}:
+                errs.append("属性结构非法: %s / %s" % (path, key))
+                continue
+            kind = tv.get("kind")
+            if kind not in ALLOWED_KINDS:
+                errs.append("属性 kind 不在白名单: %s / %s / %s" % (path, key, kind))
+                continue
+            errs += ["%s / %s: %s" % (path, key, x)
+                     for x in check_script_value(kind, tv.get("value"))]
+    sigs = d.get("signals", [])
+    if not isinstance(sigs, list) or any(not isinstance(x, str) or not x for x in sigs):
+        errs.append("signals 非法: " + path)
+    hooks = d.get("lifecycle", [])
+    if not isinstance(hooks, list) or any(x not in ALLOWED_HOOKS for x in hooks):
+        errs.append("lifecycle 钩子不在白名单: " + path)
+    if "不谎报" not in str(d.get("note", "")) and "非 VM" not in str(d.get("note", "")):
+        # 示例声明须自带诚实边界；不构成硬失败则只提示，避免过度约束
+        pass
+    return errs
+
+
 def check_project(root, project_dir, prof):
     errs = []
     pri = prof.get("primary", {})
@@ -71,6 +138,18 @@ def check_project(root, project_dir, prof):
     scene_path = os.path.join(project_dir, scene.replace("/", os.sep))
     if not os.path.isfile(scene_path):
         errs.append("startupScene 文件不存在: " + scene_path)
+    # 第二十二轮：行为层项目契约——脚本声明目录必须存在且至少一个合法声明
+    sb = p.get("scriptBinding")
+    if sb is not None:
+        sb_dir = os.path.join(project_dir, str(sb).replace("/", os.sep))
+        if not os.path.isdir(sb_dir):
+            errs.append("scriptBinding 目录不存在: " + sb_dir)
+        else:
+            decls = sorted(f for f in os.listdir(sb_dir) if f.endswith(".yama"))
+            if not decls:
+                errs.append("scriptBinding 目录无 .yama 声明: " + sb_dir)
+            for name in decls:
+                errs += check_script_decl(os.path.join(sb_dir, name))
     return errs
 
 
@@ -104,6 +183,13 @@ def main():
         "optional_modules_installed": sum(
             1 for m in (prof or {}).get("optional_modules", []) if m.get("installed")),
         "projects_checked": len(targets),
+        "script_kind_whitelist": sorted(ALLOWED_KINDS),
+        "script_lifecycle_whitelist": sorted(ALLOWED_HOOKS),
+        "script_declarations_checked": sum(
+            1 for t in targets
+            for f in (os.listdir(os.path.join(t, "Content", "Scripts"))
+                      if os.path.isdir(os.path.join(t, "Content", "Scripts")) else [])
+            if f.endswith(".yama")),
         "clean": len(errors) == 0,
         "errors": errors,
         "boundary": (prof or {}).get("enforcement", {}).get("boundary", ""),

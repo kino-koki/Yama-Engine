@@ -1,0 +1,39 @@
+{
+  "schema": "yama.script-binding.v1",
+  "typeName": "PlayerController",
+  "properties": {
+    "speed": {
+      "kind": "double",
+      "value": 6.25
+    },
+    "jumpHeight": {
+      "kind": "single",
+      "value": 2.5
+    },
+    "invincible": {
+      "kind": "bool",
+      "value": false
+    },
+    "label": {
+      "kind": "string",
+      "value": "hero"
+    },
+    "spawnOffset": {
+      "kind": "vector3",
+      "value": {
+        "X": 0,
+        "Y": 1,
+        "Z": 0
+      }
+    }
+  },
+  "signals": [
+    "tick",
+    "damaged"
+  ],
+  "lifecycle": [
+    "ready",
+    "process"
+  ],
+  "note": "声明式绑定示例：由 YamaScriptDeclaration 还原为 ScriptBinding + PropertyBag；非 VM。"
+}

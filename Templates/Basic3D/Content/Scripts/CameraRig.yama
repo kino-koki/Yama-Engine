@@ -1,0 +1,26 @@
+{
+  "schema": "yama.script-binding.v1",
+  "typeName": "CameraRig",
+  "properties": {
+    "followSpeed": {
+      "kind": "double",
+      "value": 4.0
+    },
+    "maxDistance": {
+      "kind": "single",
+      "value": 12.0
+    },
+    "enabled": {
+      "kind": "bool",
+      "value": true
+    }
+  },
+  "signals": [
+    "target_changed"
+  ],
+  "lifecycle": [
+    "ready",
+    "physics"
+  ],
+  "note": "3D 模板的最小脚本绑定声明；类型名须在 ScriptRegistry 注册。"
+}

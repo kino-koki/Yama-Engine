@@ -16,7 +16,8 @@ namespace YamaEngine.Editor.CodeOss
             "yama.build", "yama.test", "yama.smoke", "yama.snapshot",
             "yama.rollback", "yama.sotaStatus", "yama.coupledMass",
             "yama.codeossMinimal", "yama.invoke", "yama.capabilities",
-            "yama.languageProfile", "yama.newGameProject"
+            "yama.languageProfile", "yama.newGameProject",
+            "yama.scriptBinding", "yama.newScript"
         };
 
         /// <summary>不得内置的语言模块 id（可插拔模块默认不安装）。</summary>

@@ -1,0 +1,27 @@
+{
+  "schema": "yama.script-binding.v1",
+  "typeName": "NpcBrain",
+  "properties": {
+    "aggression": {
+      "kind": "double",
+      "value": 0.35
+    },
+    "maxAgents": {
+      "kind": "int32",
+      "value": 16
+    },
+    "groupId": {
+      "kind": "string",
+      "value": "npc-reality"
+    }
+  },
+  "signals": [
+    "perception_updated"
+  ],
+  "lifecycle": [
+    "ready",
+    "process",
+    "destroy"
+  ],
+  "note": "AI NPC 演示模板的最小脚本绑定声明。"
+}

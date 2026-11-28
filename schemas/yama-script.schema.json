@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yama-engine.dev/schemas/yama-script.schema.json",
+  "title": "YAMA 脚本绑定声明 (*.yama, Content/Scripts/)",
+  "description": "声明式脚本绑定：只描述类型名/属性/信号连接点/生命周期钩子，由已实现的 L2 绑定 ABI 还原。不是 VM，不是 DSL 解释器；不得暴露引擎内部类型。",
+  "type": "object",
+  "required": [
+    "schema",
+    "typeName",
+    "properties"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "yama.script-binding.v1"
+    },
+    "typeName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "须已注册在 YamaEngine.Scripting.Abi.ScriptRegistry，未注册即 fail-closed"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/TypedValue"
+      },
+      "description": "键 → 带 kind 的 ABI 值；kind 白名单对齐 SCRIPTING_ABI_SPEC.md 硬约束 1"
+    },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "连接点名称声明；实际 handler 由宿主接线，声明本身不谎报已连接"
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ready",
+          "process",
+          "physics",
+          "destroy"
+        ]
+      },
+      "description": "仅允许 ready/process/physics/destroy，对齐 IScriptLifecycle"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "TypedValue": {
+      "type": "object",
+      "required": [
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "bool",
+            "int32",
+            "int64",
+            "single",
+            "double",
+            "string",
+            "vector2",
+            "vector3",
+            "vector4"
+          ]
+        },
+        "value": {
+          "description": "标量或 {X,Y[,Z][,W]} 向量；按 kind 解释"
+        }
+      }
+    }
+  }
+}

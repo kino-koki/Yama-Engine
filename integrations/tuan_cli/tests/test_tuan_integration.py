@@ -70,7 +70,7 @@ class TestHooks(unittest.TestCase):
         self.assertEqual(d["event"], "PostToolUse")
         self.assertIn(d["decision"], ("allow", "warn"))
         self.assertIn("checked", d)
-        self.assertEqual(d["checked"], 30)
+        self.assertEqual(d["checked"], 32)
         self.assertIn("SOTA", d["note"])
 
 
@@ -204,7 +204,9 @@ class TestContract(unittest.TestCase):
         self.assertEqual(c["codeoss_minimal"]["profile"], "web-only-minimal")
         self.assertFalse(c["codeoss_minimal"]["compile_in_this_repo"])
         self.assertEqual(len(c["callable_actions"]["actions"]), 7)
-        self.assertEqual(c["codeoss_bridge_commands"], 12)
+        self.assertEqual(c["codeoss_bridge_commands"], 14)
+        self.assertFalse(c["script_binding"]["vm_implemented"])
+        self.assertEqual(c["script_binding"]["kind_whitelist"], 9)
         self.assertEqual(c["language_profile"]["primary"], "yama")
         self.assertEqual(c["language_profile"]["optional_modules_installed_by_default"], 0)
         self.assertFalse(c["ci_gate_enabled"])

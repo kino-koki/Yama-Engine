@@ -13,7 +13,7 @@
 |---|---|
 | `language-profile.json` | **YAMA 主语言面契约**：主语言强制 / 系统级保留语言 / 7 个可插拔模块默认零内置 |
 | `UPSTREAM.lock.json` | 上游 tag / commit / MIT 许可 / 最新稳定版查证日 |
-| `MINIMAL.lock.json` | **最轻量 web-only 构建声明**：排除项 + 7 个轻量配置文件的 SHA-256 + `compile_in_this_repo=false` |
+| `MINIMAL.lock.json` | **最轻量 web-only 构建声明**：排除项 + 9 个轻量配置文件的 SHA-256 + `compile_in_this_repo=false` |
 | `product.json` | 去品牌 / 去遥测 / 无 Marketplace / 无内置扩展的干净 MIT 覆盖，含 `yamaMinimal` 段 |
 | `scripts/fetch_codeoss.py` | stdlib 一键拉取、校验 commit、应用 product.json |
 | `scripts/build_codeoss_minimal.py` | **纯 stdlib 离线校验 / 构建计划 / 轻量清单**，零 Node、零 Electron、零网络、fail-closed |
@@ -51,7 +51,7 @@ Tuan 适配层均为本项目编写），未拷贝 VSCodium 脚本或任何编�
 ```bash
 python scripts/fetch_codeoss.py --check                  # 上游锁 + 干净 MIT + 语言面
 python scripts/check_yama_project.py --check            # YAMA 主语言强制 + 3 个模板项目契约
-python scripts/build_codeoss_minimal.py --check         # 最轻量锁 + 7 文件 SHA-256
+python scripts/build_codeoss_minimal.py --check         # 最轻量锁 + 9 文件 SHA-256
 python scripts/build_codeoss_minimal.py --plan          # web-only 最小构建步骤（标注未编译）
 python scripts/build_codeoss_minimal.py --emit-manifest # 轻量构建清单 JSON
 ```
@@ -82,3 +82,18 @@ C# / JSON 作为系统级保留（不作写游戏语言），7 个可选语言�
 「强制」只落在本仓库项目契约、离线脚本与 CI 断言三层，**不谎称已改
 workbench 内核或锁死 UI**。L3 物理裁剪需带 Node 24 / 9 GB / 网络的机器，
 本环境做不到，如实标注未做。详见 `docs/YAMA_LANGUAGE_PROFILE.md`。
+
+
+## YAMA 行为层（第二十二轮）
+
+第二十一轮之后，「用 YAMA 开发游戏」还只能摆场景。本轮补上声明式脚本绑定：
+`schemas/yama-script.schema.json` 定义声明格式，
+`Templates/*/Content/Scripts/*.yama` 是示例，
+`YamaEngine/Scripting/Abi/YamaScriptDeclaration.cs` 把声明真实还原成
+已实现的 L2 绑定 ABI（`ScriptBinding` + `PropertyBag` + `NodeRef`）。
+项目契约新增 `scriptBinding` 字段，由 `check_yama_project.py` 离线校验。
+
+**不是 VM、不是 DSL 解释器**；`vmImplemented=false` 是硬声明。
+同时更正了 `docs/SCRIPTING_ABI_SPEC.md` 的陈旧口径——L2 绑定 ABI
+早已实现并在 CI 执行，缺的是 L1 的语言/VM。详见
+`docs/ROUND22_DELIVERY.md`。
