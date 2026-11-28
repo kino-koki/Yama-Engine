@@ -1,115 +1,102 @@
-﻿# 真实化学内核 · 第七轮：分布式反应–扩散燃烧（2026-11-26）
+# 真实物理内核 · 第七轮：可规模化 CCD 与完整接触流形（2026-11-25 继续）
 
 延续口径：**不新增语言、不动渲染管线、不宣称 GTA6 级**。
-这一轮专攻化学体系里排第一的那件事：**反应是集总的（一个燃料池），没有空间**。
-热场是分布的（n 格点），化学却是「全局一个池子」，两者不对称——火焰无法「传播」，
-只能「瞬间全域点燃」。第七轮把化学升级为逐格点的反应–扩散场。
+这轮专攻第六轮「下一步」里前两条：**O(n²) 扫掠** 与 **顶点侵入近似流形**，
+并顺手补上**角速度保守外推**。
 
-## 1. 从集总到分布：组分场逐格点存储
+## 1. 扫掠 AABB BVH：从 O(n²) 到 O(n log n + k)
 
-第六轮及之前，`YrCombustionScenario` 用 `YrReactionNetwork` 持有**一对**浓度
-（Fuel / Ash），全场共享——这是文档里明确写出的显式近似。第七轮新增
-`YrDistributedCombustion`，把组分升级为**逐格点场**：
+`YrSweptBroadphase` 给每个刚体构造「整帧轨迹」AABB：
 
 ```
-_conc[species][cell]   # 4 物种 × n 格点：CH4 / O2 / CO2 / H2O
-_temp[cell]            # 共享温度场（驱动反应、被反应加热、自身扩散）
+swept = Fat( Inflate( 当前AABB ∪ (当前AABB + v·dt), 角速度膨胀量 ) )
 ```
 
-反应模型（甲烷类，元素 [C, H, O]）：`CH4 + 2 O2 -> CO2 + 2 H2O`。
-构造时即**断言配平**：对 C/H/O 各元素，Σ Stoich[s]·Elements[s][e] = 0
-（C: -1+1=0，H: -4+4=0，O: -4+2+2=0）。`TestR7OverallReactionIsBalanced` 独立复核。
+第六轮已证明「宽相基于当前 AABB 会漏掉高速穿透」——因为高速物体**当前分离，
+整帧轨迹相交**。用轨迹 AABB 才是正面解法，而不是绕开宽相去做全对扫掠。
 
-## 2. 反应–扩散：让火焰「传」而不是「闪」
+BVH 用**最长轴中位分割、叶容量 4、每帧重建**：
 
-每帧 `Step(dt)` 分两段：
+- 按 `(中心坐标, 索引)` 升序排序，索引 tie-break 保证逐位确定
+- DFS 只对重叠节点对下探，叶层两两做 AABB 检测，输出按 `(A,B)` 字典序去重
+- 每帧重建是显式选择（非增量动态树）：实现可验证、对 1000+ 体足够
 
-```
-1) 扩散：组分场与温度场各自做最近邻显式扩散，按 CFL 拆子步
-   stable = dx^2 / (2·max(D_species, D_thermal))
-   每子步系数 coef = D·h/dx^2 ≤ 0.5   # 子步保证，杜绝负浓度/数值爆炸
-2) 反应（逐格点）：燃点门控 + Arrhenius + 限流反应物 + 有限火焰速度
-   if T[i] < T_ign: skip                       # 燃点门控
-   kf = A·exp(-Ea/(R·T))
-   extent = min(vf·dt, min(fuel, ox/2), maxBurnFraction·fuel)
-   按计量数转移组分（extent 受限 ⇒ 不产生负浓度）
-   q = extent·ΔH  →  T[i] += q/cp  →  ledger.BoundaryWork(q)
-```
+**不漏报 parity 测试**：`TestR7SweptPairsIsSupersetOfAllToiHits` 构造 12 个确定性
+布局的刚体，枚举全部 66 对，凡 `ComputeToi >= 0` 的对**必须**出现在 BVH 候选超集里。
+另用 200 体均匀散布证明候选对 < 400，而全对基数是 19900。
 
-- **燃点门控**（硬阈值阶跃）：未达燃点的格点即便有燃料+氧化剂也不反应。
-  这是火焰传播的必要条件——否则全域同时反应，无所谓「锋面」。
-  `TestR7NoIgnitionNoReactionBelowIgnitionPoint` 验证：燃点设 1e6，燃料不被消耗、不放热。
-- **组分扩散**：让燃料/氧化剂/产物在空间上搬运。`TestR7ElementInventoryConservedUnderBurn`
-  证明扩散是**守恒**的（最近邻 + 无通量边界 + 系数 ≤ 0.5 ⇒ 元素总量严格不变）。
-- **点火源 `Ignite(cell, T)`**：理想化的火花塞/长明灯，把某格点温度抬到给定值。
-  没有它，全域等于环境温度、无格点达燃点，反应永不启动。文档不隐藏这是外部边界条件理想化。
+## 2. Sutherland-Hodgman 面裁剪（真流形）
 
-## 3. 限流反应物（当量比）与有限火焰速度
-
-真实燃烧的反应进度受**稀缺反应物**约束，不是「有多少燃料烧多少」：
+第五轮的 `YrContactManifold.Build` 是「8 顶点里取侵入最深的至多 4 个」，
+对边-边接触、共面面接触会给出偏斜点集。新增 `YrFaceClipping.Build`：
 
 ```
-extentMax = min(fuel, oxidizer / 2)        # 化学计量：1 燃料配 2 氧化剂
-extentMax = min(extentMax, maxBurnFraction · fuel)   # 有限火焰速度
+① 参考面 = A 上法向与 n 最对齐的面（3 轴取 |dot| 最大）
+② 入射面 = B 上 n·axis 最小的面，取 4 顶点
+③ 顶点投影到参考面局部 2D (u,v)，用矩形 4 条侧边做 Sutherland-Hodgman 裁剪
+   （线性插值时同步插值 U/V/深度 D/3D 点 P）
+④ 按侵入深度 D 降序、索引升序保留至多 4 点，输出参考面上的 3D 点
 ```
 
-- **缺氧 → 不完全燃烧**：氧化剂耗尽而燃料剩余。`TestR7OxidizerStarvedIncompleteCombustion`
-  设 ox=0.5（仅够烧 0.25 燃料），终态氧化剂归零、燃料大量剩余——不会凭空多放热。
-- **氧化剂过量 → 完全燃烧**：`TestR7CompleteCombustionWithExcessOxidizer` 设 ox=3，
-  终态燃料趋尽、CO2 趋满、H2O ≈ 2·CO2（计量比），账本平衡。
-- **有限火焰速度 `maxBurnFraction`**：每帧最多烧掉本地燃料的这一比例。
-  没有它，一个格点的燃料会在一帧内燃尽、能量以尖峰释放，随后热扩散把峰值稀释到
-  燃点以下——**火焰猝熄**而非传播。这是把「爆燃有有限传播速度」这一物理事实显式建模。
+`Clip` 的四条边 `f(u,v)` 与 `-Eps` 内侧判定、交点插值都是标准实现；
+`InsideReference` 暴露给测试，断言每个输出点都在参考面矩形内。
 
-## 4. 火焰传播：从一点到全域是「逐渐」的
+**诚实边界**：这仍是**单对参考/入射面**近似，不处理多面同时接触、
+不生成带持久 id 的逐点 warm start 缓存；incident 面选择是启发式。
+但它已经从「顶点侵入近似」升级为真正的面裁剪流形。
 
-`TestR7FlameFrontPropagatesFromIgnitionSource`：只点燃 0 号格点，跑 120 帧。
+## 3. 角速度保守膨胀 CCD
 
-- **非瞬时**：第 1 帧后 `IgnitedCount() ≤ 3`（不是全域同时点燃）。
-- **确实传播**：总燃耗 `> 2.0`，而点火格自身存量只有 1.0——多烧的必然来自邻近格点，
-  证明锋面越过了点火格。同时 `IgnitedCount() > 1`、账本平衡。
-- **逐位确定**：`TestR7DeterministicReplay` 两次运行快照逐位相同（`TestR7*` 系列全程无随机、无并行）。
+`YrSweptObb.AngularInflation(|ω|, R, dt) = R · min(1, |ω|·dt·√2)`，
+把膨胀量加到 15 轴扫掠的每根轴投影半径 `r` 上，得到 `ComputeToiWithAngular`。
 
-## 5. 语言与构建边界（不变）
+- **保证不漏报**：`tEnter` 只会更早或相等；测试断言 `fast ≤ slow ≤ plain` 且零角速度不膨胀。
+- **可能早报**：这是保守上界近似，**不是**精确旋转扫掠（conservative advancement），
+  且随 dt 线性增长、dt 越大越保守。真机侧可换成真正的 CA 迭代。
 
-- **不新增语言、不新增 Rust 导出**。`sln` / `CMake` / `NuGet` / `YamaEngine.csproj`
-  一行未改（`Reality\**\*.cs` 通配自动纳入新文件）。
-- 全部纯 C# 数值内核，无 GPU、无原生依赖。
-- **音频 MP3 看板仍 1 条**，本轮不碰。渲染管线一律未动。
+## 4. 三个开关，全部默认 false（零回归）
+
+| 开关 | 作用 | 默认 |
+|---|---|---|
+| `UseBvhCcdPairs` | 用 BVH 轨迹候选对替代 O(n²) 全对 CCD；`LastCcdPairs` 可观测 | false |
+| `UseAngularSweep` | 切到 `EarliestToiAllAngular` | false |
+| `UseFaceClipping` | 窄相切到 `YrFaceClipping.Build` | false |
+
+`YrToiAdvance.Advance` 新增可选 `ccdPairs` 参数（`null` = 原全对路径），
+候选对由**整帧**扫掠算出，子步 `remaining` 变小后仍是保守超集。
+`YrPhysicsPipeline` 只做透传，第六轮 `StepFixed` 核心一行未改——
+新能力正确与旧路径不回归同时被证明。
+
+## 5. 语言与构建边界（继续收窄）
+
+- **不新增语言、不新增 Rust 导出**。BVH、面裁剪、扫掠全是控制流密集，
+  纯数值内核无收益。`sln` / `CMake` / `NuGet` / `YamaEngine.csproj` 一行未改
+  （`Reality\**\*.cs` 通配自动纳入）。
+- Rust 内核在 CI **仍不编译**（主工程不依赖、沙盒无 cargo）。
+- **音频 MP3 看板仍 1 条**（解码器固有延迟 + 末帧 bit reservoir），本轮不碰。
 
 ## 回归门禁
 
-第七轮新增 **9 项**化学断言，由 `XunitAdapter` 反射自动发现（`public static void Test*`），
-进入现有 `build.yml` 的 Test step 真实执行：无 `[Skip]`、无吞异常、无阈值放宽。
-
-| 用例 | 断言 |
-|---|---|
-| `TestR7OverallReactionIsBalanced` | CH4+2O2→CO2+2H2O 对 C/H/O 净计量和为 0 |
-| `TestR7ElementInventoryConservedUnderBurn` | 充分燃烧前后 C/H/O 总量不变 |
-| `TestR7CompleteCombustionWithExcessOxidizer` | 氧化剂过量 → 燃料趋尽、H2O≈2·CO2、账本平衡 |
-| `TestR7OxidizerStarvedIncompleteCombustion` | 缺氧 → 氧化剂耗尽、燃料剩余 |
-| `TestR7NoFuelNoHeatReleased` | 无燃料 → 零放热 |
-| `TestR7NoOxidizerNoHeatReleased` | 无氧化剂 → 零放热 |
-| `TestR7FlameFrontPropagatesFromIgnitionSource` | 非瞬时 + 锋面越过点火格 |
-| `TestR7DeterministicReplay` | 两次运行快照逐位相同 |
-| `TestR7NoIgnitionNoReactionBelowIgnitionPoint` | 未达燃点不反应 |
+七轮累计 **93 项**真实物理断言（9+14+14+14+14+14+14），
+全部进入现有 `build.yml` 的 Test step 真实执行：无 `[Skip]`、无吞异常、无阈值放宽。
 
 ## 不能宣称的（不变且不缩小）
 
 - **不宣称 GTA6 / RAGE 级最真实**：专有实现未公开。
-- 化学从「集总」升级为「一维分布」，但**仍是一维格点链**、最近邻显式扩散；
-  真实三维火焰需要多维网格 + 更高阶格式。
-- **单步总包反应**，不含自由基链式分支（真实烃燃烧是 GRI-Mech 等数十至上百步机理）。
-- 燃点门控是**硬阈值阶跃**，非平滑 Sigmoid；点火源是理想化边界条件。
-- 浓度为**集总摩尔量**，非严格摩尔体积分数；Arrhenius 参数是工程量级近似，非实验标定。
-- 无辐射换热、无对流边界、无多相（液滴/颗粒）燃烧、无湍流-化学相互作用。
-- **渲染管线一律未动**；本模块不含 GPU 端到端。
+- BVH 是每帧重建的静态中位分割树，非增量动态树；
+  角速度是保守上界近似、非精确旋转扫掠；扫掠 TOI 仍是线性匀速外推；
+  面裁剪是单对参考/入射面近似；序列冲量非全局 LCP 精确解；
+  PBF 非 N–S 完整解；XPBD 非有限元；断裂为工程判据；Tait 为弱可压缩近似；
+  化学反应为集总宏观模型；材料参数仍是工程量级近似。
+- **GPU 端到端、`0xC0000005`、百万粒子/刚体堆叠真机压测、多平台导出、
+  Rust 原生内核编译**都未在沙盒验证。
+- **渲染管线一律未动**。
 
-能确认的仍是：**反应配平、元素守恒可核算、限流反应物正确、火焰逐渐传播、逐位确定**。
+能确认的仍是：**守恒可核算、角动量严格守恒、逐位确定、云端真实编译并执行**。
 
-## 下一步（化学侧）
+## 下一步（真机侧）
 
-1. 一维 → 三维网格，接真实流体速度场（`ThermoFluidCoupler` 的半拉格朗日对流输运组分）。
-2. 总包反应 → 多步简化机理（至少加入 CO 中间体与 CO→CO2 延迟氧化）。
-3. 把 `YrCombustionScenario` 的集总燃料池替换/桥接到分布式版本，消除双模型并存。
-4. Arrhenius 参数对标实验（层流火焰速度、绝热火焰温度），而非工程量级估算。
+1. 把静态 BVH 换成增量动态 AABB 树（减少每帧重建开销），接 GPU 帧循环做 1000+ 刚体压测。
+2. 用真正的 conservative advancement 替换角速度保守上界，补旋转扫掠。
+3. 编译并加载 Rust 原生库，跑三个 parity 测试的原生路径。
+4. 专项攻 MP3 的 M4/M5，把音频看板清到 0。

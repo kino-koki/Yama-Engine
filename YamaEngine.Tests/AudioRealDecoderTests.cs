@@ -521,7 +521,41 @@ namespace YamaEngine.Tests
             var pcm = dec.DecodeAll();
             AssertTrue(pcm.Length > 7000, $"MP3 解码样本数 ({pcm.Length})");
 
+            // 第九轮：用例已从 KnownLimitations 看板移除，回归真实门禁。
             CompareWithReferenceAligned(pcm, "sine16k_mono.mp3.ref.f32", 0.97, 5e-2, "MP3");
+        }
+
+        /// <summary>
+        /// 锁定 gapless 裁剪口径，防止 enc_delay 被重复扣减造成回归。
+        /// LAME tag: frames=16 / enc_delay=576 / enc_padding=640，
+        /// 每帧 576 样本 → 16*576 - 576 - 640 = 8000。
+        /// 旧实现额外把 enc_delay 当作起点偏移，输出仍是 8000 但窗口整体后移 576，
+        /// 长度断言抓不到，所以必须同时校验「解码器延迟只算一次」的结果：
+        /// 输出不得包含 padding 区那种幅度畸变的尾部。
+        /// </summary>
+        public static void TestMp3GaplessTrimContract()
+        {
+            var dec = new Mp3Decoder();
+            dec.Load(Fixture("sine16k_mono.mp3"));
+            var pcm = dec.DecodeAll();
+            AssertEqual(8000, pcm.Length, "MP3 gapless 输出长度");
+
+            // 尾部 200 样本应仍是稳态正弦（rms≈0.382），
+            // 不能是旧窗口里那 74 个 |err|>0.05 的畸变样本。
+            double tail = 0;
+            for (int i = 7800; i < 8000; i++) tail += pcm[i] * pcm[i];
+            tail = Math.Sqrt(tail / 200.0);
+            AssertTrue(tail > 0.30 && tail < 0.45,
+                $"MP3 尾部幅度异常 (rms={tail:F6})");
+
+            // 粗粒度完整性守卫：不允许「整段预热静音」占据输出。
+            // 余量必须留给两类合法低幅样本 —— 开头的 QMF/IMDCT 预热，
+            // 以及 440Hz+1320Hz 正弦每周期的自然过零点（实测 1002 个）。
+            // 它不是精确物理断言，也不是验收口径；真正的回归契约是
+            // TestMp3SineDecode 在真实门禁里执行的 corr/maxAbsDiff 比较。
+            int loud = 0;
+            for (int i = 0; i < pcm.Length; i++) if (Math.Abs(pcm[i]) > 0.01f) loud++;
+            AssertTrue(loud >= 6800, $"MP3 输出含过多静音样本 (loud={loud})");
         }
 
         // ================================================================
@@ -557,22 +591,23 @@ namespace YamaEngine.Tests
         {
             var reference = Fixture(refName);
             int n = reference.Length / 4;
+            var rf = new float[n];
+            Buffer.BlockCopy(reference, 0, rf, 0, reference.Length);
 
-            // 在参考与解码之间搜索最佳对齐 (编码器/解码器延迟差异)
+            // 在参考与解码之间搜索最佳对齐 (编码器/解码器延迟差异)。
+            //
+            // 第九轮：改为全程逐样本精搜。原因不是放宽，而是修工具缺陷：
+            // 本夹具是 440Hz+1320Hz @16kHz 的**严格 400 样本周期**信号，
+            // 对齐峰每隔 400 样本重复一次。旧的「步长 16 粗搜 + ±16 精搜」
+            // 只会停在任意一个伪峰上（云端实测停在 off=-1584， corr=0.99263
+            // 但相位差 255 样本 → 全段系统性误差 maxDiff=0.24488），
+            // 永远到不了真实相位峰 off=-1329 / -1905。
+            // 阈值、比较样本数、验收口径一律不变，只把时间轴搜索做精确。
             int bestOff = 0;
             double bestCorr = -1;
-            // MP3 编码器延迟 + 比特 reservoir 可能超过 2400 样本，默认 ±6000 粗搜(步长16)；
-            // Vorbis 只有 synthesis 裁剪差异，用 ±128 且步长 1 逐样本精搜，避免虚假对齐。
-            int step = maxOffset <= 128 ? 1 : 16;
-            for (int off = -maxOffset; off <= maxOffset; off += step)
+            for (int off = -maxOffset; off <= maxOffset; off++)
             {
-                double corr = CorrelationAt(pcm, reference, n, off);
-                if (corr > bestCorr) { bestCorr = corr; bestOff = off; }
-            }
-            // 精搜
-            for (int off = bestOff - 16; off <= bestOff + 16; off++)
-            {
-                double corr = CorrelationAt(pcm, reference, n, off);
+                double corr = CorrelationAt(pcm, rf, n, off);
                 if (corr > bestCorr) { bestCorr = corr; bestOff = off; }
             }
 
@@ -584,14 +619,14 @@ namespace YamaEngine.Tests
             int count = Math.Min(n - a0, pcm.Length - b0);
             for (int i = 0; i < count; i++)
             {
-                float expect = BitConverter.ToSingle(reference, (a0 + i) * 4);
+                float expect = rf[a0 + i];
                 double d = Math.Abs(pcm[b0 + i] - expect);
                 if (d > maxDiff) maxDiff = d;
             }
             AssertTrue(maxDiff <= maxAbsDiff, $"{tag} 最大绝对差 {maxDiff:F6} > {maxAbsDiff}");
         }
 
-        private static double CorrelationAt(float[] pcm, byte[] reference, int n, int off)
+        private static double CorrelationAt(float[] pcm, float[] rf, int n, int off)
         {
             int a0 = Math.Max(0, off), b0 = Math.Max(0, -off);
             int count = Math.Min(n - a0, pcm.Length - b0);
@@ -599,7 +634,7 @@ namespace YamaEngine.Tests
             double dot = 0, e1 = 0, e2 = 0;
             for (int i = 0; i < count; i++)
             {
-                float expect = BitConverter.ToSingle(reference, (a0 + i) * 4);
+                float expect = rf[a0 + i];
                 float actual = pcm[b0 + i];
                 dot += actual * expect;
                 e1 += actual * actual;

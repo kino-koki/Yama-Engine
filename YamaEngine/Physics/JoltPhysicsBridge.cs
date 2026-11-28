@@ -8,8 +8,10 @@ namespace YamaEngine.Physics
     //  JoltPhysicsBridge.cs
     //
     //  Low-level P/Invoke bindings to the native "YamaJolt" C++ wrapper library, which wraps
-    //  Jolt Physics (https://github.com/jrouwe/JoltPhysics). The native library exposes a flat
-    //  C ABI so that it can be consumed from C# via P/Invoke.
+    //  Jolt Physics (third-party OPTIONAL backend; license / version / provenance are recorded
+    //  in docs/THIRD_PARTY_INVENTORY.json under optional_physics_backends, not as a source URL
+    //  here). The native library exposes a flat C ABI so that it can be consumed from C# via
+    //  P/Invoke. This binding is NOT part of the self-developed YamaEngine/Reality/ kernel.
     //
     //  Architecture:
     //

@@ -72,6 +72,43 @@ namespace YamaEngine.Reality
         public int SolverIterations { get; set; } = 10;
         public YrSurface Surface { get; set; } = YrSurface.Default;
         /// <summary>
+        /// 第十五轮：把 3×3 耦合块求解接进 StepFixed 的接触求解器。
+        /// 默认 false —— 现有 210 项回归与位级快照语义逐位不变。
+        /// 设为 true 后，每帧 `_contacts.Solve(SolverIterations)` 走耦合路径，
+        /// 可通过 LastCoupledTrace 观测是否真的用上了非对角耦合。
+        /// trace 是纯观测量，**不进 Snapshot**，快照格式/长度不变。
+        /// </summary>
+        public bool UseCoupledMassMatrix
+        {
+            get => _contacts.UseCoupledMassMatrix;
+            set => _contacts.UseCoupledMassMatrix = value;
+        }
+        public YrCoupledSolveTrace LastCoupledTrace => _contacts.LastCoupledTrace;
+        public void ResetCoupledTrace() => _contacts.ResetCoupledTrace();
+        /// <summary>第十六轮：转发窄相的耦合质量选点缩减开关（默认 false）。</summary>
+        public bool UseCoupledMassReduction
+        {
+            get => _narrow.UseCoupledMassReduction;
+            set => _narrow.UseCoupledMassReduction = value;
+        }
+        public int LastReducedPoints => _narrow.LastReducedPoints;
+        /// <summary>
+        /// 第十七轮：转发跨接触点全局块求解开关（默认 false）。
+        /// 优先级高于 UseCoupledMassMatrix；trace 是纯观测量，不进 Snapshot。
+        /// </summary>
+        public bool UseGlobalBlockSolve
+        {
+            get => _contacts.UseGlobalBlockSolve;
+            set => _contacts.UseGlobalBlockSolve = value;
+        }
+        public float GlobalBlockDamping
+        {
+            get => _contacts.GlobalBlockDamping;
+            set => _contacts.GlobalBlockDamping = value;
+        }
+        public YrGlobalBlockTrace LastGlobalBlockTrace => _contacts.LastGlobalBlockTrace;
+        public void ResetGlobalBlockTrace() => _contacts.ResetGlobalBlockTrace();
+        /// <summary>
         /// 穿透位置投影强度。默认 0.4；设 0 可关闭。
         /// 注意：位置瞬移是非物理修正，会改变轨道角动量项 r×(mv)，
         /// 因此严格角动量守恒要求 beta=0（见第五轮文档）。
@@ -84,6 +121,76 @@ namespace YamaEngine.Reality
         /// </summary>
         public bool UseToiSubsteps { get; set; } = false;
         public int ToiMaxSubsteps { get; set; } = 8;
+        /// <summary>
+        /// 用扫掠 AABB BVH 的候选对替代 O(n²) 全对 CCD。默认 false，
+        /// 保持第六轮语义；开启后 LastCcdPairs 可观测候选对数量。
+        /// </summary>
+        public bool UseBvhCcdPairs { get; set; } = false;
+        /// <summary>启用角速度保守膨胀 CCD（默认 false）。</summary>
+        public bool UseAngularSweep { get; set; } = false;
+        /// <summary>
+        /// 启用精确迭代 CA（默认 false，优先于 UseAngularSweep）。
+        /// 用局部推进量 t 的旋转上界替代整帧 dt 膨胀，更精确且不漏报。
+        /// </summary>
+        public bool UseExactCa
+        {
+            get => _toi.UseExactCa;
+            set => _toi.UseExactCa = value;
+        }
+        /// <summary>
+        /// 启用完整旋转 CA（默认 false，优先级高于 UseExactCa / UseAngularSweep）。
+        /// 每步四元数积分 + 重枚举 15 轴，替代线性化 CA 的累积旋转上界。
+        /// </summary>
+        public bool UseFullRotationalCa
+        {
+            get => _toi.UseFullRotationalCa;
+            set => _toi.UseFullRotationalCa = value;
+        }
+        /// <summary>
+        /// 启用角动量版 CA（默认 false，优先级高于其余所有 CCD 开关）。
+        /// 以守恒量 L 积分姿态，处理各向异性惯量下的自由进动。
+        /// </summary>
+        public bool UseAngularMomentumCa
+        {
+            get => _toi.UseAngularMomentumCa;
+            set => _toi.UseAngularMomentumCa = value;
+        }
+        /// <summary>
+        /// 启用割线/根细化加速 CA（默认 false，优先级高于其余所有 CCD 开关）。
+        /// L 版姿态 + 不漏报骨架，实测斜率把带旋转时的迭代数压到约 1/4。
+        /// </summary>
+        public bool UseSecantCa
+        {
+            get => _toi.UseSecantCa;
+            set => _toi.UseSecantCa = value;
+        }
+        /// <summary>窄相使用多面接触流形（默认 false）。</summary>
+        public bool UseMultiFace
+        {
+            get => _narrow.UseMultiFace;
+            set => _narrow.UseMultiFace = value;
+        }
+        /// <summary>窄相使用 Sutherland-Hodgman 面裁剪流形（默认 false）。</summary>
+        public bool UseFaceClipping
+        {
+            get => _narrow.UseFaceClipping;
+            set => _narrow.UseFaceClipping = value;
+        }
+        /// <summary>
+        /// 逐点持久 warm start（按稳定 pointId 缓存 λ_n）。默认 false；
+        /// 开启后快照会多一段逐点缓存，Restore 仍兼容旧格式。
+        /// </summary>
+        public bool UsePointWarmCache
+        {
+            get => _narrow.UsePointWarmCache;
+            set => _narrow.UsePointWarmCache = value;
+        }
+        public int PointWarmCacheCount => _narrow.PointWarmCacheCount;
+        /// <summary>用增量动态 AABB 树给出常规窄相的宽相对（默认 false = SAP）。</summary>
+        public bool UseDynamicTree { get; set; } = false;
+        public YrDynamicAabbTree? DynamicTree { get; private set; }
+        public int LastDynamicTreeHeight => DynamicTree == null ? 0 : DynamicTree.Height;
+        public int LastCcdPairs => _toi.LastCcdPairs;
         public int LastToiSubsteps => _toi.LastSubsteps;
         public int LastToiHits => _toi.LastHits;
         public int LastToiContactPoints => _toi.LastContactPoints;
@@ -95,6 +202,27 @@ namespace YamaEngine.Reality
             for (int i = 0; i < _bodies.Length; i++)
                 _obbs[i] = new YrObb(_bodies[i].Position, _bodies[i].Orientation,
                                      _halfExtents[i]);
+        }
+
+        /// <summary>
+        /// 常规窄相的宽相对来源。默认用第五轮的 SAP；
+        /// 开启 UseDynamicTree 后改用增量动态 AABB 树（跨帧复用节点）。
+        /// </summary>
+        private (int, int)[] BroadPhasePairs(float dt)
+        {
+            if (!UseDynamicTree) return YrBroadPhase.SweepAndPrune(_obbs);
+            if (DynamicTree == null)
+            {
+                DynamicTree = new YrDynamicAabbTree(Math.Max(8, _obbs.Length));
+                var boxes = YrSweptBroadphase.BuildSweptBoxes(_obbs, _bodies, dt);
+                for (int i = 0; i < boxes.Length; i++) DynamicTree.Insert(i, boxes[i]);
+            }
+            else
+            {
+                var boxes = YrSweptBroadphase.BuildSweptBoxes(_obbs, _bodies, dt);
+                for (int i = 0; i < boxes.Length; i++) DynamicTree.Update(i, boxes[i]);
+            }
+            return DynamicTree.QueryPairs();
         }
 
         /// <summary>真实帧 dt → 固定步数（Godot `_physics_process` 语义）。</summary>
@@ -118,7 +246,7 @@ namespace YamaEngine.Reality
             if (dt <= 0f) throw new ArgumentOutOfRangeException(nameof(dt));
             SyncObbs();
 
-            var pairs0 = YrBroadPhase.SweepAndPrune(_obbs);
+            var pairs0 = BroadPhasePairs(dt);
             YrContact[] initial = _narrow.Build(pairs0, _obbs, _bodies, dt, Surface);
             var edges = new System.Collections.Generic.List<(int, int)>();
             for (int k = 0; k < initial.Length; k++)
@@ -127,8 +255,12 @@ namespace YamaEngine.Reality
             for (int k = 0; k < js.Length; k++) edges.Add((js[k].A, js[k].B));
             _islands.Build(_bodies.Length, edges.ToArray());
 
+            _toi.UseAngularInflation = UseAngularSweep;
+            (int, int)[]? ccdPairs = UseBvhCcdPairs
+                ? YrSweptBroadphase.SweptPairs(_obbs, _bodies, dt)
+                : null;
             _toi.Advance(_bodies, _obbs, _halfExtents, _narrow, _contacts, _joints,
-                         dt, Surface, SolverIterations, ToiMaxSubsteps);
+                         dt, Surface, SolverIterations, ToiMaxSubsteps, ccdPairs);
 
             var vx = new float[_bodies.Length];
             var vy = new float[_bodies.Length];
@@ -153,7 +285,7 @@ namespace YamaEngine.Reality
             if (dt <= 0f) throw new ArgumentOutOfRangeException(nameof(dt));
             SyncObbs();
 
-            var pairs = YrBroadPhase.SweepAndPrune(_obbs);
+            var pairs = BroadPhasePairs(dt);
             YrContact[] cs = _narrow.Build(pairs, _obbs, _bodies, dt, Surface);
 
             // 约束岛：接触图 + 关节图共同决定连通分量
@@ -225,6 +357,16 @@ namespace YamaEngine.Reality
                 list.Add((float)warm[i].Item2);
                 list.Add(warm[i].Item3);
             }
+            // 追加逐点 warm 段：旧快照没有这一段，Restore 会按「长度 0」兼容。
+            var wp = _narrow.ExportWarmPoints();
+            list.Add((float)wp.Length);
+            for (int i = 0; i < wp.Length; i++)
+            {
+                list.Add((float)wp[i].Item1);
+                list.Add((float)wp[i].Item2);
+                list.Add((float)wp[i].Item3);
+                list.Add(wp[i].Item4);
+            }
             return list.ToArray();
         }
 
@@ -258,6 +400,22 @@ namespace YamaEngine.Reality
                 p += 3;
             }
             _narrow.ImportWarm(warm);
+            // 向前兼容：p == state.Length 表示这是第七轮及以前的旧快照（无逐点段）。
+            if (p < state.Length)
+            {
+                int mp = (int)state[p]; p++;
+                if (p + 4 * mp > state.Length)
+                    throw new ArgumentException("快照逐点 warm 段长度不足");
+                var wp = new (int, int, int, float)[mp];
+                for (int i = 0; i < mp; i++)
+                {
+                    wp[i] = ((int)state[p], (int)state[p + 1],
+                             (int)state[p + 2], state[p + 3]);
+                    p += 4;
+                }
+                _narrow.ImportWarmPoints(wp);
+            }
+            else _narrow.ImportWarmPoints(Array.Empty<(int, int, int, float)>());
             SyncObbs();
         }
 

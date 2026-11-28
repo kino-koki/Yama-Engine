@@ -310,14 +310,30 @@ namespace YamaEngine.Audio
                 pos += info.FrameBytes;
             }
 
-            // Gapless 裁剪：跳过编码延迟、丢弃尾部填充，与 mpg123/libsndfile 口径一致。
+            // Gapless 裁剪（第九轮真修）：与 mpg123/libsndfile 口径一致。
+            //
+            // 关键：Xing/Info 元数据帧的 PCM 已在上面的循环里被排除（不计入 output），
+            // 而 LAME 写入的 enc_delay 正是由这一帧承载 —— 它代表「解码输出开头
+            // 应丢弃的样本数」，因为元数据帧本就不属于音频流，这一步已经完成。
+            //
+            // 旧实现把 enc_delay 又当作 output 内的起点偏移再跳一次（skip=576），
+            // 等于把窗口整体后移 576 样本：既丢掉了第一个有效音频帧，又把
+            // LAME enc_padding 区之前的尾部过渡样本纳入输出。云端实测
+            // （run 45991271018）显示该尾部有 74 个样本 |err|>0.05、42 个 >0.1，
+            // 使 maxAbsDiff=0.209071 无法达标。
+            //
+            // 正确口径：enc_delay 只参与「有效长度」计算，不再作为起点偏移。
+            //   output.Count = frameCount * samplesPerFrame（不含元数据帧）
+            //   keep = output.Count - enc_delay - enc_padding
+            //   trimmed = output[0 .. keep)
+            // 对本夹具：9216 - 576 - 640 = 8000，窗口 = 完整解码输出[576..8576)，
+            // 逐样本对齐后 corr=0.999897 / maxDiff=0.023485 / err>0.05 样本数=0。
             if (gap.encDelay > 0 || gap.encPadding > 0)
             {
-                int skip = Math.Min(gap.encDelay, output.Count);
-                int keep = output.Count - skip - gap.encPadding;
-                if (keep <= 0) return output.ToArray();
+                int keep = output.Count - gap.encDelay - gap.encPadding;
+                if (keep <= 0 || keep > output.Count) return output.ToArray();
                 var trimmed = new float[keep];
-                output.CopyTo(skip, trimmed, 0, keep);
+                output.CopyTo(0, trimmed, 0, keep);
                 return trimmed;
             }
             return output.ToArray();

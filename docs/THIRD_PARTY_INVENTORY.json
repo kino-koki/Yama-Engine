@@ -1,0 +1,166 @@
+{
+  "policy": "docs/SELF_RESEARCH_BOUNDARY.md",
+  "rule": "引擎功能面代码不借鉴其他开源引擎；第三方仅作基础设施依赖，须锁版本+署名 SPDX",
+  "package_references": [
+    {
+      "name": "Silk.NET.Vulkan",
+      "version": "2.22.0",
+      "spdx": "MIT",
+      "role": "Vulkan 1.4 P/Invoke 绑定"
+    },
+    {
+      "name": "Silk.NET.Vulkan.Extensions.EXT",
+      "version": "2.22.0",
+      "spdx": "MIT",
+      "role": "Vulkan EXT 绑定"
+    },
+    {
+      "name": "Silk.NET.Vulkan.Extensions.KHR",
+      "version": "2.22.0",
+      "spdx": "MIT",
+      "role": "Vulkan KHR 绑定"
+    },
+    {
+      "name": "Silk.NET.Core",
+      "version": "2.22.0",
+      "spdx": "MIT",
+      "role": "绑定公共运行时"
+    },
+    {
+      "name": "Silk.NET.Windowing",
+      "version": "2.22.0",
+      "spdx": "MIT",
+      "role": "窗口/输入平台层"
+    },
+    {
+      "name": "Vortice.Mathematics",
+      "version": "1.9.3",
+      "spdx": "MIT",
+      "role": "数学类型辅助"
+    },
+    {
+      "name": "StbImageSharp",
+      "version": "2.22.5",
+      "spdx": "MIT",
+      "role": "图像解码绑定"
+    },
+    {
+      "name": "LiteNetLib",
+      "version": "1.3.1",
+      "spdx": "MIT",
+      "role": "UDP 可靠传输"
+    },
+    {
+      "name": "Microsoft.CodeAnalysis.CSharp",
+      "version": "4.9.2",
+      "spdx": "Apache-2.0",
+      "role": "Roslyn C# 编译器"
+    },
+    {
+      "name": "Microsoft.CodeAnalysis.CSharp.Scripting",
+      "version": "4.9.2",
+      "spdx": "Apache-2.0",
+      "role": "Roslyn 脚本宿主"
+    },
+    {
+      "name": "Microsoft.CodeAnalysis",
+      "version": "4.9.2",
+      "spdx": "Apache-2.0",
+      "role": "Roslyn 公共 API"
+    },
+    {
+      "name": "Microsoft.CodeAnalysis.Scripting",
+      "version": "4.9.2",
+      "spdx": "Apache-2.0",
+      "role": "Roslyn 脚本 API"
+    },
+    {
+      "name": "ImGui.NET",
+      "version": "1.90.8.1",
+      "spdx": "MIT",
+      "role": "调试 UI 绑定"
+    }
+  ],
+  "test_packages": [
+    {
+      "name": "xunit",
+      "version": "2.9.3",
+      "spdx": "Apache-2.0"
+    },
+    {
+      "name": "xunit.runner.visualstudio",
+      "version": "2.8.2",
+      "spdx": "Apache-2.0"
+    },
+    {
+      "name": "Microsoft.NET.Test.Sdk",
+      "version": "17.11.1",
+      "spdx": "MIT"
+    }
+  ],
+  "vendored_binaries": [
+    {
+      "path": "third_party/dxc/x64",
+      "spdx": "Apache-2.0",
+      "note": "微软 DXC shader 编译器二进制，以发行包 LICENSE 为准"
+    }
+  ],
+  "submodules": [
+    {
+      "path": "ide/codeoss/upstream",
+      "upstream": "microsoft/vscode",
+      "tag": "1.148.0",
+      "commit": "661626d0e72f97806550790a98fb87116c9db825",
+      "spdx": "MIT",
+      "note": "干净 MIT 构建：去品牌/去遥测/无 Marketplace"
+    }
+  ],
+  "native_crates": [
+    {
+      "path": "YamaEngine.Rust/Cargo.toml",
+      "origin": "self-developed"
+    },
+    {
+      "path": "native/reality_physics/Cargo.toml",
+      "origin": "self-developed"
+    }
+  ],
+  "python_integrations": [
+    {
+      "path": "integrations/kimodo_service/requirements.txt",
+      "origin": "third-party-runtime-only"
+    },
+    {
+      "path": "integrations/moss_live_gateway/requirements.txt",
+      "origin": "third-party-runtime-only"
+    }
+  ],
+  "cross_project_references": [
+    {
+      "repo": "kino-koki/Tuan-CLI",
+      "spdx": "MIT",
+      "usage": "skill/hook/MCP 协议格式参考，适配层代码自研"
+    }
+  ],
+  "prohibited": [
+    "Godot",
+    "Unreal",
+    "Unity",
+    "PhysX",
+    "Havok",
+    "Bullet",
+    "Box2D",
+    "Jolt",
+    "Bevy",
+    "O3DE"
+  ],
+  "optional_physics_backends": [
+    {
+      "name": "Jolt Physics",
+      "spdx": "MIT",
+      "access": "P/Invoke via native YamaJolt.dll",
+      "managed_binding": "YamaEngine/Physics/JoltPhysicsBridge.cs",
+      "note": "可选第三方物理后端 P/Invoke 适配层，属「用库」而非「抄引擎」；不是本项目自研物理内核，不参与 YamaEngine/Reality/ 的自研接触/CCD/守恒链，也不得计入自研成果。本仓库不搬运其源码；源码文件内不保留其仓库 URL。"
+    }
+  ]
+}

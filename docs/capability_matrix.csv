@@ -66,7 +66,7 @@ G3-064,GUI,文本 / 字体 / RTL,YamaEngine/Localization/RTLTextSystem.cs|YamaEn
 G3-065,GUI,控件库,YamaEngine/UI/WidgetControls.cs,Button/Slider 等含 placeholder,部分,占位台账分类,控件交互断言
 G3-066,音频,3D 空间音频,YamaEngine/Audio/Audio3DSpatialSystem.cs|YamaEngine/Audio/AudioSpatialReal.cs,真实实现,已实现,—,距离衰减断言
 G3-067,音频,DSP / 混音 / 卷积混响,YamaEngine/Audio/AdvancedAudioEngine.cs|YamaEngine/Audio/AudioDSPReal.cs|YamaEngine/Audio/AudioMixerReal.cs,2771 行,已实现,—,效果链输出校验
-G3-068,音频,Vorbis/FLAC/MP3 解码,YamaEngine/Audio/VorbisDecoder.cs|YamaEngine/Audio/AudioDecoderReal.cs,2026-11-25 云端实测：FLAC 位精确/MD5 与轮转全通过；Vorbis 归一化真修后 corr=1.000000/maxDiff=0 位级达标；MP3 gapless 真修后 corr=0.99263 但 maxDiff=0.24488 未达 5e-2,部分·仅 MP3 未达标,KnownLimitations.cs 仅剩 1 条 + AUDIO_DECODER_GAPS.md 的 M1-M3 计划,MP3 maxAbsDiff <= 5e-2 后即从清单移除
+G3-068,音频,Vorbis/FLAC/MP3 解码,YamaEngine/Audio/VorbisDecoder.cs|YamaEngine/Audio/AudioDecoderReal.cs|YamaEngine/Audio/Mp3Decoder.cs,2026-11-26 云端实测：FLAC 位精确/MD5 与轮转全通过；Vorbis 归一化真修后 corr=1.000000/maxDiff=0 位级达标；MP3 gapless 口径真修后 corr=0.999897/maxDiff=0.023485（err>0.05 样本数=0），用例回归真实门禁,已实现,AUDIO_MP3_GAPLESS_FIX.md + AUDIO_DECODER_GAPS.md,dotnet test --filter FullyQualifiedName~AudioRealDecoderTests
 G3-069,网络,状态复制,YamaEngine/Network/NetworkReplicationSystem.cs|YamaEngine/Networking/NetworkReplication.cs,真实实现,已实现,—,两客户端状态一致
 G3-070,网络,客户端预测 / 插值,YamaEngine/Network/NetworkInterpolator.cs|YamaEngine/Network/NetworkFramingReal.cs,存在,部分,—,高延迟下无抖动
 G3-071,动画,动画状态机 / 混合树,YamaEngine/Animation/AnimStateMachineReal.cs|YamaEngine/Animation/BlendTreeReal.cs,真实实现,已实现,—,交叉淡入断言

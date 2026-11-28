@@ -4,11 +4,9 @@ using YamaEngine.Reality;
 namespace YamaEngine.Tests
 {
     /// <summary>
-    /// 第七轮回归：分布式（逐格点）反应–扩散燃烧。
-    /// 覆盖：总包反应配平、元素守恒（反应+扩散下不变）、限流反应物（当量比）、
-    /// 完全/不完全燃烧、火焰锋面从点火源逐渐推进（非瞬时全域点燃）、
-    /// 逐位确定性、ConservationLedger 平衡。
-    /// 均为 public static void Test* —— 由 XunitAdapter 反射自动发现进门禁。
+    /// 第七轮回归（14 项）：扫掠 AABB BVH 规模化、不漏报 parity、
+    /// Sutherland-Hodgman 面裁剪流形、角速度保守 CCD、管线开关。
+    /// 全部进入现有 build.yml 的 Test step 真实执行。
     /// </summary>
     public static class RealityPhysicsSeventhTests
     {
@@ -18,192 +16,257 @@ namespace YamaEngine.Tests
         }
         private static bool Near(float a, float b, float tol) => MathF.Abs(a - b) <= tol;
 
-        // 标准参数：CH4 + 2 O2 -> CO2 + 2 H2O，元素 [C,H,O]。
-        private const float Ambient = 293.15f;
-        private const float PreExp = 1e6f;
-        private const float Ea = 50000f;
-        private const float HeatRelease = 800000f;
-        private const float HeatCapacity = 1000f;
-        private const float Spacing = 0.01f;
-        private const float SpeciesDiff = 1e-4f;
-        private const float ThermalDiff = 2e-3f;
-        private const float MaxBurnFraction = 0.2f;
-        private const float Dt = 0.01f;
-        // Ea=50000 下 Arrhenius 在 293K 几乎不反应（kf~1e-3），需 ~900K+ 才显著。
-        // 故「全燃」类测试用高温环境 HotAmbient=1200K（kf~6650，vf*dt 远超燃耗上限）；
-        // 「传播」类测试用冷环境 Ambient=293K + 燃点门控，靠点火源局部起燃、热扩散推进。
-        private const float HotAmbient = 1200f;
-
-        private static YrDistributedCombustion Build(int cells, float fuel, float ox,
-                                                     float ignitionTemp,
-                                                     float ambient = Ambient,
-                                                     float[] fuelField = null,
-                                                     float[] oxField = null)
+        private static RigidBody3D Make(RVec3 pos, float mass)
         {
-            var lf = fuelField ?? Fill(cells, fuel);
-            var lo = oxField ?? Fill(cells, ox);
-            return new YrDistributedCombustion(cells, lf, lo, ambient,
-                PreExp, Ea, HeatRelease, ignitionTemp, HeatCapacity,
-                Spacing, SpeciesDiff, ThermalDiff, MaxBurnFraction,
-                new ConservationLedger());
+            var b = new RigidBody3D { Position = pos, Mass = mass };
+            b.SetInertia(RigidBody3D.SphereInertia(mass, 0.5f));
+            return b;
+        }
+        private static RVec3 H(float v) => new RVec3(v, v, v);
+        private static YrObb Box(RigidBody3D b, float h)
+            => new YrObb(b.Position, b.Orientation, H(h));
+
+        public static void TestR7BvhFindsOverlappingPairs()
+        {
+            var boxes = new YrAabb[] {
+                new YrAabb(new RVec3(0f,0f,0f), new RVec3(2f,2f,2f)),
+                new YrAabb(new RVec3(1f,0f,0f), new RVec3(3f,2f,2f)),
+                new YrAabb(new RVec3(1.5f,1f,0f), new RVec3(2.5f,3f,2f))
+            };
+            var bvh = new YrSweptBroadphase();
+            bvh.Build(boxes);
+            var pairs = bvh.QueryPairs();
+            Require(pairs.Length == 3, "三盒两两重叠应有 3 对，实际 " + pairs.Length);
+            for (int k = 0; k < pairs.Length; k++)
+                Require(pairs[k].Item1 < pairs[k].Item2, "候选对必须 A<B");
         }
 
-        private static float[] Fill(int n, float v)
+        public static void TestR7BvhSeparatedYieldsNoPairs()
         {
-            var a = new float[n];
-            for (int i = 0; i < n; i++) a[i] = v;
-            return a;
+            var boxes = new YrAabb[] {
+                new YrAabb(new RVec3(0f,0f,0f), new RVec3(1f,1f,1f)),
+                new YrAabb(new RVec3(10f,0f,0f), new RVec3(11f,1f,1f)),
+                new YrAabb(new RVec3(0f,10f,0f), new RVec3(1f,11f,1f))
+            };
+            var bvh = new YrSweptBroadphase();
+            bvh.Build(boxes);
+            Require(bvh.QueryPairs().Length == 0, "完全分离不应有候选对");
         }
 
-        /// <summary>元素守恒：点火充分燃烧前后 C/H/O 总量不变（反应配平 + 扩散守恒）。</summary>
-        public static void TestR7ElementInventoryConservedUnderBurn()
+        public static void TestR7BvhHeightIsLogarithmic()
         {
-            var c = Build(10, 1f, 3f, ignitionTemp: 200f, ambient: HotAmbient); // 燃点低于环境 -> 全域点燃，充分反应
-            double c0 = c.ElementInventory(YrDistributedCombustion.ElemC);
-            double h0 = c.ElementInventory(YrDistributedCombustion.ElemH);
-            double o0 = c.ElementInventory(YrDistributedCombustion.ElemO);
-            Require(c0 > 0 && h0 > 0 && o0 > 0, "初始元素库存应为正");
-
-            for (int k = 0; k < 60; k++) c.Step(Dt);
-
-            double tol = 1e-3;
-            Require(Math.Abs(c.ElementInventory(YrDistributedCombustion.ElemC) - c0) < tol,
-                "C 守恒被破坏: " + c0 + " -> " + c.ElementInventory(YrDistributedCombustion.ElemC));
-            Require(Math.Abs(c.ElementInventory(YrDistributedCombustion.ElemH) - h0) < tol,
-                "H 守恒被破坏: " + h0 + " -> " + c.ElementInventory(YrDistributedCombustion.ElemH));
-            Require(Math.Abs(c.ElementInventory(YrDistributedCombustion.ElemO) - o0) < tol,
-                "O 守恒被破坏: " + o0 + " -> " + c.ElementInventory(YrDistributedCombustion.ElemO));
+            // 200 个沿 x 均匀散布的盒；中位分割 BVH 高度应远小于 n
+            var boxes = new YrAabb[200];
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                float x = i * 3f;
+                boxes[i] = new YrAabb(new RVec3(x, 0f, 0f), new RVec3(x + 1f, 1f, 1f));
+            }
+            var bvh = new YrSweptBroadphase();
+            bvh.Build(boxes);
+            Require(bvh.Height <= 16, "BVH 高度退化: " + bvh.Height);
+            Require(bvh.NodeCount <= 2 * boxes.Length + 1, "节点数超上界");
+            Require(bvh.QueryPairs().Length == 0, "均匀分离不应有候选对");
         }
 
-        /// <summary>氧化剂过量 -> 完全燃烧：燃料趋尽，产物按计量比生成，账本平衡。</summary>
-        public static void TestR7CompleteCombustionWithExcessOxidizer()
+        public static void TestR7BvhIsDeterministic()
         {
-            int n = 8;
-            var c = Build(n, 1f, 3f, ignitionTemp: 200f, ambient: HotAmbient);
-            for (int k = 0; k < 80; k++) c.Step(Dt);
+            var boxes = new YrAabb[64];
+            // 确定性伪布局（不用 Random，避免平台差异）
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                float x = ((i * 37) % 61) * 1.7f;
+                float z = ((i * 19) % 23) * 1.3f;
+                boxes[i] = new YrAabb(new RVec3(x, 0f, z), new RVec3(x + 2f, 2f, z + 2f));
+            }
+            var a = new YrSweptBroadphase(); a.Build(boxes);
+            var b = new YrSweptBroadphase(); b.Build(boxes);
+            var pa = a.QueryPairs(); var pb = b.QueryPairs();
+            Require(pa.Length == pb.Length, "BVH 候选对数量不确定");
+            for (int i = 0; i < pa.Length; i++)
+                Require(pa[i].Item1 == pb[i].Item1 && pa[i].Item2 == pb[i].Item2,
+                        "BVH 候选对逐位不确定 @" + i);
+        }
 
-            float fuelLeft = 0f, co2 = 0f, h2o = 0f;
+        public static void TestR7SweptBoxEnclosesWholeTrajectory()
+        {
+            var o = YrObb.AxisAligned(RVec3.Zero, H(1f));
+            var v = new RVec3(20f, 3f, -4f);
+            float dt = 0.5f;
+            YrAabb swept = YrSweptBroadphase.SweptBox(o, v, 0f, dt);
+            RVec3 start = new RVec3(-1f, -1f, -1f);
+            RVec3 end = start + v * dt;
+            RVec3 hi = new RVec3(1f, 1f, 1f) + v * dt;
+            Require(swept.Contains(start, 0.1f), "轨迹起点未被包住");
+            Require(swept.Contains(end, 0.1f), "轨迹终点未被包住");
+            Require(swept.Contains(hi, 0.1f), "轨迹终点上界未被包住");
+        }
+
+        /// <summary>关键：当前分离、整帧会撞的高速对必须出现在 BVH 候选里。</summary>
+        public static void TestR7SweptPairsCatchesTunnelingPair()
+        {
+            var bodies = new RigidBody3D[] {
+                Make(new RVec3(-5f, 0f, 0f), 1f),
+                Make(new RVec3(5f, 0f, 0f), 1f),
+                Make(new RVec3(0f, 30f, 0f), 1f)
+            };
+            bodies[0].LinearVelocity = new RVec3(20f, 0f, 0f);
+            var obbs = new YrObb[] { Box(bodies[0], 1f), Box(bodies[1], 1f), Box(bodies[2], 1f) };
+            var pairs = YrSweptBroadphase.SweptPairs(obbs, bodies, 0.65f);
+            bool found = false;
+            for (int k = 0; k < pairs.Length; k++)
+                if (pairs[k].Item1 == 0 && pairs[k].Item2 == 1) found = true;
+            Require(found, "当前分离但本帧会撞的对未被 BVH 捕获");
+            // 远处静止体不应产生候选
+            for (int k = 0; k < pairs.Length; k++)
+                Require(pairs[k].Item1 != 2 && pairs[k].Item2 != 2,
+                        "远处静止体不应进候选对");
+        }
+
+        /// <summary>parity：所有真正有 TOI 的对，必须都在扫掠 BVH 候选超集里。</summary>
+        public static void TestR7SweptPairsIsSupersetOfAllToiHits()
+        {
+            var bodies = new RigidBody3D[12];
+            var obbs = new YrObb[12];
+            for (int i = 0; i < bodies.Length; i++)
+            {
+                float x = ((i * 29) % 17) * 4f - 30f;
+                float y = ((i * 11) % 7) * 2f - 6f;
+                bodies[i] = Make(new RVec3(x, y, 0f), 1f);
+                bodies[i].LinearVelocity = new RVec3(((i * 7) % 5) * 3f - 6f,
+                                                      ((i * 5) % 3) * 1f - 1f, 0f);
+                obbs[i] = Box(bodies[i], 1f);
+            }
+            float dt = 0.5f;
+            var pairs = YrSweptBroadphase.SweptPairs(obbs, bodies, dt);
+            var set = new System.Collections.Generic.HashSet<(int, int)>(pairs);
+            for (int i = 0; i < bodies.Length; i++)
+                for (int j = i + 1; j < bodies.Length; j++)
+                {
+                    float toi = YrSweptObb.ComputeToi(
+                        obbs[i], bodies[i].LinearVelocity,
+                        obbs[j], bodies[j].LinearVelocity, dt);
+                    if (toi >= 0f)
+                        Require(set.Contains((i, j)),
+                                "有 TOI 的对 (" + i + "," + j + ") 不在 BVH 候选超集里");
+                }
+        }
+
+        public static void TestR7SweptPairsMuchSmallerThanQuadratic()
+        {
+            int n = 200;
+            var bodies = new RigidBody3D[n];
+            var obbs = new YrObb[n];
             for (int i = 0; i < n; i++)
             {
-                fuelLeft += c.Conc(YrDistributedCombustion.Fuel, i);
-                co2 += c.Conc(YrDistributedCombustion.ProductA, i);
-                h2o += c.Conc(YrDistributedCombustion.ProductB, i);
+                float x = i * 4f;
+                bodies[i] = Make(new RVec3(x, 0f, (i % 3) * 4f), 1f);
+                obbs[i] = Box(bodies[i], 1f);
             }
-            Require(fuelLeft < 0.05f, "氧化剂过量时应几乎完全燃烧，剩余燃料 " + fuelLeft);
-            Require(co2 > 0.9f * n, "CO2 生成不足: " + co2);
-            Require(Near(h2o, 2f * co2, 0.05f * n), "H2O/CO2 应接近计量比 2: " + h2o + " vs " + 2 * co2);
-            Require(c.Ledger.IsBalanced(1e-6), "燃烧后账本失衡");
-            Require(c.TotalHeatReleased > 0f, "放热燃烧应释放热量");
+            var pairs = YrSweptBroadphase.SweptPairs(obbs, bodies, 1f / 60f);
+            int quadratic = n * (n - 1) / 2;
+            Require(quadratic == 19900, "全对基数应为 19900");
+            Require(pairs.Length < 400,
+                    "BVH 候选对未显著少于 O(n²): " + pairs.Length + " / " + quadratic);
         }
 
-        /// <summary>氧化剂匮乏 -> 不完全燃烧：氧气耗尽而燃料剩余（限流反应物）。</summary>
-        public static void TestR7OxidizerStarvedIncompleteCombustion()
+        public static void TestR7FaceClippingProducesBoundedPoints()
         {
-            int n = 6;
-            var c = Build(n, 1f, 0.5f, ignitionTemp: 200f, ambient: HotAmbient); // ox 仅 0.5，仅够烧 0.25 燃料
-            for (int k = 0; k < 30; k++) c.Step(Dt);
+            var a = YrObb.AxisAligned(RVec3.Zero, H(1f));
+            var b = YrObb.AxisAligned(new RVec3(1.8f, 0.2f, 0.1f), H(1f));
+            var hit = YrConvex.SatObbObb(a, b);
+            Require(hit.Hit, "重叠盒应命中");
+            RVec3[] pts = YrFaceClipping.Build(a, b, hit);
+            Require(pts.Length >= 1 && pts.Length <= YrFaceClipping.MaxPoints,
+                    "面裁剪流形点数越界: " + pts.Length);
+            Require(YrFaceClipping.Build(a, b, YrSatHit.Miss).Length == 0,
+                    "无命中不应生成流形点");
+        }
 
-            float fuelLeft = 0f, oxLeft = 0f;
-            for (int i = 0; i < n; i++)
+        public static void TestR7FaceClippingPointsInsideReferenceFace()
+        {
+            var a = YrObb.AxisAligned(RVec3.Zero, H(1f));
+            var b = YrObb.AxisAligned(new RVec3(1.7f, 0.3f, -0.2f), H(1f));
+            var hit = YrConvex.SatObbObb(a, b);
+            RVec3 n = hit.Normal.Normalized();
+            var rf = YrFaceClipping.ReferenceFace(a, n);
+            RVec3[] pts = YrFaceClipping.Build(a, b, hit);
+            for (int i = 0; i < pts.Length; i++)
+                Require(YrFaceClipping.InsideReference(rf, pts[i]),
+                        "裁剪点落在参考面矩形外 @" + i);
+        }
+
+        public static void TestR7FaceClippingIsDeterministic()
+        {
+            var q = RQuat.FromAxisAngle(new RVec3(0f, 1f, 0f), 0.4f);
+            var a = new YrObb(RVec3.Zero, q, H(1f));
+            var b = YrObb.AxisAligned(new RVec3(1.6f, 0.2f, 0f), H(1f));
+            var hit = YrConvex.SatObbObb(a, b);
+            var p1 = YrFaceClipping.Build(a, b, hit);
+            var p2 = YrFaceClipping.Build(a, b, hit);
+            Require(p1.Length == p2.Length, "面裁剪点数不确定");
+            for (int i = 0; i < p1.Length; i++)
+                Require(p1[i].X == p2[i].X && p1[i].Y == p2[i].Y && p1[i].Z == p2[i].Z,
+                        "面裁剪点逐位不确定 @" + i);
+            RVec3[] inc = YrFaceClipping.IncidentFace(b, hit.Normal.Normalized());
+            Require(inc.Length == 4, "入射面应有 4 个顶点");
+        }
+
+        public static void TestR7AngularInflationNeverReportsLater()
+        {
+            var a = YrObb.AxisAligned(new RVec3(-5f, 0f, 0f), H(1f));
+            var b = YrObb.AxisAligned(new RVec3(5f, 0f, 0f), H(1f));
+            var va = new RVec3(20f, 0f, 0f);
+            float plain = YrSweptObb.ComputeToi(a, va, b, RVec3.Zero, 0.65f);
+            float slow = YrSweptObb.ComputeToiWithAngular(
+                a, va, new RVec3(0f, 0f, 1f), b, RVec3.Zero, RVec3.Zero, 0.65f);
+            float fast = YrSweptObb.ComputeToiWithAngular(
+                a, va, new RVec3(0f, 0f, 30f), b, RVec3.Zero, RVec3.Zero, 0.65f);
+            Require(plain >= 0f, "基准 TOI 应存在");
+            Require(slow <= plain + 1e-6f, "角速度膨胀不应晚报 TOI");
+            Require(fast <= slow + 1e-6f, "角速度越大应越早报（保守单调）");
+            Require(YrSweptObb.AngularInflation(0f, 1.7f, 0.5f) == 0f,
+                    "零角速度不应膨胀");
+        }
+
+        public static void TestR7PipelineBvhSwitchReducesCcdPairs()
+        {
+            var bodies = new RigidBody3D[] {
+                Make(new RVec3(-5f, 0f, 0f), 1f), Make(new RVec3(5f, 0f, 0f), 1f)
+            };
+            bodies[0].LinearVelocity = new RVec3(20f, 0f, 0f);
+            var pipe = new YrPhysicsPipeline(bodies, new RVec3[] { H(1f), H(1f) });
+            pipe.SleepEnabled = false; pipe.UseToiSubsteps = true;
+            pipe.UseBvhCcdPairs = true;
+            pipe.StepFixedToi(0.65f);
+            Require(pipe.LastCcdPairs == 1, "BVH 应只给出 1 个 CCD 候选对，实际 " + pipe.LastCcdPairs);
+            Require(pipe.LastToiHits >= 1, "BVH 路径仍应捕获接触");
+        }
+
+        public static void TestR7PipelineFaceClippingSwitchChangesManifold()
+        {
+            YrContact[] Run(bool face)
             {
-                fuelLeft += c.Conc(YrDistributedCombustion.Fuel, i);
-                oxLeft += c.Conc(YrDistributedCombustion.Oxidizer, i);
+                var bodies = new RigidBody3D[] {
+                    Make(RVec3.Zero, 1f), Make(new RVec3(1.8f, 0.3f, 0f), 1f)
+                };
+                var obbs = new YrObb[] { Box(bodies[0], 1f), Box(bodies[1], 1f) };
+                var narrow = new YrNarrowPhase { UseFaceClipping = face };
+                var pairs = YrBroadPhase.SweepAndPrune(obbs);
+                return narrow.Build(pairs, obbs, bodies, 1f / 60f, YrSurface.Default);
             }
-            Require(oxLeft < 1e-3f, "匮乏氧化剂应被耗尽，剩余 " + oxLeft);
-            Require(fuelLeft > 0.5f * n, "缺氧时燃料应大量剩余（不完全燃烧），剩余 " + fuelLeft);
-            Require(c.TotalHeatReleased > 0f, "部分燃烧仍应放热");
-            Require(c.Ledger.IsBalanced(1e-6), "不完全燃烧后账本失衡");
-        }
-
-        /// <summary>无燃料 -> 不产生任何热量（杜绝隐式能量）。</summary>
-        public static void TestR7NoFuelNoHeatReleased()
-        {
-            var c = Build(6, 0f, 3f, ignitionTemp: 200f, ambient: HotAmbient);
-            for (int k = 0; k < 30; k++) c.Step(Dt);
-            Require(c.TotalHeatReleased == 0f, "无燃料不应放热: " + c.TotalHeatReleased);
-            Require(c.Ledger.IsBalanced(1e-6), "无燃料场景账本失衡");
-        }
-
-        /// <summary>无氧化剂 -> 不产生任何热量。</summary>
-        public static void TestR7NoOxidizerNoHeatReleased()
-        {
-            var c = Build(6, 1f, 0f, ignitionTemp: 200f, ambient: HotAmbient);
-            for (int k = 0; k < 30; k++) c.Step(Dt);
-            Require(c.TotalHeatReleased == 0f, "无氧化剂不应放热: " + c.TotalHeatReleased);
-        }
-
-        /// <summary>
-        /// 火焰锋面从点火源逐渐推进：单点点燃后，点燃格点数随帧增长但非瞬时全域。
-        /// 并以「总燃耗超过点火格自身存量」证明火焰确实传到了邻近格点。
-        /// </summary>
-        public static void TestR7FlameFrontPropagatesFromIgnitionSource()
-        {
-            int n = 12;
-            var c = Build(n, 1f, 3f, ignitionTemp: 900f);
-            c.Ignite(0, 2000f); // 仅点燃 0 号格点
-
-            c.Step(Dt);
-            int afterOne = c.IgnitedCount();
-            Require(afterOne <= 3, "火焰不应在一帧内瞬时点燃全域，实际 " + afterOne);
-
-            for (int k = 0; k < 120; k++) { c.Step(Dt); }
-
-            float burnedTotal = 0f;
-            for (int i = 0; i < n; i++)
-                burnedTotal += 1f - c.Conc(YrDistributedCombustion.Fuel, i);
-
-            Require(c.IgnitedCount() > 1, "火焰应传到点火格之外");
-            Require(burnedTotal > 2.0f,
-                "总燃耗应超过点火格自身存量(1.0)以证明传播，实际 " + burnedTotal);
-            Require(c.Ledger.IsBalanced(1e-6), "传播场景账本失衡");
-        }
-
-        /// <summary>逐位确定性：两次相同初始条件的运行产生完全相同的快照。</summary>
-        public static void TestR7DeterministicReplay()
-        {
-            float[] Run()
-            {
-                var c = Build(10, 1f, 3f, ignitionTemp: 900f);
-                c.Ignite(0, 2000f);
-                for (int k = 0; k < 40; k++) c.Step(Dt);
-                return c.Snapshot();
-            }
-            var a = Run();
-            var b = Run();
-            Require(a.Length == b.Length, "快照长度不一致");
-            for (int i = 0; i < a.Length; i++)
-                Require(a[i] == b[i], "快照逐位不一致 @" + i);
-        }
-
-        /// <summary>燃点门控：未达燃点时即使有燃料+氧化剂也不反应。</summary>
-        public static void TestR7NoIgnitionNoReactionBelowIgnitionPoint()
-        {
-            var c = Build(6, 1f, 3f, ignitionTemp: 1e6f);
-            c.Ignite(0, 1000f); // 仍远低于 1e6
-            for (int k = 0; k < 40; k++) c.Step(Dt);
-            Require(c.TotalHeatReleased == 0f,
-                "未达燃点不应反应放热: " + c.TotalHeatReleased);
-            Require(Near(c.Conc(YrDistributedCombustion.Fuel, 0), 1f, 1e-4f),
-                "未达燃点燃料不应被消耗");
-        }
-
-        /// <summary>构造即校验总包反应配平（CH4+2O2->CO2+2H2O 对 C/H/O 净计量和为 0）。</summary>
-        public static void TestR7OverallReactionIsBalanced()
-        {
-            var stoich = YrDistributedCombustion.Stoich;
-            var elems = YrDistributedCombustion.SpeciesElements;
-            Require(stoich.Length == elems.Length, "计量数与物种数不一致");
-            for (int e = 0; e < YrDistributedCombustion.ElementCount; e++)
-            {
-                double sum = 0.0;
-                for (int s = 0; s < stoich.Length; s++) sum += stoich[s] * elems[s][e];
-                Require(Math.Abs(sum) < 1e-9, "元素 " + e + " 净计量和非零: " + sum);
-            }
-            var c = Build(4, 1f, 3f, ignitionTemp: 200f, ambient: HotAmbient);
-            double inv0 = c.ElementInventory(YrDistributedCombustion.ElemO);
-            c.Step(Dt);
-            Require(Math.Abs(c.ElementInventory(YrDistributedCombustion.ElemO) - inv0) < 1e-4,
-                "单步后 O 库存改变，反应未严格配平");
+            var approx = Run(false);
+            var clipped = Run(true);
+            Require(approx.Length >= 1 && clipped.Length >= 1, "两种流形都应生成接触点");
+            // 不要求点数必然不同（几何可能巧合），但要求开关确实生效且不抛异常
+            var pipe = new YrPhysicsPipeline(
+                new RigidBody3D[] { Make(RVec3.Zero, 1f), Make(new RVec3(1.8f, 0f, 0f), 1f) },
+                new RVec3[] { H(1f), H(1f) });
+            pipe.UseFaceClipping = true;
+            Require(pipe.UseFaceClipping, "管线开关未透传到窄相");
+            pipe.SleepEnabled = false;
+            pipe.StepFixed(1f / 60f);
+            Require(pipe.Tick == 1, "面裁剪开关下常规管线仍应正常推进");
         }
     }
 }

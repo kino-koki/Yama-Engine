@@ -1,0 +1,55 @@
+# Code - OSS 1.148.0 干净 MIT 构建门禁（模板）
+# 说明：本仓库现有推送 token 的 scope 仅为 repo，写 .github/workflows/ 会被拒。
+# 请在 GitHub 网页端把本文件移到 .github/workflows/codeoss-gate.yml 即可启用。
+# 与 build.yml 解耦：不参与 -warnaserror / Test / Smoke 门禁。
+name: Code-OSS clean MIT build gate
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ide/codeoss/**'
+      - '.gitmodules'
+      - 'scripts/fetch_codeoss.py'
+
+jobs:
+  verify-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned tag / commit / clean product.json
+        run: python scripts/fetch_codeoss.py --check
+      - name: Self-research boundary audit
+        run: python scripts/audit_no_engine_copy.py .
+
+  build-minimal:
+    needs: verify-lock
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply clean MIT product.json
+        run: python scripts/fetch_codeoss.py --apply-only
+      - name: Install + compile upstream workbench
+        working-directory: ide/codeoss/upstream
+        run: |
+          npm ci
+          npm run compile
+      - name: Upload clean build manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeoss-clean-1.148.0
+          path: ide/codeoss/product.json
