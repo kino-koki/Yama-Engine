@@ -54,6 +54,9 @@ def checks():
     # 第二十轮：Python 门禁进真实 CI + 引擎侧桥接接线 + fetch 口径不回漂
     has("YamaEngine.Tests/CodeOssMinimalBridgeTests.cs", "TestR20")
     has("scripts/fetch_codeoss.py", "本仓库不编译")
+    # 第二十一轮：YAMA 主语言面收口 + 项目契约门禁
+    has("ide/codeoss/language-profile.json", "strictYamaProject")
+    has("scripts/check_yama_project.py", "primaryLanguage")
     return out
 
 

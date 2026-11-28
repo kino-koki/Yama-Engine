@@ -89,5 +89,14 @@
   "ci_gate": "ci/codeoss-gate.yml (template; NOT enabled in this repo - workflow write returns 404 with repo-only token)",
   "ci_gate_enabled": false,
   "csharp_equivalent_gate": "YamaEngine.Tests/CodeOssMinimalTests.cs + CodeOssMinimalBridgeTests.cs (executed by build.yml Test step)",
-  "codeoss_bridge_commands": 10
+  "codeoss_bridge_commands": 12,
+  "language_profile": {
+    "file": "ide/codeoss/language-profile.json",
+    "primary": "yama",
+    "enforced": true,
+    "optional_modules": 7,
+    "optional_modules_installed_by_default": 0,
+    "project_gate": "scripts/check_yama_project.py",
+    "boundary": "只收口本仓库能力面；未物理裁剪上游 workbench 源码"
+  }
 }

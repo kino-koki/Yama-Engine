@@ -19,6 +19,14 @@
     "dap": "self-developed (YamaDapClient, DAP 1.x framing)",
     "extensionManifest": "self-developed (YamaExtensionManifest)"
   },
+  "yamaLanguageProfile": {
+    "file": "ide/codeoss/language-profile.json",
+    "primary": "yama",
+    "enforced": true,
+    "strictYamaProject": true,
+    "builtInLanguagePacks": false,
+    "note": "收口本仓库声明的语言能力面；不裁剪上游 workbench 源码，物理裁剪需 Node 24 环境，本仓库不谎报已做。"
+  },
   "yamaMinimal": {
     "profile": "web-only-minimal",
     "buildTarget": "web",

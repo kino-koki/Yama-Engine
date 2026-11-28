@@ -47,7 +47,7 @@ namespace YamaEngine.Tests
 
         public static void TestR20ManifestExposesTenCommands()
         {
-            Require(YamaExtensionManifest.Commands.Length == 10, "命令表应为 10");
+            Require(YamaExtensionManifest.Commands.Length == 12, "命令表应为 12");
             foreach (var c in NewCommands)
                 Require(Array.IndexOf(YamaExtensionManifest.Commands, c) >= 0,
                         "命令缺失 " + c);
@@ -57,7 +57,7 @@ namespace YamaEngine.Tests
             int n = 0;
             foreach (var _ in doc.RootElement.GetProperty("contributes")
                          .GetProperty("commands").EnumerateArray()) n++;
-            Require(n == 10, "JSON contributes.commands 应为 10，实际 " + n);
+            Require(n == 12, "JSON contributes.commands 应为 12，实际 " + n);
         }
 
         public static void TestR20BridgeRoutesEveryMinimalCommand()
@@ -244,8 +244,10 @@ namespace YamaEngine.Tests
             Require(g.GetString()!.Contains("NOT enabled", StringComparison.Ordinal),
                     "应如实标注模板未启用");
             Require(!c.GetProperty("ci_gate_enabled").GetBoolean(), "不得谎报已启用");
-            Require(c.GetProperty("codeoss_bridge_commands").GetInt32() == 10,
-                    "引擎侧命令表应为 10");
+            Require(c.GetProperty("codeoss_bridge_commands").GetInt32() == 12,
+                    "引擎侧命令表应为 12");
+            Require(c.GetProperty("language_profile").GetProperty("primary").GetString() == "yama",
+                    "契约应声明 YAMA 主语言");
             string gate = Rd("ci/codeoss-gate.yml");
             Require(gate.Contains("网页端", StringComparison.Ordinal)
                  && gate.Contains("未启用", StringComparison.Ordinal),

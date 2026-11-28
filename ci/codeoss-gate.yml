@@ -38,6 +38,10 @@ jobs:
         run: python scripts/fetch_codeoss.py --check
       - name: Verify minimal web-only build lock + config digests
         run: python scripts/build_codeoss_minimal.py --check
+      - name: Verify YAMA-first language profile + project contracts
+        run: |
+          python scripts/check_yama_project.py --check
+          python scripts/check_yama_project.py --emit > yama-language-manifest.json
       - name: Emit minimal build manifest (no upstream compile)
         run: python scripts/build_codeoss_minimal.py --emit-manifest > minimal-build-manifest.json
       - name: Self-research boundary audit

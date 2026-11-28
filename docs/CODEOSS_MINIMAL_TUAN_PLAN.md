@@ -44,7 +44,7 @@ G4 仍未闭合。
   MCP / 插件子命令 / 独立 CLI **三入口统一委派**到同一个 dispatcher。
 - **C. 双实现门禁**：Python 侧（unittest + `build_codeoss_minimal.py --check`）
   与 C# 侧（12 项新反射断言 + 1 个新 `[Fact]`（第二十轮再加 12 项 + 1 个 `[Fact]`））用同一套 SHA-256 口径，
-  任何一侧漂移都红灯。累计 **270 项**反射断言 + **13** 个 `[Fact]`。
+  任何一侧漂移都红灯。累计 **282 项**反射断言 + **15** 个 `[Fact]`（第二十一轮后）。
 
 ## 2. 阶段与里程碑（每阶段都有可判定验收，不靠口头汇报）
 
@@ -161,3 +161,25 @@ M3 的 `verify_codeoss_minimal` 动作依赖 M1 的脚本，故 M3 单测放在 
   本轮不谎报已启用，只保证等价语义由 C# xUnit 每次真实执行。
 - **未向 `kino-koki/Tuan-CLI` 仓库写入任何文件**，仍按 `TUAN.md` 逐次确认。
 - 真机 GPU / 规模 / 平台 SDK / 生态 / 外部验证（G4–G8）本环境物理上不具备。
+
+
+## 8. M6（第二十一轮，2026-11-28）——YAMA 主语言面收口
+
+起因：用户质疑「Code - OSS 会不会太大」，提出裁剪为 YAMA 主语言、
+强制用其开发游戏、但保留部分语言且可模块化拆卸。
+
+**结论**：大的是上游（1.3 GB 仓库 / 528 MB 未压缩 web 包 / 4核9GB 构建机 /
+数百种语言 / 2000+ 命令），本仓库从未 vendoring；真正该裁的是默认全量
+语言面。L3 物理裁剪需 Node 24 + 9GB + 网络，本环境写 workflow 实测 404、
+无 submodule 内容，**做不到且不谎报**。本轮只做 L2 能力面收口。
+
+| 项 | 落地 | 验收 |
+|---|---|---|
+| 语言面契约 | `ide/codeoss/language-profile.json`：yama 强制、csharp/json 系统级保留（不作写游戏语言）、7 个可插拔模块默认零内置、禁止内置全量语言包 | `YamaLanguageProfileTests` 12 项 + 1 个 `[Fact]` |
+| 强制使用 YAMA | 3 个模板补 `primaryLanguage=yama`；`scripts/check_yama_project.py` 离线 fail-closed；两个 `--check` 脚本与 CI 断言 | 篡改 enforced / installed / strict / `.tscn` 入口均红灯 |
+| 模块化拆卸 | `contributes.languages` 只生成 yama/csharp/json；`IsWellFormed` 反向拒绝可选模块 id；`allowOptionalModules` 默认 false | `TestR21ManifestLanguagesExcludeOptionalModules` |
+| 引擎侧接线 | 新增 `YamaLanguageProfile.cs`；命令 10→12；Product 解析 `yamaLanguageProfile` 段 | `TestR21ExtensionManifestHasTwelveCommandsAndYamaLanguage` 等 |
+
+同步：摘要 6→7 文件、hook 28→30、反射断言 270→282、`[Fact]` 14→15。
+详细设计与诚实边界见 `docs/YAMA_LANGUAGE_PROFILE.md` 与
+`docs/ROUND21_DELIVERY.md`。

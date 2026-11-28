@@ -322,7 +322,9 @@ namespace YamaEngine.Tests
         public void TestRound20EngineSideBridgeExposesMinimalBuild()
         {
             // 证明最轻量能力真的编进了被引用的程序集，不只是磁盘上的脚本。
-            Assert.Equal(10, YamaExtensionManifest.Commands.Length);
+            Assert.Equal(12, YamaExtensionManifest.Commands.Length);
+            Assert.Contains("yama.languageProfile", YamaExtensionManifest.Commands);
+            Assert.Contains("yama.newGameProject", YamaExtensionManifest.Commands);
             Assert.Contains("yama.codeossMinimal", YamaExtensionManifest.Commands);
             Assert.Contains("yama.invoke", YamaExtensionManifest.Commands);
             Assert.Contains("yama.capabilities", YamaExtensionManifest.Commands);
@@ -355,6 +357,39 @@ namespace YamaEngine.Tests
             string fetch = File.ReadAllText(Path.Combine(Root, "scripts", "fetch_codeoss.py"));
             Assert.DoesNotContain("npm ci && npm run compile", fetch);
             Assert.Contains("本仓库不编译", fetch);
+        }
+
+        [Fact]
+        public void TestRound21YamaFirstLanguageProfileIsEnforced()
+        {
+            // 语言面收口是「可判定事实」：主语言强制、可选模块零内置、模板全过契约。
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root,
+                "ide", "codeoss", "language-profile.json")));
+            var r = doc.RootElement;
+            Assert.Equal("yama", r.GetProperty("primary").GetProperty("id").GetString());
+            Assert.True(r.GetProperty("primary").GetProperty("enforced").GetBoolean());
+            Assert.True(r.GetProperty("enforcement").GetProperty("strictYamaProject").GetBoolean());
+            foreach (var m in r.GetProperty("optional_modules").EnumerateArray())
+            {
+                Assert.False(m.GetProperty("installed").GetBoolean());
+                Assert.True(m.GetProperty("removable").GetBoolean());
+            }
+            var profile = YamaEngine.Editor.CodeOss.YamaLanguageProfile.FromJson(
+                r.GetRawText());
+            Assert.True(profile.IsYamaFirst);
+            var product = YamaEngine.Editor.CodeOss.YamaCodeOssProduct.FromJson(
+                File.ReadAllText(Path.Combine(Root, "ide", "codeoss", "product.json")));
+            Assert.True(product.IsYamaFirstLanguage);
+            Assert.True(product.IsMinimalWebBuild);
+            foreach (var t in new[] { "Basic2D", "Basic3D", "NpcRealityDemo" })
+            {
+                using var p = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root,
+                    "Templates", t, "yama.project.json")));
+                Assert.Equal("yama", p.RootElement.GetProperty("primaryLanguage").GetString());
+                Assert.EndsWith(".yama",
+                    p.RootElement.GetProperty("startupScene").GetString()!);
+            }
+            Assert.True(File.Exists(Path.Combine(Root, "scripts", "check_yama_project.py")));
         }
 
         [Fact]

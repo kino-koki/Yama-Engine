@@ -3,6 +3,7 @@
   "engine": "Yama Engine",
   "formatVersion": 1,
   "template": "Basic 2D Project",
+  "primaryLanguage": "yama",
   "startupScene": "Content/Scenes/Main.yama",
   "folders": [
     "Content/Scenes",

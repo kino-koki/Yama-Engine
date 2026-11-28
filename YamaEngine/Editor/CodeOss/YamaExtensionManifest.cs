@@ -15,10 +15,20 @@ namespace YamaEngine.Editor.CodeOss
         {
             "yama.build", "yama.test", "yama.smoke", "yama.snapshot",
             "yama.rollback", "yama.sotaStatus", "yama.coupledMass",
-            "yama.codeossMinimal", "yama.invoke", "yama.capabilities"
+            "yama.codeossMinimal", "yama.invoke", "yama.capabilities",
+            "yama.languageProfile", "yama.newGameProject"
+        };
+
+        /// <summary>不得内置的语言模块 id（可插拔模块默认不安装）。</summary>
+        public static readonly string[] ForbiddenBuiltinLanguages = new string[]
+        {
+            "typescript", "lua", "gdscript", "glsl", "wgsl", "python", "cpp"
         };
 
         public static string Build(string version)
+            => Build(version, YamaLanguageProfile.BuiltIn);
+
+        public static string Build(string version, YamaLanguageProfile profile)
         {
             var sb = new StringBuilder(1024);
             sb.Append("{\"name\":\"yama-engine\",\"displayName\":\"Yama Engine\",")
@@ -33,11 +43,13 @@ namespace YamaEngine.Editor.CodeOss
                   .Append(",\"title\":").Append(YamaJsonRpcFraming.Quote("Yama: " + Commands[i].Substring(5)))
                   .Append('}');
             }
-            sb.Append("],\"languages\":[{\"id\":\"yama-scene\",\"extensions\":[\".yscene\",\".yprefab\"]}],")
+            sb.Append("],\"languages\":").Append(profile.ManifestLanguagesJson()).Append(',')
               .Append("\"debuggers\":[{\"type\":\"yama\",\"label\":\"Yama Debugger\"}],")
               .Append("\"configuration\":{\"title\":\"Yama Engine\",\"properties\":{")
               .Append("\"yama.codeoss.cleanMitBuild\":{\"type\":\"boolean\",\"default\":true},")
-              .Append("\"yama.cli.smokeFrames\":{\"type\":\"number\",\"default\":60}}}}")
+              .Append("\"yama.cli.smokeFrames\":{\"type\":\"number\",\"default\":60},")
+              .Append("\"yama.language.strictYamaProject\":{\"type\":\"boolean\",\"default\":true},")
+              .Append("\"yama.language.allowOptionalModules\":{\"type\":\"boolean\",\"default\":false}}}}")
               .Append(",\"activationEvents\":[\"onStartupFinished\"],")
               .Append("\"license\":\"MIT\"}");
             return sb.ToString();
@@ -53,9 +65,21 @@ namespace YamaEngine.Editor.CodeOss
                 if (!c.TryGetProperty("commands", out var cmds)) return false;
                 int n = 0;
                 foreach (var _ in cmds.EnumerateArray()) n++;
-                return n == Commands.Length
-                    && r.TryGetProperty("license", out var lic)
-                    && lic.GetString() == "MIT";
+                if (n != Commands.Length) return false;
+                if (!r.TryGetProperty("license", out var lic) || lic.GetString() != "MIT")
+                    return false;
+                // 语言面收口：必须内置 yama，且不得内置任何可插拔模块。
+                if (!c.TryGetProperty("languages", out var langs)) return false;
+                bool hasYama = false;
+                foreach (var l in langs.EnumerateArray())
+                {
+                    string id = l.TryGetProperty("id", out var v) && v.ValueKind == JsonValueKind.String
+                        ? (v.GetString() ?? "") : "";
+                    if (id == "yama") hasYama = true;
+                    foreach (var bad in ForbiddenBuiltinLanguages)
+                        if (id == bad) return false;
+                }
+                return hasYama;
             }
             catch (JsonException) { return false; }
         }

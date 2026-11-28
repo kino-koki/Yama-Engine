@@ -58,3 +58,11 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"yama_codeo
   真机 GPU / 规模 / 平台门禁仍由 CI 与实机复核。
 - 自研边界见 `docs/SELF_RESEARCH_BOUNDARY.md`：适配层代码 100% 自研，
   不借鉴其他开源引擎实现。
+
+
+## YAMA 语言面（第二十一轮）
+
+契约 `language_profile` 字段指向 `ide/codeoss/language-profile.json`：
+主语言 `yama` 强制、7 个可插拔语言模块默认零内置、项目契约门禁
+`scripts/check_yama_project.py`。引擎侧命令表由 10 扩到 12，
+新增 `yama.languageProfile` / `yama.newGameProject`。

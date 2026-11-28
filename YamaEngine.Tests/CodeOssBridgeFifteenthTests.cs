@@ -108,11 +108,12 @@ namespace YamaEngine.Tests
         {
             string m = YamaExtensionManifest.Build("1.148.0");
             Require(YamaExtensionManifest.IsWellFormed(m), "清单应合法");
-            Require(YamaExtensionManifest.Commands.Length == 10, "第二十轮应有 10 个命令");
+            Require(YamaExtensionManifest.Commands.Length == 12, "第二十一轮应有 12 个命令");
             Require(Array.IndexOf(YamaExtensionManifest.Commands, "yama.coupledMass") >= 0,
                     "应含 coupledMass 命令");
             foreach (string extra in new[] { "yama.codeossMinimal", "yama.invoke",
-                                             "yama.capabilities" })
+                                             "yama.capabilities", "yama.languageProfile",
+                                             "yama.newGameProject" })
                 Require(Array.IndexOf(YamaExtensionManifest.Commands, extra) >= 0,
                         "第二十轮新增命令缺失: " + extra);
             using var d = JsonDocument.Parse(m);

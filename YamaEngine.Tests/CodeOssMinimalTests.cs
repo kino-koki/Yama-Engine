@@ -49,7 +49,8 @@ namespace YamaEngine.Tests
         private static readonly string[] ConfigFiles = {
             "ide/codeoss/product.json", "ide/codeoss/UPSTREAM.lock.json",
             ".gitmodules", "ci/codeoss-gate.yml",
-            "scripts/fetch_codeoss.py", "scripts/build_codeoss_minimal.py"
+            "scripts/fetch_codeoss.py", "scripts/build_codeoss_minimal.py",
+            "ide/codeoss/language-profile.json"
         };
         private static readonly string[] Exclusions = {
             "electron", "native_modules", "marketplace", "telemetry", "branding",
@@ -130,7 +131,7 @@ namespace YamaEngine.Tests
             }
             int n = 0;
             foreach (var _ in declared.EnumerateObject()) n++;
-            Require(n == ConfigFiles.Length, "摘要键数应为 6，实际 " + n);
+            Require(n == ConfigFiles.Length, "摘要键数应为 7，实际 " + n);
         }
 
         public static void TestR19MinimalBuildScriptIsOfflineAndFailClosed()

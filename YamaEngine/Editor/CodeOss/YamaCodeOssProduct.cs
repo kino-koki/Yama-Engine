@@ -35,6 +35,13 @@ namespace YamaEngine.Editor.CodeOss
         public bool MinimalNoBuiltinExtensionDownload { get; private set; }
         public bool MinimalNoUpdateService { get; private set; }
 
+        // 第二十一轮：语言面收口声明（product.json 的 yamaLanguageProfile 段）
+        public bool HasLanguageProfileSection { get; private set; }
+        public string LanguageProfileFile { get; private set; } = string.Empty;
+        public string LanguageProfilePrimary { get; private set; } = string.Empty;
+        public bool LanguageProfileEnforced { get; private set; }
+        public bool LanguageProfileStrictYamaProject { get; private set; }
+
         public static YamaCodeOssProduct FromJson(string json)
         {
             if (json == null) throw new ArgumentNullException(nameof(json));
@@ -70,6 +77,15 @@ namespace YamaEngine.Editor.CodeOss
                 p.MinimalNoBranding = Bool(ym, "noBranding");
                 p.MinimalNoBuiltinExtensionDownload = Bool(ym, "noBuiltinExtensionDownload");
                 p.MinimalNoUpdateService = Bool(ym, "noUpdateService");
+            }
+            if (r.TryGetProperty("yamaLanguageProfile", out var lp)
+                && lp.ValueKind == JsonValueKind.Object)
+            {
+                p.HasLanguageProfileSection = true;
+                p.LanguageProfileFile = Get(lp, "file");
+                p.LanguageProfilePrimary = Get(lp, "primary");
+                p.LanguageProfileEnforced = Bool(lp, "enforced");
+                p.LanguageProfileStrictYamaProject = Bool(lp, "strictYamaProject");
             }
             return p;
         }
@@ -112,5 +128,13 @@ namespace YamaEngine.Editor.CodeOss
             && MinimalNoBranding
             && MinimalNoBuiltinExtensionDownload
             && MinimalNoUpdateService;
+
+        /// <summary>YAMA 主语言强制声明（与 language-profile.json 同口径）。</summary>
+        public bool IsYamaFirstLanguage =>
+            HasLanguageProfileSection
+            && LanguageProfileFile == "ide/codeoss/language-profile.json"
+            && LanguageProfilePrimary == "yama"
+            && LanguageProfileEnforced
+            && LanguageProfileStrictYamaProject;
     }
 }

@@ -37,6 +37,7 @@ CONFIG_FILES = [
     "ci/codeoss-gate.yml",
     "scripts/fetch_codeoss.py",
     "scripts/build_codeoss_minimal.py",
+    "ide/codeoss/language-profile.json",
 ]
 
 EXPECTED_EXCLUSIONS = [
@@ -66,7 +67,7 @@ def check():
     for e in EXPECTED_EXCLUSIONS:
         if e not in ex:
             errs.append("排除项缺失: " + e)
-    # 6 个轻量配置文件 SHA-256 逐位比对
+    # 7 个轻量配置文件 SHA-256 逐位比对
     declared = lock.get("config_sha256", {})
     actual = {}
     for rel in CONFIG_FILES:
@@ -126,6 +127,26 @@ def check():
         errs.append("fetch_codeoss.py 未声明本仓库不编译上游")
     if "build_codeoss_minimal.py --check" not in fetch:
         errs.append("fetch_codeoss.py 未指向最轻量离线校验")
+    # 第二十一轮：语言面收口（YAMA 主语言强制 / 可插拔模块默认零内置）
+    try:
+        lp = json.load(open(p("ide/codeoss/language-profile.json"), "r", encoding="utf-8"))
+    except Exception as e:
+        lp = {}
+        errs.append("language-profile.json 读取失败: " + str(e))
+    pri = lp.get("primary", {})
+    if pri.get("id") != "yama" or pri.get("enforced") is not True:
+        errs.append("language-profile 未强制 YAMA 主语言")
+    if ".yama" not in pri.get("extensions", []):
+        errs.append("language-profile 主语言未绑定 .yama")
+    mods = lp.get("optional_modules", [])
+    if any(x.get("installed") for x in mods):
+        errs.append("language-profile 存在默认内置的可插拔语言模块")
+    if not mods:
+        errs.append("language-profile 未声明可插拔语言模块")
+    if lp.get("enforcement", {}).get("strictYamaProject") is not True:
+        errs.append("language-profile 未开启严格项目门禁")
+    if "builtin_language_packs" not in lp.get("forbidden_defaults", []):
+        errs.append("language-profile 未禁止内置全量语言包")
     # gitmodules 锁
     try:
         gm = open(p(".gitmodules"), "r", encoding="utf-8").read()

@@ -119,3 +119,9 @@ CI 会拦下来。
 带 Node 24 / 网络的机器上按 `--plan` 真编译 web-only 产物（G4 才可能闭合）、
 按 `TUAN.md` 逐次授权后把适配层合并进 Tuan-CLI、零空间投影预条件、
 精确锥互补、真机 GPU 帧循环。
+
+
+> 后续（第二十一轮）：命令表由 10 扩到 **12**（新增 `yama.languageProfile` /
+> `yama.newGameProject`），轻量摘要由 6 文件扩到 7 文件（加入
+> `ide/codeoss/language-profile.json`），并完成 YAMA 主语言面收口。
+> 本文件保留第二十轮当时的历史口径，详见 `docs/ROUND21_DELIVERY.md`。

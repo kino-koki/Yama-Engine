@@ -37,18 +37,20 @@
     ".gitmodules",
     "ci/codeoss-gate.yml",
     "scripts/fetch_codeoss.py",
-    "scripts/build_codeoss_minimal.py"
+    "scripts/build_codeoss_minimal.py",
+    "ide/codeoss/language-profile.json"
   ],
   "config_sha256": {
-    "ide/codeoss/product.json": "D9C0884D779C0CDCBDD41EE8CB2CF30F55A63C788149C469FB5CC7F646BC621E",
+    "ide/codeoss/product.json": "D86A5E85755853F0ABE1FD16B99ECDFEFA7AA55730E622841313228A734129F8",
     "ide/codeoss/UPSTREAM.lock.json": "E3A3274301ECA5E83FF640EB609077D26F41D32BF2B59B90FCC4592497AE8B6D",
     ".gitmodules": "CBA285B3B0576816A62B4F3AB71701690280F18074069D01C0E8976472A5E4AB",
-    "ci/codeoss-gate.yml": "1BB7C549C01635D89C6B8848EE78AB082BF1115DB46DBD0489C6747E64BF9BCE",
-    "scripts/fetch_codeoss.py": "4F6AF432215652FEC44EC6347581950BF15E8D8E08C73B9E5FAC067D6733A4BA",
-    "scripts/build_codeoss_minimal.py": "0AF630572CA1FF8595DF1734E94FC294240388F60F920EB4A70DBB77B5ABCA2A"
+    "ci/codeoss-gate.yml": "77F5D726B34E85E16AA6049EA2E273F319587223434BA490DAFF602847848511",
+    "scripts/fetch_codeoss.py": "98240191519FFC338F62539DB858BF6FF5F440D07E6480CA37EC19D8F25F9AC7",
+    "scripts/build_codeoss_minimal.py": "27BF1C5E89F33C74A5BF86C54A5A482E20B659880A6BD439A72AE92A233F8110",
+    "ide/codeoss/language-profile.json": "4C01D5E04530FEC2620D4D3A86434507D269AC3BF7BABA2A9D16B1588A9DDB22"
   },
   "minimal_build_script": "scripts/build_codeoss_minimal.py",
   "ci_gate": "ci/codeoss-gate.yml",
   "tuan_action": "verify_codeoss_minimal",
-  "note": "1.148.0（2026-11-24）是当前最新稳定版；本锁把「最轻量」定义为去掉 Electron/原生模块/Marketplace/遥测/品牌/内置扩展下载/更新服务的 web-only 干净 MIT 构建面。MINIMAL.lock.json 自身不进 config_sha256 以避免自引用循环。config_sha256 统一按 LF 归一化后计算（Windows runner 的 core.autocrlf=true 会 checkout 成 CRLF，Python 与 C# 两实现都必须先归一化再算摘要）。 第二十轮：fetch 脚本口径统一、离线校验加反回漂断言、等价门禁语义双实现进 C# xUnit（workflow 写入实测 404，模板仍未启用）；6 个摘要按改动后重新定标。"
+  "note": "1.148.0（2026-11-24）是当前最新稳定版；本锁把「最轻量」定义为去掉 Electron/原生模块/Marketplace/遥测/品牌/内置扩展下载/更新服务的 web-only 干净 MIT 构建面。MINIMAL.lock.json 自身不进 config_sha256 以避免自引用循环。config_sha256 统一按 LF 归一化后计算（Windows runner 的 core.autocrlf=true 会 checkout 成 CRLF，Python 与 C# 两实现都必须先归一化再算摘要）。 第二十轮：fetch 脚本口径统一、离线校验加反回漂断言、等价门禁语义双实现进 C# xUnit（workflow 写入实测 404，模板仍未启用）；6 个摘要按改动后重新定标。 第二十一轮：加入 language-profile.json 作第 7 个受校验配置，YAMA 主语言强制 / 可插拔语言模块默认零内置；仅收口能力面，未物理裁剪上游源码。"
 }

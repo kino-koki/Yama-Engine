@@ -13,6 +13,7 @@ namespace YamaEngine.Editor.CodeOss
     {
         public YamaCodeOssProduct Product { get; }
         public string ManifestJson { get; }
+        public YamaLanguageProfile Profile { get; } = YamaLanguageProfile.BuiltIn;
         public YamaLspClient Lsp { get; } = new YamaLspClient();
         public YamaDapClient Dap { get; } = new YamaDapClient();
         public List<string> Diagnostics { get; } = new List<string>();
@@ -63,6 +64,13 @@ namespace YamaEngine.Editor.CodeOss
                 case "yama.capabilities":
                     return (true, "capabilities",
                         "integrations/tuan_cli/contract.json -> 13 tools / 13 subcommands / 7 actions");
+                // 第二十一轮：YAMA 主语言面收口 + 项目契约强制。
+                case "yama.languageProfile":
+                    return (true, "verify",
+                        "ide/codeoss/language-profile.json -> primary=yama enforced / 0 optional installed / strictYamaProject");
+                case "yama.newGameProject":
+                    return (true, "scaffold",
+                        "Templates/Basic2D|yama.project.json primaryLanguage=yama + Content/Scenes/Main.yama (read-only intent)");
                 default:
                     return (false, string.Empty, string.Empty);
             }

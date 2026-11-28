@@ -1,0 +1,107 @@
+{
+  "schema": "yama.codeoss.language-profile.v1",
+  "name": "YAMA First Language Profile",
+  "note": "本文件只收口本仓库声明的内置语言/扩展能力面，不裁剪上游 workbench 源码；物理裁剪需带 Node 24 的机器，本环境做不到，不谎报已做。",
+  "primary": {
+    "id": "yama",
+    "displayName": "YAMA",
+    "enforced": true,
+    "extensions": [
+      ".yama",
+      ".yscene",
+      ".yprefab"
+    ],
+    "projectContract": "yama.project.json",
+    "startupSceneKey": "startupScene",
+    "sceneSchema": "schemas/yscene.schema.json",
+    "lsp": "self-developed YamaLspClient (LSP 3.17 framing)",
+    "dap": "self-developed YamaDapClient (DAP 1.x framing)",
+    "note": "复用仓库已有资产：Templates/*/Content/Scenes/Main.yama、yama.project.json、schemas/yscene.schema.json；不新造语言。"
+  },
+  "required_system_languages": [
+    {
+      "id": "csharp",
+      "reason": "引擎宿主与 Roslyn 脚本层（docs/SCRIPTING_ABI_SPEC.md L1）",
+      "scope": "engine-host",
+      "userGameAuthoring": false
+    },
+    {
+      "id": "json",
+      "reason": "项目 / 场景 / 瓦片集配置数据",
+      "scope": "data",
+      "userGameAuthoring": false
+    }
+  ],
+  "optional_modules": [
+    {
+      "id": "typescript",
+      "extensions": [
+        ".ts"
+      ],
+      "installed": false,
+      "removable": true
+    },
+    {
+      "id": "lua",
+      "extensions": [
+        ".lua"
+      ],
+      "installed": false,
+      "removable": true
+    },
+    {
+      "id": "gdscript",
+      "extensions": [
+        ".gd"
+      ],
+      "installed": false,
+      "removable": true
+    },
+    {
+      "id": "glsl",
+      "extensions": [
+        ".glsl",
+        ".vert",
+        ".frag"
+      ],
+      "installed": false,
+      "removable": true
+    },
+    {
+      "id": "wgsl",
+      "extensions": [
+        ".wgsl"
+      ],
+      "installed": false,
+      "removable": true
+    },
+    {
+      "id": "python",
+      "extensions": [
+        ".py"
+      ],
+      "installed": false,
+      "removable": true
+    },
+    {
+      "id": "cpp",
+      "extensions": [
+        ".cpp",
+        ".hpp"
+      ],
+      "installed": false,
+      "removable": true
+    }
+  ],
+  "forbidden_defaults": [
+    "builtin_language_packs",
+    "marketplace_auto_install",
+    "builtInExtensions"
+  ],
+  "enforcement": {
+    "strictYamaProject": true,
+    "checkScript": "scripts/check_yama_project.py",
+    "csharpGate": "YamaEngine.Tests/YamaLanguageProfileTests.cs",
+    "boundary": "强制仅在本仓库项目契约 / 脚手架 / CI 层生效；workbench 未编译，不宣称已改编辑器内核或锁死 UI。"
+  }
+}

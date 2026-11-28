@@ -11,8 +11,9 @@
 
 | 文件 | 作用 |
 |---|---|
+| `language-profile.json` | **YAMA 主语言面契约**：主语言强制 / 系统级保留语言 / 7 个可插拔模块默认零内置 |
 | `UPSTREAM.lock.json` | 上游 tag / commit / MIT 许可 / 最新稳定版查证日 |
-| `MINIMAL.lock.json` | **最轻量 web-only 构建声明**：排除项 + 6 个轻量配置文件的 SHA-256 + `compile_in_this_repo=false` |
+| `MINIMAL.lock.json` | **最轻量 web-only 构建声明**：排除项 + 7 个轻量配置文件的 SHA-256 + `compile_in_this_repo=false` |
 | `product.json` | 去品牌 / 去遥测 / 无 Marketplace / 无内置扩展的干净 MIT 覆盖，含 `yamaMinimal` 段 |
 | `scripts/fetch_codeoss.py` | stdlib 一键拉取、校验 commit、应用 product.json |
 | `scripts/build_codeoss_minimal.py` | **纯 stdlib 离线校验 / 构建计划 / 轻量清单**，零 Node、零 Electron、零网络、fail-closed |
@@ -48,8 +49,9 @@ Tuan 适配层均为本项目编写），未拷贝 VSCodium 脚本或任何编�
 ## 本地使用（无需 Node / 无需 .NET / 无需网络）
 
 ```bash
-python scripts/fetch_codeoss.py --check                  # 上游锁 + 干净 MIT
-python scripts/build_codeoss_minimal.py --check         # 最轻量锁 + 6 文件 SHA-256
+python scripts/fetch_codeoss.py --check                  # 上游锁 + 干净 MIT + 语言面
+python scripts/check_yama_project.py --check            # YAMA 主语言强制 + 3 个模板项目契约
+python scripts/build_codeoss_minimal.py --check         # 最轻量锁 + 7 文件 SHA-256
 python scripts/build_codeoss_minimal.py --plan          # web-only 最小构建步骤（标注未编译）
 python scripts/build_codeoss_minimal.py --emit-manifest # 轻量构建清单 JSON
 ```
@@ -67,3 +69,16 @@ python scripts/build_codeoss_minimal.py --emit-manifest # 轻量构建清单 JSO
 `CodeOssMinimalTests.cs` 与 `CodeOssMinimalBridgeTests.cs` 双实现进 C# xUnit，
 由现有 `build.yml` 的 Test step **每次真实执行**。契约
 `ci_gate_enabled=false` 如实标记模板状态。
+
+
+## YAMA 主语言面（第二十一轮）
+
+回答「会不会太大」：**大的是上游**（1.3 GB 仓库 / 528 MB 未压缩 web 包 /
+4 核 9 GB 构建机 / 数百种语言），本仓库从未 vendoring。本轮只做
+**L2 能力面收口**：`language-profile.json` 声明 YAMA 为主语言且强制，
+C# / JSON 作为系统级保留（不作写游戏语言），7 个可选语言模块默认不安装、
+可拆卸；扩展清单只内置 yama/csharp/json。
+
+「强制」只落在本仓库项目契约、离线脚本与 CI 断言三层，**不谎称已改
+workbench 内核或锁死 UI**。L3 物理裁剪需带 Node 24 / 9 GB / 网络的机器，
+本环境做不到，如实标注未做。详见 `docs/YAMA_LANGUAGE_PROFILE.md`。

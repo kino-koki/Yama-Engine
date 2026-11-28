@@ -3,6 +3,7 @@
   "engine": "Yama Engine",
   "formatVersion": 1,
   "template": "AI NPC + Reality Physics Demo",
+  "primaryLanguage": "yama",
   "startupScene": "Content/Scenes/Main.yama",
   "folders": [
     "Content/Scenes",
