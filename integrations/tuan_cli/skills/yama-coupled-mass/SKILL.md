@@ -24,4 +24,9 @@ use_count: 0
 9. 核对双判据：残差达标 **且** 解漂移 ≤ 1e-3 才采用迭代解，否则整组退回 Direct；病态 K（cond≈3.16e4）上块 Jacobi / GS / PCG 都应如实记录为不收敛或漂移超标并退回，**不要**包装成「迭代更快更好」。
 10. 报告里写明诚实边界：全局块是投影 Jacobi + 圆锥投影，不是精确 LCP/SOCP；阻尼是求解正则化不是物理；K 帧内固定、不随姿态更新；不同 (A,B) 对按组独立求解；残差变小 ≠ 解变准；迭代谱系不替代生产路径的直接 Cholesky 解。
 
+11. 第十九轮协同口径：查 trace 时优先用 `tuan yama invoke --action codeoss_manifest`
+   或 `yama_invoke` 工具拿**结构化真实结果**（`delegated=true` / `read_only=true` /
+   `source` 字段），不要只回意图字符串；`yama_actions.json` 是静态动作注册表，
+   `yama_cli.py` 是可 subprocess 直调的独立入口。
+
 约束：不把「开关存在」当作「耦合生效」；`CoupledSteps==0` 的帧必须如实标注无接触或 K 对角，不虚报触发。不删断言、不放宽容差、不宣称已达 SOTA。

@@ -42,6 +42,15 @@ def checks():
     has("YamaEngine/Reality/YrBlockLinearSolvers.cs", "YrBlockSolveMode")
     has("YamaEngine/Reality/YrContactSolver.cs", "GlobalBlockSolveMode")
     has("YamaEngine.Tests/RealityPhysicsEighteenthTests.cs", "TestR18")
+    # 第十九轮：Code - OSS 最轻量构建面 + Tuan 真实被调用能力
+    has("ide/codeoss/MINIMAL.lock.json", "web-only-minimal")
+    has("ide/codeoss/product.json", "yamaMinimal")
+    has("scripts/build_codeoss_minimal.py", "--emit-manifest")
+    has("ci/codeoss-gate.yml", "codeoss-minimal")
+    has("integrations/tuan_cli/yama_bridge.py", "def invoke")
+    has("integrations/tuan_cli/yama_actions.json", "callable-actions")
+    has("integrations/tuan_cli/yama_cli.py", "subcommand.handle")
+    has("YamaEngine.Tests/CodeOssMinimalTests.cs", "TestR19")
     return out
 
 

@@ -17,8 +17,9 @@
 |---|---|---|
 | Skills | `skills/*/SKILL.md` ×5 | Tuan 内置技能格式（YAML frontmatter + ≥3 步正文），auto 激活；`yama-build` / `yama-test` / `yama-physics-gate` / `yama-sota-audit` / `yama-coupled-mass` |
 | Hooks | `hooks/yama_hooks.yaml` + `yama_gate.py` | `PostToolUse` / `Stop`（Tuan `CORE_HOOK_EVENTS` 实名），stdin/stdout JSON 决策，纯 stdlib、不依赖 .NET |
-| MCP Server | `mcp_server.py` | 自研 JSON-RPC 2.0 over stdio（对齐 Tuan 零依赖客户端）：`initialize` / `tools/list` / `tools/call`，10 个只读/意图工具 |
-| 子命令 | `subcommand.py` | `tuan yama build\|test\|smoke\|snapshot\|rollback\|ledger\|sota\|coupled\|globalblocks\|solver-spectrum`，纯函数、不执行写操作 |
+| MCP Server | `mcp_server.py` | 自研 JSON-RPC 2.0 over stdio（对齐 Tuan 零依赖客户端）：`initialize` / `tools/list` / `tools/call`，13 个工具（真实委派，只读/fail-closed） |
+| 子命令 | `subcommand.py` | `tuan yama build\|...\|codeoss-minimal\|invoke\|capabilities`，三入口统一委派到 `yama_bridge.invoke()`，不执行写操作 |
+| 被调用能力 | `yama_bridge.py` + `yama_actions.json` + `yama_cli.py` | 7 个真实只读动作（真跑离线校验 / 真读契约 / 真跑 hook / 真读差距文档）；MCP `tools/call`、插件 `handle()`、独立 CLI 三入口统一委派，fail-closed |
 | CI 状态回读 | `contract.json` + `RepoContractTests` | Yama 每次 CI 都校验适配层文件完整、skill frontmatter 合法、Code - OSS lock 精确 |
 
 ## 协议来源（署名）
@@ -31,9 +32,14 @@
 
 ```bash
 python -m unittest discover -s integrations/tuan_cli/tests -v
+python integrations/tuan_cli/yama_cli.py capabilities       # 独立 CLI 真调用
+python integrations/tuan_cli/yama_cli.py codeoss-minimal    # 真实离线轻量校验
+python integrations/tuan_cli/yama_cli.py invoke --action sota_status
 python integrations/tuan_cli/hooks/yama_gate.py --event Stop </dev/null
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
   | python integrations/tuan_cli/mcp_server.py
+echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"yama_codeoss_minimal","arguments":{}}}' \
+  | python integrations/tuan_cli/mcp_server.py   # 返回真实 clean_mit_build，不是意图字符串
 ```
 
 ## 约束

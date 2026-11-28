@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """自研 Yama MCP Server（JSON-RPC 2.0 over stdio，纯 stdlib）。
 
-对齐 Tuan-CLI 的零依赖 MCP 客户端协议（见其 tests/fixtures/mcp_demo_server.py）：
+对齐 Tuan-CLI 的零依赖 MCP 客户端协议：
   initialize / notifications/initialized / tools/list / tools/call
-工具只读或返回可执行意图，不在 Agent 进程里偷偷跑危险命令。
+第十九轮：tools/call 从「返回意图字符串」升级为**真实委派**到
+yama_bridge.invoke()（真跑离线校验、真读契约、真跑 hook、真读差距文档）。
+所有动作只读、fail-closed，不在 Agent 进程里跑危险命令。
 """
 from __future__ import annotations
 import json, sys
@@ -33,6 +35,13 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {}, "required": []}},
     {"name": "yama_solver_spectrum", "description": "块线性求解器谱系 / 收敛诊断 / 双判据退回（只读意图）",
      "inputSchema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "yama_codeoss_minimal", "description": "真实执行 Code - OSS 最轻量 web-only 干净 MIT 离线校验",
+     "inputSchema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "yama_invoke", "description": "通用委派：真调用 yama_bridge 的只读动作",
+     "inputSchema": {"type": "object", "properties": {"action": {"type": "string"},
+                      "params": {"type": "object"}}, "required": []}},
+    {"name": "yama_capabilities", "description": "真实回读契约里的 13 工具 / 13 子命令 / 7 动作清单",
+     "inputSchema": {"type": "object", "properties": {}, "required": []}},
 ]
 
 INTENTS = {
@@ -48,6 +57,9 @@ INTENTS = {
     "yama_global_blocks": ("YrPhysicsPipeline.UseGlobalBlockSolve + LastGlobalBlockTrace -> "
                            "Groups/MaxPointsPerGroup/TotalIterations/SolvedGroups/"
                            "FallbackGroups/MaxCrossBlock/LastUsedGlobal"),
+    "yama_codeoss_minimal": "scripts/build_codeoss_minimal.py --check (真实离线校验, 非意图字符串)",
+    "yama_invoke": "yama_bridge.invoke(action, params) 通用真实委派",
+    "yama_capabilities": "contract.json 真实 13/13 能力清单",
     "yama_solver_spectrum": ("YrBlockLinearSolvers(Direct/BlockJacobi/BlockGaussSeidel/"
                              "PreconditionedCG) + YrBlockLinearTrace -> "
                              "InnerIterations/InitialResidual/FinalResidual/MaxResidual/"
@@ -72,12 +84,30 @@ def handle(method, params, rid):
         if name not in INTENTS:
             return {"jsonrpc": "2.0", "id": rid,
                     "error": {"code": -32602, "message": "unknown tool: " + name}}
-        text = INTENTS[name]
+        intent = INTENTS[name]
         if name == "yama_smoke":
-            text = text.replace("{frames}", str(args.get("frames", 60)))
+            intent = intent.replace("{frames}", str(args.get("frames", 60)))
+        # 真实委派：不再是纯意图字符串
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from yama_bridge import invoke as bridge_invoke
+        if name == "yama_codeoss_minimal":
+            action, bparams = "verify_codeoss_minimal", {}
+        elif name == "yama_capabilities":
+            action, bparams = "capabilities", {}
+        elif name == "yama_invoke":
+            action = str(args.get("action", "capabilities"))
+            bparams = args.get("params") or {}
+        else:
+            action, bparams = "command_intent", {"tool": name, "arguments": args,
+                                                 "intent": intent}
+        res = bridge_invoke(action, bparams)
+        payload = {"tool": name, "intent": intent, "delegated": True,
+                   "action": action, "result": res, "read_only": True}
         return {"jsonrpc": "2.0", "id": rid,
-                "result": {"content": [{"type": "text", "text": text}],
-                           "isError": False}}
+                "result": {"content": [{"type": "text",
+                                        "text": json.dumps(payload, ensure_ascii=False)}],
+                           "isError": not bool(res.get("ok", False))}}
     if method == "ping":
         return {"jsonrpc": "2.0", "id": rid, "result": {}}
     return {"jsonrpc": "2.0", "id": rid,

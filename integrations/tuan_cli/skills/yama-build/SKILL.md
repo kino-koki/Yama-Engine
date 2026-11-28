@@ -21,6 +21,11 @@ use_count: 0
 4. 读 `.github/workflows/build.yml` 核对门禁口径未漂移；若 CI 红，
    先回读失败注解定位真实用例，不删断言、不放宽容差。
 5. 收尾报告写明：变更文件、CI run id、Build/Test/Smoke 各自 conclusion。
+6. 第十九轮被调用能力：用 `yama_invoke` MCP 工具或 `tuan yama codeoss-minimal`
+   真调用 `scripts/build_codeoss_minimal.py --check`，必须回读
+   `clean_mit_build=true` 与 6 个配置文件的 SHA-256；用
+   `python integrations/tuan_cli/yama_cli.py capabilities` 可脱离 Tuan 安装
+   独立验证 13/13 能力清单。不要只回「已启用」或意图字符串。
 
 约束：不改 `Directory.Build.props` 的 NoWarn 清单来制造假绿；
 不把 `YamaEditor`（WinUI 3）/ C++ 原生桥硬塞进无头门禁。

@@ -1,0 +1,86 @@
+{
+  "schema": "yama.callable-actions.v1",
+  "read_only": true,
+  "write_policy": "只改 Yama-Engine 仓库；不向 kino-koki/Tuan-CLI 写入任何文件（TUAN.md 逐次确认规则）",
+  "entrypoints": {
+    "mcp": "mcp_server.py -> tools/call",
+    "plugin": "subcommand.py -> handle()",
+    "cli": "yama_cli.py -> python yama_cli.py <subcommand>"
+  },
+  "dispatcher": "yama_bridge.py::invoke(action, params) -> {ok, action, result, source, read_only}",
+  "actions": [
+    {
+      "name": "verify_codeoss_minimal",
+      "kind": "subprocess",
+      "source": "scripts/build_codeoss_minimal.py --check",
+      "returns": "clean_mit_build / errors / config_sha256"
+    },
+    {
+      "name": "capabilities",
+      "kind": "read_json",
+      "source": "contract.json",
+      "returns": "tools / subcommands / skills / actions"
+    },
+    {
+      "name": "read_contract",
+      "kind": "read_json",
+      "source": "contract.json",
+      "returns": "完整契约"
+    },
+    {
+      "name": "codeoss_manifest",
+      "kind": "read_json",
+      "source": "ide/codeoss/MINIMAL.lock.json + product.json",
+      "returns": "profile / tag / commit / exclusions"
+    },
+    {
+      "name": "sota_status",
+      "kind": "read_doc",
+      "source": "docs/SOTA_GAP_ANALYSIS.md",
+      "returns": "G0-G8 状态，不宣称达标"
+    },
+    {
+      "name": "hook_gate",
+      "kind": "subprocess",
+      "source": "hooks/yama_gate.py --event PostToolUse",
+      "returns": "decision / checked / missing"
+    },
+    {
+      "name": "command_intent",
+      "kind": "table",
+      "source": "mcp_server.py INTENTS",
+      "returns": "可执行意图字符串"
+    }
+  ],
+  "tools": [
+    "yama_build",
+    "yama_test",
+    "yama_smoke",
+    "yama_snapshot",
+    "yama_rollback",
+    "yama_ledger",
+    "yama_sota_status",
+    "yama_coupled_mass",
+    "yama_global_blocks",
+    "yama_solver_spectrum",
+    "yama_codeoss_minimal",
+    "yama_invoke",
+    "yama_capabilities"
+  ],
+  "subcommands": [
+    "build",
+    "test",
+    "smoke",
+    "snapshot",
+    "rollback",
+    "ledger",
+    "sota",
+    "coupled",
+    "globalblocks",
+    "solver-spectrum",
+    "codeoss-minimal",
+    "invoke",
+    "capabilities"
+  ],
+  "note": "所有动作只读、fail-closed；未知动作返回 ok=false，不吞异常、不伪装成功。"
+}

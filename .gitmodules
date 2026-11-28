@@ -1,5 +1,6 @@
-# Code - OSS 1.148.0 —— MIT 干净源码（submodule，CI checkout 不递归不影响 build.yml）
-# 许可与去品牌边界见 docs/THIRD_PARTY_SPX.md / ide/codeoss/README.md
+# Code - OSS 1.148.0（2026-11-24 发布，当前最新稳定版）—— MIT 干净源码 submodule
+# 最轻量 web-only 构建面见 ide/codeoss/MINIMAL.lock.json；CI checkout 不递归不影响 build.yml。
+# 许可与去品牌边界见 docs/THIRD_PARTY_SPX.md / ide/codeoss/README.md。
 [submodule "ide/codeoss/upstream"]
 	path = ide/codeoss/upstream
 	url = https://github.com/microsoft/vscode.git

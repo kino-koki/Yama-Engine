@@ -1,6 +1,6 @@
 {
   "nameShort": "Yama Code - OSS",
-  "nameLong": "Yama Engine · Code - OSS (clean MIT build)",
+  "nameLong": "Yama Engine · Code - OSS (clean MIT minimal web build)",
   "applicationName": "yama-code-oss",
   "licenseName": "MIT",
   "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt",
@@ -18,5 +18,18 @@
     "lsp": "self-developed (YamaLspClient, LSP 3.17 framing)",
     "dap": "self-developed (YamaDapClient, DAP 1.x framing)",
     "extensionManifest": "self-developed (YamaExtensionManifest)"
+  },
+  "yamaMinimal": {
+    "profile": "web-only-minimal",
+    "buildTarget": "web",
+    "noElectron": true,
+    "noNativeModules": true,
+    "noMarketplace": true,
+    "noTelemetry": true,
+    "noBranding": true,
+    "noBuiltinExtensionDownload": true,
+    "noUpdateService": true,
+    "compiledInThisRepo": false,
+    "note": "本仓库只锁定最新稳定 1.148.0 的最轻量干净 MIT 构建面；不编译 1.8GB 上游 workbench，不分发官方 VS Code 二进制或商标。"
   }
 }

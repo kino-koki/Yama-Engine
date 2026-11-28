@@ -26,7 +26,10 @@
     "yama_sota_status",
     "yama_coupled_mass",
     "yama_global_blocks",
-    "yama_solver_spectrum"
+    "yama_solver_spectrum",
+    "yama_codeoss_minimal",
+    "yama_invoke",
+    "yama_capabilities"
   ],
   "subcommands": [
     "build",
@@ -38,7 +41,10 @@
     "sota",
     "coupled",
     "globalblocks",
-    "solver-spectrum"
+    "solver-spectrum",
+    "codeoss-minimal",
+    "invoke",
+    "capabilities"
   ],
   "files": [
     "README.md",
@@ -52,6 +58,32 @@
     "hooks/yama_gate.py",
     "mcp_server.py",
     "subcommand.py",
+    "yama_bridge.py",
+    "yama_actions.json",
+    "yama_cli.py",
     "tests/test_tuan_integration.py"
-  ]
+  ],
+  "codeoss_minimal": {
+    "profile": "web-only-minimal",
+    "tag": "1.148.0",
+    "commit": "661626d0e72f97806550790a98fb87116c9db825",
+    "lock": "ide/codeoss/MINIMAL.lock.json",
+    "script": "scripts/build_codeoss_minimal.py",
+    "compile_in_this_repo": false
+  },
+  "callable_actions": {
+    "dispatcher": "yama_bridge.py::invoke",
+    "registry": "yama_actions.json",
+    "cli_entrypoint": "yama_cli.py",
+    "read_only": true,
+    "actions": [
+      "verify_codeoss_minimal",
+      "capabilities",
+      "read_contract",
+      "codeoss_manifest",
+      "sota_status",
+      "hook_gate",
+      "command_intent"
+    ]
+  }
 }

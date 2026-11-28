@@ -34,8 +34,10 @@
 1. 针对近共线接触行构造**零空间投影 / 冗余接触剔除**预条件，
    从根上降低 K 的条件数（而不是靠阻尼）。
 2. 摩擦锥从二维圆锥投影升级为精确锥互补（自研、默认关闭、零回归）。
-3. 网页端把 `ci/codeoss-gate.yml` 移入 `.github/workflows/` 后验收 Node 20
-   干净 MIT workbench 编译（需人工操作，本环境不能代做）。
+3. ~~网页端把 `ci/codeoss-gate.yml` 移入 `.github/workflows/` 后验收 Node 20
+   干净 MIT workbench 编译~~ → **第十九轮已改为最轻量 web-only 构建面**：
+   `ci/codeoss-gate.yml` 零 Node 依赖、只做离线校验；真编译属 G4，未闭合，
+   不谎报。网页端启用轻量门禁仍需人工操作。
 4. 按 `TUAN.md` 逐次授权后把适配层合并进 Tuan-CLI 仓库。
 5. 扩音频夹具、Rust 原生内核编译加载、真机 GPU 帧循环（需硬件/SDK）。
 

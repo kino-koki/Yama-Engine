@@ -39,13 +39,20 @@
 | C++ 原生桥 | `YamaEngine.Native/CMakeLists.txt` | 引擎自研原生层构建脚本 | 项目自研 |
 | Rust 数值热点（可选） | `YamaEngine.Rust/Cargo.toml`、`native/reality_physics/Cargo.toml` | 纯数值加速，独立可选 crate，CI 不编译 | 项目自研 |
 
-## D. 内置 Code - OSS（第十四轮新增）
+## D. 内置 Code - OSS（第十四轮新增，第十九轮切换最轻量构建面）
 
 | 项 | 来源 | 版本 / commit | SPDX |
 |---|---|---|---|
 | Code - OSS 源码 | https://github.com/microsoft/vscode | tag `1.148.0` @ `661626d0e72f97806550790a98fb87116c9db825` | MIT |
 | Electron / Node.js（随 Code - OSS 构建） | upstream 依赖树 | 由 tag 的 `package.json` 锁定 | MIT（以各自 LICENSE 为准） |
 | VSCodium 干净构建做法 | https://vscodium.com/ | 仅参考「去品牌/去遥测」流程，未拷贝其脚本 | MIT |
+
+**最轻量构建面（第十九轮）**：`ide/codeoss/MINIMAL.lock.json` 把 1.148.0
+（2026-11-24，当前最新稳定版）定义为 `web-only-minimal`：排除 Electron /
+原生模块 / Marketplace / 遥测 / 品牌 / 内置扩展下载 / 更新服务；
+`scripts/build_codeoss_minimal.py` 纯 stdlib 离线校验 6 个配置文件的 SHA-256；
+`compiledInThisRepo=false` 是硬声明——本仓库**不编译** 1.8 GB 上游，
+不分发未存在的 workbench 产物，不宣称 G4 闭合。
 
 **许可边界**：GitHub 上的 `microsoft/vscode` 仓库是 MIT（Code - OSS）；
 微软官方发行的 Visual Studio Code 构建时替换 `product.json`（品牌 / 遥测 /

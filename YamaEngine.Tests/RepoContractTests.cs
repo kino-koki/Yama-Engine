@@ -201,10 +201,10 @@ namespace YamaEngine.Tests
             Assert.Equal(5, skills);
             int tools = 0;
             foreach (var _ in r.GetProperty("mcp_tools").EnumerateArray()) tools++;
-            Assert.Equal(10, tools);
+            Assert.Equal(13, tools);
             int sub = 0;
             foreach (var _ in r.GetProperty("subcommands").EnumerateArray()) sub++;
-            Assert.Equal(10, sub);
+            Assert.Equal(13, sub);
         }
 
         [Fact]
@@ -269,6 +269,52 @@ namespace YamaEngine.Tests
                          sm.GetProperty("commit").GetString());
             Assert.Equal("MIT", sm.GetProperty("spdx").GetString());
             Assert.True(File.Exists(Path.Combine(Root, "ide", "codeoss", "UPSTREAM.lock.json")));
+        }
+
+        [Fact]
+        public void TestCodeOssMinimalProfileIsPinnedAndTuanIsCallable()
+        {
+            using var m = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "ide", "codeoss", "MINIMAL.lock.json")));
+            var r = m.RootElement;
+            Assert.Equal("1.148.0", r.GetProperty("tag").GetString());
+            Assert.Equal("661626d0e72f97806550790a98fb87116c9db825",
+                         r.GetProperty("commit").GetString());
+            Assert.Equal("web-only-minimal", r.GetProperty("profile").GetString());
+            Assert.Equal("web", r.GetProperty("build_target").GetString());
+            Assert.False(r.GetProperty("compile_in_this_repo").GetBoolean());
+            int ex = 0;
+            foreach (var _ in r.GetProperty("exclusions").EnumerateArray()) ex++;
+            Assert.Equal(8, ex);
+            // 6 个轻量配置文件 SHA-256 与 Python --check 同口径
+            foreach (var kv in r.GetProperty("config_sha256").EnumerateObject())
+            {
+                string rel = kv.Name;
+                string normalized = File.ReadAllText(Path.Combine(Root,
+                    rel.Replace('/', Path.DirectorySeparatorChar))).Replace("\r\n", "\n");
+                string got = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes(normalized)));
+                Assert.Equal(kv.Value.GetString(), got);
+            }
+            using var p = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "ide", "codeoss", "product.json")));
+            Assert.Equal("web-only-minimal",
+                p.RootElement.GetProperty("yamaMinimal").GetProperty("profile").GetString());
+            Assert.False(p.RootElement.GetProperty("yamaMinimal")
+                .GetProperty("compiledInThisRepo").GetBoolean());
+            // Tuan 三入口与动作注册表
+            using var c = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "integrations", "tuan_cli", "contract.json")));
+            Assert.Equal(13, c.RootElement.GetProperty("mcp_tools").GetArrayLength());
+            Assert.Equal(13, c.RootElement.GetProperty("subcommands").GetArrayLength());
+            Assert.Equal(7, c.RootElement.GetProperty("callable_actions")
+                .GetProperty("actions").GetArrayLength());
+            Assert.True(File.Exists(Path.Combine(Root, "integrations", "tuan_cli",
+                "yama_bridge.py")));
+            Assert.True(File.Exists(Path.Combine(Root, "integrations", "tuan_cli",
+                "yama_cli.py")));
+            Assert.True(File.Exists(Path.Combine(Root, "scripts",
+                "build_codeoss_minimal.py")));
         }
 
         [Fact]
