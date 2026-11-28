@@ -588,7 +588,7 @@ namespace YamaEngine.AI
             if (ctx.Blackboard == null || string.IsNullOrEmpty(KeyName))
                 return ClampScore(0f);
 
-            float value = ctx.Blackboard.GetValue<float>(KeyName);
+            float value = ctx.Blackboard.GetDynamicValue<float>(KeyName);
             float diff = Math.Abs(value - ExpectedValue);
             float score = diff <= Tolerance ? 1f : Math.Max(0f, 1f - (diff - Tolerance) / (ExpectedValue + 1f));
             return ClampScore(score * Weight);

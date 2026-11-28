@@ -82,6 +82,9 @@ namespace YamaEngine.Assets
         /// <summary>上次编译的诊断信息。</summary>
         public string LastError { get; private set; } = string.Empty;
 
+        /// <summary>单次脚本执行的有界超时, 防止主线程同步 Wait 无限挂起。</summary>
+        private static readonly TimeSpan ScriptRunTimeout = TimeSpan.FromSeconds(5);
+
         // ── 编译缓存 ──
         private Script<object>? _compiledScript;
         private string _lastScriptHash = string.Empty;
@@ -115,7 +118,10 @@ namespace YamaEngine.Assets
 
             try
             {
-                _compiledScript.RunAsync(_globals).Wait();
+                // 限时等待: 脚本每帧在主线程同步执行, 无界 Wait 一旦死锁会冻结整帧。
+                // 用有界超时把潜在挂起变成可捕获的错误, 保持同步契约不变。
+                if (!_compiledScript.RunAsync(_globals).Wait(ScriptRunTimeout))
+                    throw new TimeoutException($"脚本执行超过 {ScriptRunTimeout.TotalMilliseconds}ms");
             }
             catch (Exception ex)
             {
@@ -203,7 +209,8 @@ namespace YamaEngine.Assets
 
             try
             {
-                _compiledScript.RunAsync(_globals).Wait();
+                if (!_compiledScript.RunAsync(_globals).Wait(ScriptRunTimeout))
+                    throw new TimeoutException($"脚本执行超过 {ScriptRunTimeout.TotalMilliseconds}ms");
                 return true;
             }
             catch (Exception ex)

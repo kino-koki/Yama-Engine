@@ -25,6 +25,7 @@
     <!-- 编辑器通过 YamaEngine 的 Vulkan 后端渲染，不再直接依赖 D3D12 -->
     <PackageReference Include="Silk.NET.Vulkan" Version="2.22.0" />
     <PackageReference Include="Silk.NET.Core" Version="2.22.0" />
+    <PackageReference Include="Silk.NET.Shaderc.Native" Version="2.22.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\YamaEngine\YamaEngine.csproj" />
@@ -59,4 +60,14 @@
     <Page Include="Dialogs\NewProjectDialog.xaml" />
     <Page Include="Dialogs\SettingsDialog.xaml" />
   </ItemGroup>
+
+  <!-- shaderc 原生库复制到输出目录（VulkanShaderCompiler P/Invoke 需要） -->
+  <Target Name="CopyShadercNative" AfterTargets="Build">
+    <PropertyGroup>
+      <!-- Path.Combine 兼容 NuGetPackageRoot 末尾有无反斜杠两种情况 -->
+      <ShadercNativeDll>$([System.IO.Path]::Combine('$(NuGetPackageRoot)', 'silk.net.shaderc.native', '2.22.0', 'runtimes', 'win-x64', 'native', 'shaderc_shared.dll'))</ShadercNativeDll>
+    </PropertyGroup>
+    <Copy SourceFiles="$(ShadercNativeDll)"
+          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

@@ -559,15 +559,34 @@ namespace YamaEngine.AI
         {
             var results = new List<SmartObjectQueryResult>();
             float maxDist = query.MaxDistance;
-            int radius = (int)Math.Ceiling(maxDist / _cellSize);
             int qcxi = FloorCell(querierPos.X);
             int qcz = FloorCell(querierPos.Z);
 
-            for (int dx = -radius; dx <= radius; dx++)
+            // 收集候选桶键：MaxDistance 为无限时扫描所有桶；否则按半径遍历（并钳制半径防溢出）
+            List<long> candidateKeys = new();
+            if (maxDist >= float.MaxValue / 2f)
             {
-                for (int dz = -radius; dz <= radius; dz++)
+                foreach (var key in _slotBuckets.Keys)
+                    candidateKeys.Add(key);
+            }
+            else
+            {
+                int radius = (int)Math.Ceiling(maxDist / _cellSize);
+                if (radius > 4096) radius = 4096; // 防止极端值导致遍历爆炸
+                for (int dx = -radius; dx <= radius; dx++)
                 {
-                    long key = PackCell(qcxi + dx, qcz + dz);
+                    for (int dz = -radius; dz <= radius; dz++)
+                    {
+                        long key = PackCell(qcxi + dx, qcz + dz);
+                        if (_slotBuckets.ContainsKey(key))
+                            candidateKeys.Add(key);
+                    }
+                }
+            }
+
+            foreach (var key in candidateKeys)
+            {
+                {
                     if (!_slotBuckets.TryGetValue(key, out var bucket)) continue;
 
                     for (int i = 0; i < bucket.Count; i++)

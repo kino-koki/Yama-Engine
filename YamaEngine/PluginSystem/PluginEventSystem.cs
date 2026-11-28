@@ -500,7 +500,8 @@ namespace YamaEngine.PluginSystem
 
                     if (reg.IsAsync)
                     {
-                        // 异步处理器同步等待 (简化处理)
+                        // 同步契约: 阻塞等待异步处理器完成。禁止在 UI/SynchronizationContext 线程调用,
+                        // 否则可能死锁; 需要非阻塞时请改用 PublishAsync。
                         var asyncHandler = (Func<T, Task>)reg.Handler;
                         asyncHandler(evt).GetAwaiter().GetResult();
                     }
@@ -540,10 +541,53 @@ namespace YamaEngine.PluginSystem
             if (EnableHistory) RecordHistory(history);
         }
 
-        /// <summary>异步发布事件。</summary>
+        /// <summary>异步发布事件 (入队, 由 StartAsyncProcessing 的后台泵派发)。</summary>
         public void PublishAsync<T>(T evt) where T : PluginEvent
         {
+            if (evt == null) return;
             _asyncQueue.Enqueue(evt);
+        }
+
+        /// <summary>立即在调用方上下文分发事件, 真正 await 异步处理器, 不阻塞调用线程。</summary>
+        public async Task DispatchAsync<T>(T evt) where T : PluginEvent
+        {
+            if (evt == null) return;
+
+            var type = typeof(T);
+            List<EventHandlerRegistration> handlers;
+            lock (_handlerLock)
+            {
+                if (!_handlers.TryGetValue(type, out var existing) || existing.Count == 0)
+                    return;
+                handlers = existing.ToList(); // 快照
+            }
+
+            foreach (var reg in handlers)
+            {
+                if (evt.IsCancelled && reg.Priority < EventPriority.Monitor)
+                    continue;
+                if (reg.Filter != null && !reg.Filter(evt))
+                    continue;
+
+                try
+                {
+                    if (reg.IsAsync)
+                        await ((Func<T, Task>)reg.Handler)(evt).ConfigureAwait(false);
+                    else
+                        ((Action<T>)reg.Handler)(evt);
+
+                    reg.InvokeCount++;
+                }
+                catch (Exception ex)
+                {
+                    reg.LastException = ex;
+                    if (CaptureExceptions)
+                    {
+                        _logger.Error($"异步事件处理器异常: {type.Name} [{reg.PluginId}]", ex);
+                        OnHandlerException?.Invoke(evt, ex);
+                    }
+                }
+            }
         }
 
         /// <summary>广播事件 (所有处理器)。</summary>
@@ -574,6 +618,7 @@ namespace YamaEngine.PluginSystem
                 try
                 {
                     if (reg.IsAsync)
+                        // 同步契约: 阻塞等待。禁止在 UI 线程调用; 非阻塞场景请用 PublishAsync。
                         ((Func<T, Task>)reg.Handler)(evt).GetAwaiter().GetResult();
                     else
                         ((Action<T>)reg.Handler)(evt);
@@ -618,7 +663,8 @@ namespace YamaEngine.PluginSystem
                     {
                         try
                         {
-                            Publish((dynamic)evt);
+                            // 真正异步分发, 不阻塞线程池线程等待异步处理器
+                            await DispatchAsync((dynamic)evt).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {

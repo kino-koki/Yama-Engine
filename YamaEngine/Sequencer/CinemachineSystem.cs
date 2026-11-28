@@ -1261,12 +1261,14 @@ namespace YamaEngine.Sequencer
         /// <summary>获取当前最高优先级的活跃相机。</summary>
         private VirtualCamera? GetHighestPriorityActiveCamera()
         {
+            VirtualCamera? best = null;
             foreach (var cam in _cameras)
             {
-                if (cam.IsActive)
-                    return cam;
+                if (!cam.IsActive) continue;
+                if (best == null || cam.Priority > best.Priority)
+                    best = cam;
             }
-            return null;
+            return best;
         }
 
         /// <summary>启动混合过渡。</summary>

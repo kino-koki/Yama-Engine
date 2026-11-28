@@ -297,6 +297,7 @@ namespace YamaEngine.AI
             if (_currentState != null)
             {
                 _currentState.Exit(context);
+                // Stop 时记录"当前状态 -> 当前状态"，便于之后 GoToHistoryState 回到中断处
                 if (EnableHistory)
                     _historyStates[_currentState.StateName] = _currentState.StateName;
             }
@@ -317,8 +318,9 @@ namespace YamaEngine.AI
                 return;
             }
 
-            // 2. 检查状态内转换
-            var internalTransition = FindBestTransition(_currentState.StateName, context);
+            // 2. 检查状态内转换（机器级 FromState==当前状态，以及状态自带 Transitions）
+            var internalTransition = FindBestTransition(_currentState.StateName, context)
+                ?? FindBestInList(_currentState.Transitions, context);
             if (internalTransition != null)
             {
                 PerformTransition(internalTransition, context);
@@ -355,9 +357,9 @@ namespace YamaEngine.AI
             var prevState = _currentState?.StateName ?? "";
             _currentState?.Exit(context);
 
-            // 记录历史
+            // 记录历史：目标状态 -> 切换前所在状态（来源）
             if (EnableHistory && _currentState != null)
-                _historyStates[_currentState.StateName] = _currentState.StateName;
+                _historyStates[stateName] = _currentState.StateName;
 
             _currentState = newState;
             _currentState.Enter(context);
@@ -373,21 +375,31 @@ namespace YamaEngine.AI
                 ForceState(InitialState, context);
         }
 
-        /// <summary>查找最佳转换。</summary>
+        /// <summary>查找最佳转换（从机器级转换列表）。</summary>
         internal Transition<T>? FindBestTransition(string? currentStateName, T context)
+        {
+            return FindBestInList(_transitions, currentStateName, context);
+        }
+
+        /// <summary>从给定转换列表中找优先级最高且条件满足的转换。</summary>
+        internal static Transition<T>? FindBestInList(List<Transition<T>> list, T context)
+        {
+            return FindBestInList(list, null, context);
+        }
+
+        /// <summary>从给定转换列表中找优先级最高、源匹配且条件满足的转换。</summary>
+        internal static Transition<T>? FindBestInList(List<Transition<T>> list, string? currentStateName, T context)
         {
             Transition<T>? best = null;
             int bestPriority = int.MaxValue;
 
-            foreach (var transition in _transitions)
+            foreach (var transition in list)
             {
-                // 检查源状态匹配
-                if (!string.IsNullOrEmpty(transition.FromState) &&
+                // 状态自带转换无源约束（StateName 已在 ctor 设置，但作为内嵌转换只属于当前状态）
+                // 机器级转换需匹配源状态（空=全局）
+                if (currentStateName != null &&
+                    !string.IsNullOrEmpty(transition.FromState) &&
                     transition.FromState != currentStateName)
-                    continue;
-
-                // 全局转换（FromState为空）适用于任何状态
-                if (transition.FromState != null && currentStateName == null)
                     continue;
 
                 if (transition.Evaluate(context))

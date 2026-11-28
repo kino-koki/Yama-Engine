@@ -71,7 +71,7 @@ layout(set = 0, binding = 5) uniform MaterialUBO {
 // Octahedral 法线编码到 [0,1]（与 CPU DeferredRenderPipeline.EncodeNormal 一致）
 vec2 octahedralEncode(vec3 n) {
     n /= (abs(n.x) + abs(n.y) + abs(n.z));
-    if (n.z < 0.0) n.xy = (1.0 - abs(n.yx)) * (n.xy >= 0.0 ? vec2(1.0) : vec2(-1.0));
+    if (n.z < 0.0) n.xy = (1.0 - abs(n.yx)) * sign(n.xy);
     return n.xy * 0.5 + 0.5;
 }
 
@@ -121,7 +121,7 @@ layout(set = 0, binding = 5) uniform sampler2D gSSAO;
 vec3 octahedralDecode(vec2 e) {
     e = e * 2.0 - 1.0;
     vec3 n = vec3(e, 1.0 - abs(e.x) - abs(e.y));
-    if (n.z < 0.0) n.xy = (1.0 - abs(n.yx)) * (n.xy >= 0.0 ? vec2(1.0) : vec2(-1.0));
+    if (n.z < 0.0) n.xy = (1.0 - abs(n.yx)) * sign(n.xy);
     return normalize(n);
 }
 

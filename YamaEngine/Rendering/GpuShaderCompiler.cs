@@ -3,14 +3,16 @@
 //
 // 把 GLSL 源码编译为 SPIR-V（真实 GPU 消费格式）。
 //   1. 优先复用 VulkanShaderManager 的 shaderc P/Invoke（shaderc_shared.dll）；
-//   2. 不可用时回退到 glslangValidator（若在 PATH）；
+//   2. 不可用时回退到 glslangValidator（多路径探测：VULKAN_SDK / PATH / 已知安装位置）；
 //   3. 均不可用时进入 source-only 模式（headless/CI 无本地工具链）。
 //
 // 确定性：无外部工具链时稳定返回 source-only，不抛异常。
 // ════════════════════════════════════════════════════════════════════
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using YamaEngine.Vulkan;
 
 namespace YamaEngine.Rendering;
@@ -114,10 +116,16 @@ public static class GpuShaderCompiler
         string entryPoint, out byte[]? spirv, out string? error)
     {
         spirv = null; error = null;
+        string? exe = ResolveGlslangValidator();
+        if (exe == null)
+        {
+            error = "glslangValidator not found (checked VULKAN_SDK, PATH, common install dirs)";
+            return false;
+        }
         try
         {
             string stageFlag = stage == ShaderStageExt.Vertex ? "vert" : "frag";
-            var psi = new ProcessStartInfo("glslangValidator")
+            var psi = new ProcessStartInfo(exe)
             {
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
@@ -125,13 +133,19 @@ public static class GpuShaderCompiler
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            // -V 是生成 SPIR-V 二进制所必需的；缺省只解析校验不产出 .spv。
+            psi.ArgumentList.Add("-V");
             psi.ArgumentList.Add($"-S{stageFlag}");
             psi.ArgumentList.Add("--stdin");
             psi.ArgumentList.Add("-o");
             psi.ArgumentList.Add("--stdout");
 
             using var proc = Process.Start(psi);
-            if (proc == null) return false;
+            if (proc == null)
+            {
+                error = $"glslangValidator failed to start: {exe}";
+                return false;
+            }
             proc.StandardInput.Write(glsl);
             proc.StandardInput.Close();
             var stdout = proc.StandardOutput.BaseStream;
@@ -150,8 +164,80 @@ public static class GpuShaderCompiler
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            error = "glslangValidator not found";
+            error = $"glslangValidator not usable at {exe}: {ex.Message}";
             return false;
         }
+    }
+
+    /// <summary>
+    /// 多路径探测 glslangValidator：
+    ///   1. VULKAN_SDK 环境变量；
+    ///   2. 系统 PATH；
+    ///   3. 常见安装位置（C:/VulkanSDK/*/Bin、Program Files、ProgramData）。
+    /// 返回第一个存在的可执行文件路径；不存在则返回 null。
+    /// </summary>
+    private static string? ResolveGlslangValidator()
+    {
+        const string binary = "glslangValidator.exe";
+        var candidates = new List<string>();
+
+        // 1. VULKAN_SDK
+        string? sdk = Environment.GetEnvironmentVariable("VULKAN_SDK");
+        if (!string.IsNullOrWhiteSpace(sdk))
+            candidates.Add(Path.Combine(sdk, "Bin", binary));
+
+        // 2. PATH
+        foreach (var dir in GetPathDirs())
+            candidates.Add(Path.Combine(dir, binary));
+
+        // 3. 常见安装位置
+        foreach (var root in new[] {
+            @"C:/VulkanSDK",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "VulkanSDK"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "VulkanSDK"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "VulkanSDK") })
+        {
+            AddSdkCandidates(root, binary, candidates);
+        }
+
+        foreach (var c in candidates)
+        {
+            try { if (File.Exists(c)) return c; }
+            catch (Exception) { }
+        }
+        return null;
+    }
+
+    private static IEnumerable<string> GetPathDirs()
+    {
+        string? path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path)) yield break;
+        foreach (var raw in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string t = raw.Trim().Trim('"');
+            if (t.Length > 0) yield return t;
+        }
+    }
+
+    /// <summary>
+    /// 收集 root 下的 SDK 候选。支持两种布局：
+    ///   直接：root/Bin/binary
+    ///   版本化：root/{version}/Bin/binary（按版本号字典序取较新者）
+    /// </summary>
+    private static void AddSdkCandidates(string root, string binary, List<string> out_)
+    {
+        try
+        {
+            if (!Directory.Exists(root)) return;
+            string direct = Path.Combine(root, "Bin", binary);
+            if (File.Exists(direct)) out_.Add(direct);
+
+            foreach (var sub in Directory.GetDirectories(root))
+            {
+                string p = Path.Combine(sub, "Bin", binary);
+                if (File.Exists(p)) out_.Add(p);
+            }
+        }
+        catch (Exception) { }
     }
 }

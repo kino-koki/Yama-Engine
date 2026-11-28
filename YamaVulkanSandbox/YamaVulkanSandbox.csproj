@@ -25,4 +25,14 @@
     <PackageReference Include="Silk.NET.GLFW" Version="2.22.0" />
   </ItemGroup>
 
+  <!-- 引用主引擎以使用 DxcCompiler 编译 HLSL→SPIR-V -->
+  <ItemGroup>
+    <ProjectReference Include="..\YamaEngine\YamaEngine.csproj" />
+  </ItemGroup>
+
+  <!-- 把 HLSL 着色器作为内容复制到输出目录，供运行时 DxcCompiler 加载 -->
+  <ItemGroup>
+    <None Include="Shaders\*.hlsl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

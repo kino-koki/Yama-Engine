@@ -336,8 +336,18 @@ void main()
 
         /// <summary>顶点着色器 — 全屏三角形 (后处理 / Blit 用)。</summary>
         public const string FullScreenVertexShader = @"#version 450 core
+// 使用 gl_VertexID (GLSL 标准)；shaderc→SPIR-V 会映射为 Vulkan 的 gl_VertexIndex。
+
+// 位置 0 的 uniform 组按内存布局打包，供大气/IBL 等全屏 FS 重建视线与深度。
+layout(set = 0, binding = 0) uniform CameraStateUBO {
+    mat4 proj;
+    mat4 view;
+    vec4 camPos;   // xyz=相机世界位置, w=unused
+} camera;
 
 layout(location = 0) out vec2 v_TexCoord;
+layout(location = 1) out vec3 vWorldPos;
+layout(location = 2) out float vViewDepth;
 
 void main()
 {
@@ -351,8 +361,18 @@ void main()
         vec2(2.0, 0.0),
         vec2(0.0, 2.0)
     );
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
-    v_TexCoord = texcoords[gl_VertexIndex];
+    vec2 ndc = positions[gl_VertexID];
+    v_TexCoord = texcoords[gl_VertexID];
+
+    // 全屏反投影：NDC → 视空间 → 世界空间，供大气/雾等全屏 FS 重建视线。
+    vec4 ndc4 = vec4(ndc, 0.0, 1.0);
+    vec4 eye = inverse(camera.proj) * ndc4;
+    eye.xyz /= eye.w;
+    vec4 world = inverse(camera.view) * vec4(eye.xyz, 1.0);
+    vWorldPos = world.xyz;
+    vViewDepth = distance(world.xyz, camera.camPos.xyz);
+
+    gl_Position = vec4(ndc, 0.0, 1.0);
 }
 ";
 

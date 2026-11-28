@@ -509,7 +509,9 @@ namespace YamaEngine.Audio
 
         public double Process(double sample)
         {
-            double output = _b0 * sample + _b1 * _prevX - _a1 * _prevY;
+            // 一阶 IIR: y[n] = b0*x[n] + b1*x[n-1] + a1*y[n-1]
+            // a1 = exp(-2π*fc/Fs) 为正反馈系数 (LPF: y=(1-a1)x + a1 y_prev)
+            double output = _b0 * sample + _b1 * _prevX + _a1 * _prevY;
             _prevX = sample;
             _prevY = output;
             return output;
@@ -601,7 +603,8 @@ namespace YamaEngine.Audio
     /// </summary>
     public class AllpassFilter
     {
-        private readonly double[] _delayBuffer;
+        private readonly double[] _delayBuffer;   // x[n-D]
+        private readonly double[] _outBuffer;     // y[n-D]
         private int _delayIndex;
         private readonly int _delaySamples;
         private double _feedback;
@@ -616,17 +619,20 @@ namespace YamaEngine.Audio
         {
             _delaySamples = Math.Max(1, delaySamples);
             _delayBuffer = new double[_delaySamples];
+            _outBuffer = new double[_delaySamples];
             _delayIndex = 0;
-            _feedback = feedback;
+            _feedback = Math.Max(-0.999, Math.Min(0.999, feedback));
         }
 
         public double Process(double sample)
         {
-            double delayed = _delayBuffer[_delayIndex];
-            // Allpass: y[n] = -g*x + d + g*y_delayed (Schroeder form)
-            // Equivalent: output = delayed - g * (sample + g*delayed) ... standard Schroeder allpass
-            double output = delayed + _feedback * sample;
-            _delayBuffer[_delayIndex] = sample - _feedback * delayed;
+            // 标准 Schroeder allpass: y[n] = -g*x[n] + x[n-D] + g*y[n-D]
+            // H(z) = (-g + z^-D) / (1 - g*z^-D)，|H(e^jw)| = 1 (energy 守恒)
+            double delayedX = _delayBuffer[_delayIndex];
+            double delayedY = _outBuffer[_delayIndex];
+            double output = -_feedback * sample + delayedX + _feedback * delayedY;
+            _delayBuffer[_delayIndex] = sample;
+            _outBuffer[_delayIndex] = output;
             _delayIndex = (_delayIndex + 1) % _delaySamples;
             return output;
         }
@@ -640,6 +646,7 @@ namespace YamaEngine.Audio
         public void Reset()
         {
             Array.Clear(_delayBuffer, 0, _delaySamples);
+            Array.Clear(_outBuffer, 0, _delaySamples);
             _delayIndex = 0;
         }
     }
@@ -675,8 +682,8 @@ namespace YamaEngine.Audio
             _delaySamples = Math.Max(1, delaySamples);
             _delayBuffer = new double[_delaySamples];
             _delayIndex = 0;
-            _feedback = feedback;
-            _damping = damping;
+            _feedback = Math.Max(-0.999, Math.Min(0.999, feedback));
+            _damping = Math.Max(0.0, Math.Min(1.0, damping));
             _lowpassState = 0.0;
         }
 
@@ -1390,7 +1397,7 @@ namespace YamaEngine.Audio
         {
             _sampleRate = sampleRate;
             _threshold = -40.0;
-            _ratio = 2.0;
+            _ratio = 1.0; // 默认无扩展 (1:1)
             _attackTime = 0.01;
             _releaseTime = 0.1;
             _range = 80.0;
@@ -1654,7 +1661,7 @@ namespace YamaEngine.Audio
         public TransientDesigner(double sampleRate = 44100.0)
         {
             _sampleRate = sampleRate;
-            _attackGain = 3.0;  // +3dB attack
+            _attackGain = 0.0;  // 默认无瞬态处理 (0 dB = pass-through)
             _releaseGain = 0.0;
             _fastEnvelope = 0.0;
             _slowEnvelope = 0.0;

@@ -1612,8 +1612,11 @@ namespace YamaEngine.AI
 
                 case EStateTreeTransitionType.ReenterState:
                     // 重入当前状态：先 Exit 再 Enter，刷新局部数据
-                    ExitCurrentState(taskStatus);
-                    EnterState(CurrentStateName);
+                    {
+                        string reenterTarget = CurrentStateName;
+                        ExitCurrentState(taskStatus);
+                        EnterState(reenterTarget);
+                    }
                     break;
 
                 case EStateTreeTransitionType.Stay:

@@ -4,12 +4,14 @@
 // =============================================================================
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Silk.NET.Core;
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.KHR;
 using Silk.NET.Windowing;
+using Silk.NET.Vulkan.Extensions.EXT;
 using Semaphore = Silk.NET.Vulkan.Semaphore;
 using Buffer = Silk.NET.Vulkan.Buffer;
 
@@ -39,11 +41,13 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
     private CommandPool _commandPool;
     private CommandBuffer[] _commandBuffers = Array.Empty<CommandBuffer>();
     private Semaphore[] _imageAvailableSemaphores = Array.Empty<Semaphore>();
-    private Semaphore[] _renderFinishedSemaphores = Array.Empty<Semaphore>();
+    private Semaphore[] _renderFinishedSemaphores = Array.Empty<Semaphore>(); // per swapchain image
     private Fence[] _inFlightFences = Array.Empty<Fence>();
     private Buffer _vertexBuffer;
     private DeviceMemory _vertexBufferMemory;
     private bool _initialized;
+    private DebugUtilsMessengerEXT _debugMessenger;
+    private ExtDebugUtils? _extDebug;
 
     private const int MaxFramesInFlight = 2;
     private int _currentFrame;
@@ -60,176 +64,11 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
          0.5f,  0.5f,   0.0f, 0.0f, 1.0f, 1.0f,   // 右下 蓝
     };
 
-    // ── SPIR-V 着色器字节码（预编译的三角形） ──
-    // 顶点着色器：接收 pos+color，输出 clip-space pos + color
-    private static readonly uint[] VertexShaderSpv = new uint[]
-    {
-        0x07230203, 0x00010000, 0x0008000a, 0x00000024,
-        0x00000011, 0x00000000, 0x00020011, 0x00000001,
-        0x0006000b, 0x00000001, 0x4c454b43, 0x44534c50,
-        0x65547461, 0x6f436e61, 0x00656c6f, 0x0003000e,
-        0x00000000, 0x00000001, 0x0008000f, 0x00000000,
-        0x00000002, 0x6e69616d, 0x00000000, 0x00000003,
-        0x00000002, 0x00030005, 0x00000004, 0x6e69616d,
-        0x00030005, 0x00000005, 0x6f6c6f63, 0x00040047,
-        0x00000009, 0x00000006, 0x00000004, 0x00040047,
-        0x0000000a, 0x00000001, 0x00000002, 0x00040047,
-        0x0000000a, 0x00000002, 0x00000004, 0x00050048,
-        0x0000000a, 0x00000000, 0x00000023, 0x00000000,
-        0x00050048, 0x0000000a, 0x00000001, 0x00000023,
-        0x00000008, 0x00030047, 0x0000000a, 0x00000002,
-        0x00040047, 0x0000000b, 0x0000001e, 0x00000000,
-        0x00040047, 0x0000000c, 0x0000001e, 0x00000001,
-        0x00040047, 0x0000000d, 0x0000001e, 0x00000002,
-        0x00030047, 0x0000000d, 0x00000003, 0x00040047,
-        0x0000000e, 0x0000001e, 0x00000000, 0x00050048,
-        0x0000000e, 0x00000000, 0x0000000b, 0x00000000,
-        0x00030047, 0x0000000e, 0x00000001, 0x00020013,
-        0x00000002, 0x00030021, 0x00000003, 0x00000002,
-        0x00040015, 0x00000006, 0x00000020, 0x00000000,
-        0x00040020, 0x00000007, 0x00000006, 0x00000006,
-        0x00040020, 0x00000008, 0x00000006, 0x00000006,
-        0x00040017, 0x0000000a, 0x00000006, 0x00000004,
-        0x00040015, 0x0000000b, 0x00000020, 0x00000001,
-        0x0004002b, 0x0000000b, 0x0000000c, 0x00000000,
-        0x0004002b, 0x0000000b, 0x0000000d, 0x00000001,
-        0x0004002b, 0x0000000b, 0x0000000e, 0x00000002,
-        0x00040020, 0x0000000f, 0x00000006, 0x0000000a,
-        0x0004003b, 0x0000000f, 0x00000010, 0x00000006,
-        0x00040015, 0x00000011, 0x00000020, 0x00000000,
-        0x0004002b, 0x00000011, 0x00000012, 0x00000002,
-        0x00040020, 0x00000013, 0x00000011, 0x00000011,
-        0x0004003b, 0x00000013, 0x00000014, 0x00000011,
-        0x0004002b, 0x00000011, 0x00000015, 0x00000001,
-        0x00040020, 0x00000016, 0x00000011, 0x00000006,
-        0x0004002b, 0x00000011, 0x00000017, 0x00000000,
-        0x0004002b, 0x00000011, 0x00000018, 0x00000003,
-        0x00050036, 0x00000002, 0x00000004, 0x00000000,
-        0x00000003, 0x000200f8, 0x00000005, 0x0004003b,
-        0x00000007, 0x00000009, 0x00000006, 0x0004003b,
-        0x00000008, 0x00000019, 0x00000006, 0x0004003d,
-        0x00000006, 0x0000001a, 0x00000009, 0x00050041,
-        0x00000010, 0x0000001b, 0x0000000c, 0x0000001a,
-        0x0004003d, 0x00000006, 0x0000001c, 0x0000001b,
-        0x00050051, 0x00000006, 0x0000001d, 0x0000001c,
-        0x00050051, 0x00000006, 0x0000001e, 0x0000001d,
-        0x00070050, 0x00000006, 0x0000001f, 0x0000001e,
-        0x0000001e, 0x0000001e, 0x0000001e, 0x00050091,
-        0x00000006, 0x00000020, 0x0000001f, 0x00000012,
-        0x00050041, 0x00000010, 0x00000021, 0x0000000e,
-        0x0000001a, 0x0004003d, 0x00000006, 0x00000022,
-        0x00000021, 0x0004003d, 0x00000006, 0x00000023,
-        0x00000019, 0x00070050, 0x00000006, 0x00000024,
-        0x00000022, 0x00000023, 0x00000023, 0x00000023,
-        0x0003003e, 0x00000020, 0x00000024, 0x0004003d,
-        0x00000006, 0x00000025, 0x00000009, 0x00050041,
-        0x00000010, 0x00000026, 0x0000000d, 0x00000025,
-        0x0004003d, 0x00000006, 0x00000027, 0x00000026,
-        0x00050051, 0x00000006, 0x00000028, 0x00000027,
-        0x00070050, 0x00000006, 0x00000029, 0x00000028,
-        0x00000028, 0x00000028, 0x00000028, 0x00050091,
-        0x00000006, 0x0000002a, 0x00000029, 0x00000012,
-        0x00050041, 0x00000010, 0x0000002b, 0x0000000d,
-        0x0000001a, 0x0004003d, 0x00000006, 0x0000002c,
-        0x0000002b, 0x0004003d, 0x00000006, 0x0000002d,
-        0x00000020, 0x00070050, 0x00000006, 0x0000002e,
-        0x0000002c, 0x0000002d, 0x0000002d, 0x0000002d,
-        0x0003003e, 0x0000002a, 0x0000002e, 0x0004003d,
-        0x00000006, 0x0000002f, 0x00000009, 0x00050041,
-        0x00000010, 0x00000030, 0x0000000e, 0x0000002f,
-        0x0004003d, 0x00000006, 0x00000031, 0x00000030,
-        0x00050051, 0x00000006, 0x00000032, 0x00000031,
-        0x00070050, 0x00000006, 0x00000033, 0x00000032,
-        0x00000032, 0x00000032, 0x00000032, 0x00050091,
-        0x00000006, 0x00000034, 0x00000033, 0x00000012,
-        0x00050041, 0x00000010, 0x00000035, 0x0000000d,
-        0x0000001a, 0x0004003d, 0x00000006, 0x00000036,
-        0x00000035, 0x0004003d, 0x00000006, 0x00000037,
-        0x0000002a, 0x00070050, 0x00000006, 0x00000038,
-        0x00000036, 0x00000037, 0x00000037, 0x00000037,
-        0x0003003e, 0x00000034, 0x00000038, 0x0004003d,
-        0x00000006, 0x00000039, 0x00000009, 0x00050041,
-        0x00000010, 0x0000003a, 0x0000000e, 0x00000039,
-        0x0004003d, 0x00000006, 0x0000003b, 0x0000003a,
-        0x00050051, 0x00000006, 0x0000003c, 0x0000003b,
-        0x00070050, 0x00000006, 0x0000003d, 0x0000003c,
-        0x0000003c, 0x0000003c, 0x0000003c, 0x00050091,
-        0x00000006, 0x0000003e, 0x0000003d, 0x00000012,
-        0x00050041, 0x00000010, 0x0000003f, 0x0000000d,
-        0x0000001a, 0x0004003d, 0x00000006, 0x00000040,
-        0x0000003f, 0x0004003d, 0x00000006, 0x00000041,
-        0x00000034, 0x00070050, 0x00000006, 0x00000042,
-        0x00000040, 0x00000041, 0x00000041, 0x00000041,
-        0x0003003e, 0x0000003e, 0x00000042, 0x000100fd,
-        0x00010038
-    };
-
-    // 片段着色器：直接输出输入的颜色
-    private static readonly uint[] FragmentShaderSpv = new uint[]
-    {
-        0x07230203, 0x00010000, 0x0008000a, 0x00000013,
-        0x00000008, 0x00000000, 0x00020011, 0x00000001,
-        0x0006000b, 0x00000001, 0x4c454b43, 0x44534c50,
-        0x6e694c75, 0x6e616c65, 0x00000000, 0x0003000e,
-        0x00000000, 0x00000001, 0x0007000f, 0x00000004,
-        0x00000004, 0x6e69616d, 0x00000000, 0x00000005,
-        0x00000002, 0x00030005, 0x00000004, 0x6f6c6f63,
-        0x00040047, 0x00000009, 0x0000001e, 0x00000000,
-        0x00040047, 0x0000000a, 0x0000001e, 0x00000001,
-        0x00040047, 0x0000000b, 0x0000001e, 0x00000002,
-        0x00030047, 0x0000000b, 0x00000003, 0x00040047,
-        0x0000000c, 0x0000001e, 0x00000000, 0x00050048,
-        0x0000000c, 0x00000000, 0x0000000b, 0x00000000,
-        0x00030047, 0x0000000c, 0x00000001, 0x00020013,
-        0x00000002, 0x00030021, 0x00000003, 0x00000002,
-        0x00040015, 0x00000006, 0x00000020, 0x00000000,
-        0x00040020, 0x00000007, 0x00000006, 0x00000006,
-        0x00040017, 0x0000000c, 0x00000006, 0x00000004,
-        0x00040015, 0x0000000d, 0x00000020, 0x00000001,
-        0x0004002b, 0x0000000d, 0x0000000e, 0x00000000,
-        0x0004002b, 0x0000000d, 0x0000000f, 0x00000001,
-        0x0004002b, 0x0000000d, 0x00000010, 0x00000002,
-        0x00040020, 0x00000011, 0x00000006, 0x0000000c,
-        0x0004003b, 0x00000011, 0x00000012, 0x00000006,
-        0x00040015, 0x00000013, 0x00000020, 0x00000000,
-        0x0004002b, 0x00000013, 0x00000014, 0x00000001,
-        0x00040020, 0x00000015, 0x00000013, 0x00000013,
-        0x0004003b, 0x00000015, 0x00000016, 0x00000013,
-        0x00040020, 0x00000017, 0x00000013, 0x00000006,
-        0x0004002b, 0x00000013, 0x00000018, 0x00000000,
-        0x0004002b, 0x00000013, 0x00000019, 0x00000003,
-        0x00050036, 0x00000002, 0x00000004, 0x00000000,
-        0x00000003, 0x000200f8, 0x00000005, 0x0004003b,
-        0x00000007, 0x00000009, 0x00000006, 0x0004003b,
-        0x00000011, 0x0000001a, 0x00000006, 0x0004003d,
-        0x00000006, 0x0000001b, 0x00000009, 0x00050041,
-        0x00000012, 0x0000001c, 0x0000000e, 0x0000001b,
-        0x0004003d, 0x00000006, 0x0000001d, 0x0000001c,
-        0x00050051, 0x00000006, 0x0000001e, 0x0000001d,
-        0x00070050, 0x00000006, 0x0000001f, 0x0000001e,
-        0x0000001e, 0x0000001e, 0x0000001e, 0x00050091,
-        0x00000006, 0x00000020, 0x0000001f, 0x00000014,
-        0x00050041, 0x00000012, 0x00000021, 0x0000000f,
-        0x0000001b, 0x0004003d, 0x00000006, 0x00000022,
-        0x00000021, 0x0004003d, 0x00000006, 0x00000023,
-        0x0000001a, 0x00070050, 0x00000006, 0x00000024,
-        0x00000022, 0x00000023, 0x00000023, 0x00000023,
-        0x0003003e, 0x00000020, 0x00000024, 0x0004003d,
-        0x00000006, 0x00000025, 0x00000009, 0x00050041,
-        0x00000012, 0x00000026, 0x00000010, 0x00000025,
-        0x0004003d, 0x00000006, 0x00000027, 0x00000026,
-        0x00050051, 0x00000006, 0x00000028, 0x00000027,
-        0x00070050, 0x00000006, 0x00000029, 0x00000028,
-        0x00000028, 0x00000028, 0x00000028, 0x00050091,
-        0x00000006, 0x0000002a, 0x00000029, 0x00000014,
-        0x00050041, 0x00000012, 0x0000002b, 0x0000000f,
-        0x0000001b, 0x0004003d, 0x00000006, 0x0000002c,
-        0x0000002b, 0x0004003d, 0x00000006, 0x0000002d,
-        0x00000020, 0x00070050, 0x00000006, 0x0000002e,
-        0x0000002c, 0x0000002d, 0x0000002d, 0x0000002d,
-        0x0003003e, 0x0000002a, 0x0000002e, 0x000100fd,
-        0x00010038
-    };
+    // ── HLSL 着色器（由 DxcCompiler 运行时编译为 SPIR-V） ──
+    private const string VertHlslFile = "Shaders/Tri.vert.hlsl";
+    private const string FragHlslFile = "Shaders/Tri.frag.hlsl";
+    private const string VertEntryPoint = "VSMain";
+    private const string FragEntryPoint = "PSMain";
 
     private readonly IWindow _window;
 
@@ -281,7 +120,7 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
         var waitSemaphores = stackalloc[] { _imageAvailableSemaphores[_currentFrame] };
         var waitStages = stackalloc[] { PipelineStageFlags.ColorAttachmentOutputBit };
         var cmdBuffer = _commandBuffers[imageIndex % _commandBuffers.Length];
-        var signalSemaphores = stackalloc[] { _renderFinishedSemaphores[_currentFrame] };
+        var signalSemaphores = stackalloc[] { _renderFinishedSemaphores[imageIndex] };
 
         SubmitInfo submitInfo = new()
         {
@@ -325,6 +164,22 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
     {
         _vk = Vk.GetApi();
 
+        // 先查询可用的 validation layer
+        uint layerCount = 0;
+        _vk.EnumerateInstanceLayerProperties(&layerCount, null);
+        var layers = new LayerProperties[layerCount];
+        fixed (LayerProperties* layersPtr = layers)
+            _vk.EnumerateInstanceLayerProperties(&layerCount, layersPtr);
+
+        bool hasValidation = false;
+        foreach (var l in layers)
+        {
+            string name = SilkMarshal.PtrToString((nint)l.LayerName, NativeStringEncoding.UTF8)!;
+            if (name == "VK_LAYER_KHRONOS_validation") { hasValidation = true; break; }
+        }
+        if (hasValidation)
+            Console.WriteLine("[YamaVulkanSandbox] 发现 VK_LAYER_KHRONOS_validation，启用验证层");
+
         ApplicationInfo appInfo = new()
         {
             SType = StructureType.ApplicationInfo,
@@ -336,17 +191,25 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
         };
 
         var windowExtensions = _window.VkSurface!.GetRequiredExtensions(out uint extCount);
-        Span<IntPtr> extensions = new IntPtr[extCount + 1];
+        int extraExt = hasValidation ? 1 : 0;
+        Span<IntPtr> extensions = new IntPtr[extCount + extraExt];
         for (uint i = 0; i < extCount; i++)
             extensions[(int)i] = (nint)windowExtensions[(int)i];
-        extensions[(int)extCount] = (nint)SilkMarshal.StringToPtr("VK_KHR_surface", NativeStringEncoding.UTF8);
+        if (hasValidation)
+            extensions[(int)extCount] = (nint)SilkMarshal.StringToPtr("VK_EXT_debug_utils", NativeStringEncoding.UTF8);
+
+        byte* layerName = hasValidation
+            ? (byte*)SilkMarshal.StringToPtr("VK_LAYER_KHRONOS_validation", NativeStringEncoding.UTF8)
+            : null;
 
         InstanceCreateInfo createInfo = new()
         {
             SType = StructureType.InstanceCreateInfo,
             PApplicationInfo = &appInfo,
             EnabledExtensionCount = (uint)extensions.Length,
-            PpEnabledExtensionNames = (byte**)Marshal.AllocHGlobal(extensions.Length * sizeof(nint))
+            PpEnabledExtensionNames = (byte**)Marshal.AllocHGlobal(extensions.Length * sizeof(nint)),
+            EnabledLayerCount = hasValidation ? 1u : 0u,
+            PpEnabledLayerNames = hasValidation ? &layerName : null
         };
 
         for (int i = 0; i < extensions.Length; i++)
@@ -358,11 +221,41 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
                 throw new Exception("无法创建 Vulkan Instance");
         }
 
+        // 设置调试回调
+        if (hasValidation)
+        {
+            if (_vk.TryGetInstanceExtension(_instance, out ExtDebugUtils extDebug))
+            {
+                DebugUtilsMessengerCreateInfoEXT dbgInfo = new()
+                {
+                    SType = StructureType.DebugUtilsMessengerCreateInfoExt,
+                    MessageSeverity = DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt
+                                    | DebugUtilsMessageSeverityFlagsEXT.WarningBitExt,
+                    MessageType = DebugUtilsMessageTypeFlagsEXT.GeneralBitExt
+                                | DebugUtilsMessageTypeFlagsEXT.ValidationBitExt
+                                | DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
+                    PfnUserCallback = (DebugUtilsMessengerCallbackFunctionEXT)((messageSeverity, _, pCallbackData, _) =>
+                    {
+                        string msg = SilkMarshal.PtrToString((nint)pCallbackData->PMessage, NativeStringEncoding.UTF8) ?? "";
+                        bool isError = (messageSeverity & DebugUtilsMessageSeverityFlagsEXT.ErrorBitExt) != 0;
+                        Console.WriteLine(isError ? $"\n[VULKAN ERROR] {msg}\n" : $"\n[VULKAN WARN] {msg}\n");
+                        return 0u;
+                    })
+                };
+                _debugMessenger = default;
+                fixed (DebugUtilsMessengerEXT* msgrPtr = &_debugMessenger)
+                    extDebug.CreateDebugUtilsMessenger(_instance, &dbgInfo, null, msgrPtr);
+                _extDebug = extDebug;
+            }
+        }
+
         SilkMarshal.Free((nint)appInfo.PApplicationName);
         SilkMarshal.Free((nint)appInfo.PEngineName);
         for (int i = 0; i < extensions.Length; i++)
             SilkMarshal.Free(extensions[i]);
         Marshal.FreeHGlobal((nint)createInfo.PpEnabledExtensionNames);
+        if (hasValidation)
+            SilkMarshal.Free((nint)layerName);
     }
 
     private void CreateSurface()
@@ -593,15 +486,34 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
 
     private void CreateGraphicsPipeline()
     {
-        ShaderModule vertModule = CreateShaderModule(VertexShaderSpv);
-        ShaderModule fragModule = CreateShaderModule(FragmentShaderSpv);
+        // ── 使用 DxcCompiler 运行时编译 HLSL → SPIR-V ──
+        string baseDir = AppContext.BaseDirectory;
+        string shaderDir = Path.Combine(baseDir, "Shaders");
+        var dxc = new YamaEngine.Shaders.DxcCompiler(
+            shaderDir, cacheDir: Path.Combine(baseDir, "ShaderCache"), useDebug: false);
+
+        if (!dxc.IsAvailable)
+            throw new Exception("DxcCompiler 不可用（找不到 dxcompiler.dll / dxc.exe）");
+
+        string vertSrc = File.ReadAllText(Path.Combine(shaderDir, "Tri.vert.hlsl"));
+        string fragSrc = File.ReadAllText(Path.Combine(shaderDir, "Tri.frag.hlsl"));
+
+        var vertBytecode = dxc.Compile(vertSrc, VertEntryPoint,
+            YamaEngine.RHI.RHIShaderStage.Vertex, YamaEngine.RHI.RHIShaderModel.SM_6_0);
+        var fragBytecode = dxc.Compile(fragSrc, FragEntryPoint,
+            YamaEngine.RHI.RHIShaderStage.Pixel, YamaEngine.RHI.RHIShaderModel.SM_6_0);
+
+        Console.WriteLine($"[YamaVulkanSandbox] DXC 编译: VS={vertBytecode.Bytecode.Length}B, FS={fragBytecode.Bytecode.Length}B");
+
+        ShaderModule vertModule = CreateShaderModule(ToUIntArray(vertBytecode.Bytecode));
+        ShaderModule fragModule = CreateShaderModule(ToUIntArray(fragBytecode.Bytecode));
 
         PipelineShaderStageCreateInfo vertStage = new()
         {
             SType = StructureType.PipelineShaderStageCreateInfo,
             Stage = ShaderStageFlags.VertexBit,
             Module = vertModule,
-            PName = (byte*)SilkMarshal.StringToPtr("main", NativeStringEncoding.UTF8)
+            PName = (byte*)SilkMarshal.StringToPtr("VSMain", NativeStringEncoding.UTF8)
         };
 
         PipelineShaderStageCreateInfo fragStage = new()
@@ -609,7 +521,7 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
             SType = StructureType.PipelineShaderStageCreateInfo,
             Stage = ShaderStageFlags.FragmentBit,
             Module = fragModule,
-            PName = (byte*)SilkMarshal.StringToPtr("main", NativeStringEncoding.UTF8)
+            PName = (byte*)SilkMarshal.StringToPtr("PSMain", NativeStringEncoding.UTF8)
         };
 
         var shaderStages = stackalloc PipelineShaderStageCreateInfo[2];
@@ -730,8 +642,9 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
 
             fixed (Pipeline* pipelinePtr = &_pipeline)
             {
-                if (_vk!.CreateGraphicsPipelines(_device, default, 1, &pipelineInfo, null, pipelinePtr) != Result.Success)
-                    throw new Exception("无法创建 GraphicsPipeline");
+                var result = _vk!.CreateGraphicsPipelines(_device, default, 1, &pipelineInfo, null, pipelinePtr);
+                if (result != Result.Success)
+                    throw new Exception($"无法创建 GraphicsPipeline, VulkanResult: {result}");
             }
         }
 
@@ -739,6 +652,13 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
         _vk.DestroyShaderModule(_device, fragModule, null);
         SilkMarshal.Free((nint)vertStage.PName);
         SilkMarshal.Free((nint)fragStage.PName);
+    }
+
+    private static uint[] ToUIntArray(byte[] bytes)
+    {
+        uint[] words = new uint[bytes.Length / 4];
+        System.Buffer.BlockCopy(bytes, 0, words, 0, words.Length * 4);
+        return words;
     }
 
     private ShaderModule CreateShaderModule(uint[] code)
@@ -754,8 +674,9 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
             };
             ShaderModule* modulePtr = &module;
             {
-                if (_vk!.CreateShaderModule(_device, &createInfo, null, modulePtr) != Result.Success)
-                    throw new Exception("无法创建着色器模块");
+                var result = _vk!.CreateShaderModule(_device, &createInfo, null, modulePtr);
+                if (result != Result.Success)
+                    throw new Exception($"无法创建着色器模块: {result}");
             }
         }
         return module;
@@ -924,7 +845,9 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
     private void CreateSyncObjects()
     {
         _imageAvailableSemaphores = new Semaphore[MaxFramesInFlight];
-        _renderFinishedSemaphores = new Semaphore[MaxFramesInFlight];
+        // render-finished semaphores must be per swapchain image to avoid reuse hazard
+        int swapchainImageCount = _swapchainImages.Length;
+        _renderFinishedSemaphores = new Semaphore[swapchainImageCount];
         _inFlightFences = new Fence[MaxFramesInFlight];
 
         SemaphoreCreateInfo semInfo = new() { SType = StructureType.SemaphoreCreateInfo };
@@ -933,13 +856,20 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
         for (int i = 0; i < MaxFramesInFlight; i++)
         {
             fixed (Semaphore* imgSemPtr = &_imageAvailableSemaphores[i])
-            fixed (Semaphore* renderSemPtr = &_renderFinishedSemaphores[i])
             fixed (Fence* fencePtr = &_inFlightFences[i])
             {
                 if (_vk!.CreateSemaphore(_device, &semInfo, null, imgSemPtr) != Result.Success ||
-                    _vk.CreateSemaphore(_device, &semInfo, null, renderSemPtr) != Result.Success ||
                     _vk.CreateFence(_device, &fenceInfo, null, fencePtr) != Result.Success)
                     throw new Exception($"无法创建同步对象 {i}");
+            }
+        }
+
+        for (int i = 0; i < swapchainImageCount; i++)
+        {
+            fixed (Semaphore* renderSemPtr = &_renderFinishedSemaphores[i])
+            {
+                if (_vk!.CreateSemaphore(_device, &semInfo, null, renderSemPtr) != Result.Success)
+                    throw new Exception($"无法创建 render-finished 信号量 {i}");
             }
         }
     }
@@ -952,12 +882,12 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
         if (_vk == null) return;
         _vk.DeviceWaitIdle(_device);
 
-        for (int i = 0; i < MaxFramesInFlight; i++)
-        {
-            if (i < _imageAvailableSemaphores.Length) _vk.DestroySemaphore(_device, _imageAvailableSemaphores[i], null);
-            if (i < _renderFinishedSemaphores.Length) _vk.DestroySemaphore(_device, _renderFinishedSemaphores[i], null);
-            if (i < _inFlightFences.Length) _vk.DestroyFence(_device, _inFlightFences[i], null);
-        }
+        for (int i = 0; i < _imageAvailableSemaphores.Length; i++)
+            _vk.DestroySemaphore(_device, _imageAvailableSemaphores[i], null);
+        for (int i = 0; i < _renderFinishedSemaphores.Length; i++)
+            _vk.DestroySemaphore(_device, _renderFinishedSemaphores[i], null);
+        for (int i = 0; i < _inFlightFences.Length; i++)
+            _vk.DestroyFence(_device, _inFlightFences[i], null);
 
         if (_vertexBuffer.Handle != 0) _vk.DestroyBuffer(_device, _vertexBuffer, null);
         if (_vertexBufferMemory.Handle != 0) _vk.FreeMemory(_device, _vertexBufferMemory, null);
@@ -971,6 +901,7 @@ internal sealed unsafe class VulkanTriangleRenderer : IDisposable
         if (_commandPool.Handle != 0) _vk.DestroyCommandPool(_device, _commandPool, null);
         if (_device.Handle != 0) _vk.DestroyDevice(_device, null);
         if (_surface.Handle != 0 && _khrSurface != null) _khrSurface.DestroySurface(_instance, _surface, null);
+        if (_extDebug != null && _debugMessenger.Handle != 0) _extDebug.DestroyDebugUtilsMessenger(_instance, _debugMessenger, null);
         if (_instance.Handle != 0) _vk.DestroyInstance(_instance, null);
     }
 }

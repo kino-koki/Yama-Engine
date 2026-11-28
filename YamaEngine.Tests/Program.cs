@@ -324,6 +324,91 @@ try
     RunUnityPP("UnityPPExposureAutoAdapt", () => UnityPostProcessDepthTests.TestExposureAutoAdapt());
     Console.WriteLine($"  == UnityPostProcessDepth: {uppPass}/{uppTotal} passed ==");
 
+    // ===== Unity5 ColorGrading 深度块 (枚举 / Settings / 各阶段 / Tonemap / 效果辅助) =====
+    int ucgPass = 0, ucgTotal = 0;
+    void RunUnityCG(string name, Action test)
+    {
+        ucgTotal++;
+        try { test(); ucgPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityCG("Unity.CG.TonemapOperator", () => UnityColorGradingDepthTests.TestTonemapOperatorValues());
+    RunUnityCG("Unity.CG.ColorSpace", () => UnityColorGradingDepthTests.TestColorSpaceValues());
+    RunUnityCG("Unity.CG.WhiteBalanceMode", () => UnityColorGradingDepthTests.TestWhiteBalanceModeValues());
+    RunUnityCG("Unity.CG.LutResolution", () => UnityColorGradingDepthTests.TestLutResolutionValues());
+    RunUnityCG("Unity.CG.SettingsDefaults", () => UnityColorGradingDepthTests.TestSettingsDefaults());
+    RunUnityCG("Unity.CG.NeutralIdentity", () => UnityColorGradingDepthTests.TestNeutralIdentityStages());
+    RunUnityCG("Unity.CG.LiftGammaGainNeutral", () => UnityColorGradingDepthTests.TestLiftGammaGainNeutral());
+    RunUnityCG("Unity.CG.WhiteBalanceWarm", () => UnityColorGradingDepthTests.TestWhiteBalanceWarm());
+    RunUnityCG("Unity.CG.SaturationZero", () => UnityColorGradingDepthTests.TestSaturationZeroGrayscale());
+    RunUnityCG("Unity.CG.ContrastIncrease", () => UnityColorGradingDepthTests.TestContrastIncrease());
+    RunUnityCG("Unity.CG.TonemapLinearIdentity", () => UnityColorGradingDepthTests.TestTonemapLinearIdentity());
+    RunUnityCG("Unity.CG.TonemapLinearExposure", () => UnityColorGradingDepthTests.TestTonemapLinearExposure());
+    RunUnityCG("Unity.CG.TonemapReinhard", () => UnityColorGradingDepthTests.TestTonemapReinhard());
+    RunUnityCG("Unity.CG.TonemapACES", () => UnityColorGradingDepthTests.TestTonemapACES());
+    RunUnityCG("Unity.CG.TonemapNone", () => UnityColorGradingDepthTests.TestTonemapNone());
+    RunUnityCG("Unity.CG.OperatorNames", () => UnityColorGradingDepthTests.TestOperatorNames());
+    RunUnityCG("Unity.CG.OperatorEval", () => UnityColorGradingDepthTests.TestOperatorEval());
+    RunUnityCG("Unity.CG.BloomKernel", () => UnityColorGradingDepthTests.TestBloomKernel());
+    RunUnityCG("Unity.CG.BloomPrefilter", () => UnityColorGradingDepthTests.TestBloomPrefilter());
+    RunUnityCG("Unity.CG.DoFComputeCoC", () => UnityColorGradingDepthTests.TestDoFComputeCoC());
+    RunUnityCG("Unity.CG.DoFQuality", () => UnityColorGradingDepthTests.TestDoFQualityEnum());
+    RunUnityCG("Unity.CG.LensFlareGhosts", () => UnityColorGradingDepthTests.TestLensFlareGhosts());
+    RunUnityCG("Unity.CG.SSAOKernel", () => UnityColorGradingDepthTests.TestSSAOKernel());
+    RunUnityCG("Unity.CG.MotionBlurDefaults", () => UnityColorGradingDepthTests.TestMotionBlurDefaults());
+    Console.WriteLine($"  == UnityColorGradingDepth: {ucgPass}/{ucgTotal} passed ==");
+
+    // ===== Unity5 Cinemachine 深度块 (虚拟相机 / 混合 / 震动 / 大脑) =====
+    int ucPass = 0, ucTotal = 0;
+    void RunUnityCin(string name, Action test)
+    {
+        ucTotal++;
+        try { test(); ucPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityCin("Unity.Cin.EnumValues", () => UnityCinemachineDepthTests.TestEnumValues());
+    RunUnityCin("Unity.Cin.BlendDefaults", () => UnityCinemachineDepthTests.TestBlendDefaults());
+    RunUnityCin("Unity.Cin.BlendLinearUpdate", () => UnityCinemachineDepthTests.TestBlendLinearUpdate());
+    RunUnityCin("Unity.Cin.BlendHardCut", () => UnityCinemachineDepthTests.TestBlendHardCut());
+    RunUnityCin("Unity.Cin.BlendEaseInOut", () => UnityCinemachineDepthTests.TestBlendEaseInOut());
+    RunUnityCin("Unity.Cin.BlendCustomCurve", () => UnityCinemachineDepthTests.TestBlendCustomCurve());
+    RunUnityCin("Unity.Cin.BlendZeroDuration", () => UnityCinemachineDepthTests.TestBlendZeroDurationInstantComplete());
+    RunUnityCin("Unity.Cin.BlendReset", () => UnityCinemachineDepthTests.TestBlendResetRestores());
+    RunUnityCin("Unity.Cin.VCamDefaults", () => UnityCinemachineDepthTests.TestVirtualCameraDefaults());
+    RunUnityCin("Unity.Cin.VCamSetDirectState", () => UnityCinemachineDepthTests.TestVirtualCameraSetDirectState());
+    RunUnityCin("Unity.Cin.VCamCtor", () => UnityCinemachineDepthTests.TestVirtualCameraNamePriorityCtor());
+    RunUnityCin("Unity.Cin.ShakeDefaults", () => UnityCinemachineDepthTests.TestCameraShakeDefaults());
+    RunUnityCin("Unity.Cin.ShakeLifecycle", () => UnityCinemachineDepthTests.TestCameraShakeLifecycle());
+    RunUnityCin("Unity.Cin.ShakeStop", () => UnityCinemachineDepthTests.TestCameraShakeStopManual());
+    RunUnityCin("Unity.Cin.ShakeReset", () => UnityCinemachineDepthTests.TestCameraShakeReset());
+    RunUnityCin("Unity.Cin.NoiseEvaluate", () => UnityCinemachineDepthTests.TestCameraNoiseEvaluate());
+    RunUnityCin("Unity.Cin.NoiseLayers", () => UnityCinemachineDepthTests.TestCameraNoiseLayers());
+    RunUnityCin("Unity.Cin.ImpulseDefaults", () => UnityCinemachineDepthTests.TestImpulseListenerDefaults());
+    RunUnityCin("Unity.Cin.ImpulseDisabled", () => UnityCinemachineDepthTests.TestImpulseListenerDisabledIgnores());
+    RunUnityCin("Unity.Cin.ImpulseChannel", () => UnityCinemachineDepthTests.TestImpulseListenerChannelFilter());
+    RunUnityCin("Unity.Cin.ImpulseReceive", () => UnityCinemachineDepthTests.TestImpulseListenerReceiveStarts());
+    RunUnityCin("Unity.Cin.BrainInitial", () => UnityCinemachineDepthTests.TestBrainInitialState());
+    RunUnityCin("Unity.Cin.BrainPrioritySort", () => UnityCinemachineDepthTests.TestBrainAddCameraPrioritySort());
+    RunUnityCin("Unity.Cin.BrainAddNull", () => UnityCinemachineDepthTests.TestBrainAddNullThrows());
+    RunUnityCin("Unity.Cin.BrainRemove", () => UnityCinemachineDepthTests.TestBrainRemoveCamera());
+    RunUnityCin("Unity.Cin.BrainActivateHigh", () => UnityCinemachineDepthTests.TestBrainUpdateActivatesHighestPriority());
+    RunUnityCin("Unity.Cin.BrainInactiveSkip", () => UnityCinemachineDepthTests.TestBrainUpdateInactiveSkipped());
+    RunUnityCin("Unity.Cin.BrainFallback", () => UnityCinemachineDepthTests.TestBrainFallbackWhenNoneActive());
+    RunUnityCin("Unity.Cin.BrainBlendSwitch", () => UnityCinemachineDepthTests.TestBrainPrioritySwitchWithBlend());
+    RunUnityCin("Unity.Cin.BrainUserOverride", () => UnityCinemachineDepthTests.TestBrainUserOverride());
+    RunUnityCin("Unity.Cin.BrainOverrideBlocks", () => UnityCinemachineDepthTests.TestBrainUserOverrideBlocksUpdate());
+    RunUnityCin("Unity.Cin.BrainTriggerImpulse", () => UnityCinemachineDepthTests.TestBrainTriggerImpulse());
+    RunUnityCin("Unity.Cin.FollowDefaults", () => UnityCinemachineDepthTests.TestFollowCameraDefaults());
+    RunUnityCin("Unity.Cin.LookAtDefaults", () => UnityCinemachineDepthTests.TestLookAtCameraDefaults());
+    RunUnityCin("Unity.Cin.FreeLookRig", () => UnityCinemachineDepthTests.TestFreeLookRigPosition());
+    RunUnityCin("Unity.Cin.PathTwoPoints", () => UnityCinemachineDepthTests.TestPathCameraRequiresTwoPoints());
+    RunUnityCin("Unity.Cin.PathMoves", () => UnityCinemachineDepthTests.TestPathCameraMovesAlong());
+    RunUnityCin("Unity.Cin.StateDrivenSwitch", () => UnityCinemachineDepthTests.TestStateDrivenCameraSwitch());
+    RunUnityCin("Unity.Cin.StateDrivenCb", () => UnityCinemachineDepthTests.TestStateDrivenCameraOnStateChanged());
+    RunUnityCin("Unity.Cin.ClearShotDefaults", () => UnityCinemachineDepthTests.TestClearShotCameraDefaults());
+    RunUnityCin("Unity.Cin.ClearShotBest", () => UnityCinemachineDepthTests.TestClearShotCameraEvaluatesBest());
+    Console.WriteLine($"  == UnityCinemachineDepth: {ucPass}/{ucTotal} passed ==");
+
     // ===== Unity5 Physics 深度块 (PhysicsMaterial / Collider / QueryFilter / 枚举 / 真实 PhysicsWorld) =====
     int uphPass = 0, uphTotal = 0;
     void RunUnityPhys(string name, Action test)
@@ -418,6 +503,188 @@ try
     RunUnityAB("UnityABPackageResolveGlobal", () => UnityAssetBundleDepthTests.TestPackageResolveGlobal());
     RunUnityAB("UnityABPackageResolveAll", () => UnityAssetBundleDepthTests.TestPackageResolveAll());
     Console.WriteLine($"  == UnityAssetBundleDepth: {uabPass}/{uabTotal} passed ==");
+
+    // ===== Unity5 Editor 序列化属性深度块 (SerializeField / HideInInspector / RequireComponent) =====
+    int uesPass = 0, uesTotal = 0;
+    void RunUnityES(string name, Action test)
+    {
+        uesTotal++;
+        try { test(); uesPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityES("UnitySerializeFieldDefaults", () => UnityEditorSerializationDepthTests.TestSerializeFieldDefaults());
+    RunUnityES("UnitySerializeFieldTooltipCtor", () => UnityEditorSerializationDepthTests.TestSerializeFieldTooltipCtor());
+    RunUnityES("UnitySerializeFieldRange", () => UnityEditorSerializationDepthTests.TestSerializeFieldRange());
+    RunUnityES("UnityHideInInspectorMarker", () => UnityEditorSerializationDepthTests.TestHideInInspectorIsMarker());
+    RunUnityES("Unity.RequireComponentStoresType", () => UnityEditorSerializationDepthTests.TestRequireComponentStoresType());
+    RunUnityES("Unity.RequireComponentNullThrows", () => UnityEditorSerializationDepthTests.TestRequireComponentNullThrows());
+    RunUnityES("Unity.RequireComponentAllowMultiple", () => UnityEditorSerializationDepthTests.TestRequireComponentAllowMultiple());
+    RunUnityES("UnitySerializeFieldOnField", () => UnityEditorSerializationDepthTests.TestSerializeFieldUsageOnField());
+    RunUnityES("UnitySerializeFieldNotMultiple", () => UnityEditorSerializationDepthTests.TestSerializeFieldNotMultiple());
+    RunUnityES("Unity.RequireComponentInherited", () => UnityEditorSerializationDepthTests.TestRequireComponentInherited());
+    Console.WriteLine($"  == UnityEditorSerializationDepth: {uesPass}/{uesTotal} passed ==");
+
+    // ===== Unity5 Build Pipeline + AssetBundleManifest 深度块 =====
+    int ubpPass = 0, ubpTotal = 0;
+    void RunUnityBP(string name, Action test)
+    {
+        ubpTotal++;
+        try { test(); ubpPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityBP("Unity.BuildTarget", () => UnityBuildPipelineDepthTests.TestBuildTargetValues());
+    RunUnityBP("Unity.BuildType", () => UnityBuildPipelineDepthTests.TestBuildTypeValues());
+    RunUnityBP("Unity.ScriptBackend", () => UnityBuildPipelineDepthTests.TestScriptBackendValues());
+    RunUnityBP("Unity.CodeOptimization", () => UnityBuildPipelineDepthTests.TestCodeOptimizationValues());
+    RunUnityBP("Unity.CompressionAlgorithm", () => UnityBuildPipelineDepthTests.TestCompressionAlgorithmValues());
+    RunUnityBP("Unity.BuildStatus", () => UnityBuildPipelineDepthTests.TestBuildStatusValues());
+    RunUnityBP("Unity.BuildConfigDefaults", () => UnityBuildPipelineDepthTests.TestBuildConfigurationDefaults());
+    RunUnityBP("Unity.BuildConfigCustom", () => UnityBuildPipelineDepthTests.TestBuildConfigurationCustom());
+    RunUnityBP("Unity.ManifestDefaults", () => UnityBuildPipelineDepthTests.TestManifestDefaults());
+    RunUnityBP("Unity.ManifestComputed", () => UnityBuildPipelineDepthTests.TestManifestComputed());
+    RunUnityBP("Unity.ManifestJsonRoundTrip", () => UnityBuildPipelineDepthTests.TestManifestJsonRoundTrip());
+    RunUnityBP("Unity.ManifestSaveLoad", () => UnityBuildPipelineDepthTests.TestManifestSaveLoad());
+    RunUnityBP("Unity.ManifestDepChain", () => UnityBuildPipelineDepthTests.TestManifestDependencyChain());
+    RunUnityBP("Unity.ManifestDepUnknown", () => UnityBuildPipelineDepthTests.TestManifestDependencyChainUnknown());
+    RunUnityBP("Unity.BundleEntryDefaults", () => UnityBuildPipelineDepthTests.TestBundleBuildEntryDefaults());
+    RunUnityBP("Unity.BundleCompression", () => UnityBuildPipelineDepthTests.TestBundleCompressionValues());
+    RunUnityBP("Unity.BundleRuleType", () => UnityBuildPipelineDepthTests.TestBundleRuleTypeValues());
+    RunUnityBP("Unity.BundleLoadState", () => UnityBuildPipelineDepthTests.TestBundleLoadStateValues());
+    RunUnityBP("Unity.LoadedBundleRefCount", () => UnityBuildPipelineDepthTests.TestLoadedBundleRefCount());
+    Console.WriteLine($"  == UnityBuildPipelineDepth: {ubpPass}/{ubpTotal} passed ==");
+
+    // ===== Unity5 PackageVersion SemVer 深度块 (Parse / Satisfies / CompareTo / ToString) =====
+    int upvPass = 0, upvTotal = 0;
+    void RunUnityPV(string name, Action test)
+    {
+        upvTotal++;
+        try { test(); upvPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityPV("Unity.PV.ParseSimple", () => UnityPackageVersionDepthTests.TestParseSimple());
+    RunUnityPV("Unity.PV.ParseEmpty", () => UnityPackageVersionDepthTests.TestParseEmpty());
+    RunUnityPV("Unity.PV.ParseVPrefix", () => UnityPackageVersionDepthTests.TestParseVPrefix());
+    RunUnityPV("Unity.PV.ParsePrerelease", () => UnityPackageVersionDepthTests.TestParsePrerelease());
+    RunUnityPV("Unity.PV.ParseBuild", () => UnityPackageVersionDepthTests.TestParseBuild());
+    RunUnityPV("Unity.PV.ParseFull", () => UnityPackageVersionDepthTests.TestParseFull());
+    RunUnityPV("Unity.PV.ParsePartial", () => UnityPackageVersionDepthTests.TestParsePartial());
+    RunUnityPV("Unity.PV.SatisfiesAny", () => UnityPackageVersionDepthTests.TestSatisfiesAny());
+    RunUnityPV("Unity.PV.SatisfiesExact", () => UnityPackageVersionDepthTests.TestSatisfiesExact());
+    RunUnityPV("Unity.PV.SatisfiesCaret", () => UnityPackageVersionDepthTests.TestSatisfiesCaret());
+    RunUnityPV("Unity.PV.SatisfiesTilde", () => UnityPackageVersionDepthTests.TestSatisfiesTilde());
+    RunUnityPV("Unity.PV.SatisfiesComparison", () => UnityPackageVersionDepthTests.TestSatisfiesComparison());
+    RunUnityPV("Unity.PV.SatisfiesCaretNoPre", () => UnityPackageVersionDepthTests.TestSatisfiesCaretNoPrerelease());
+    RunUnityPV("Unity.PV.CompareToPrecedence", () => UnityPackageVersionDepthTests.TestCompareToPrecedence());
+    RunUnityPV("Unity.PV.CompareToPreRelease", () => UnityPackageVersionDepthTests.TestCompareToPrereleaseBeforeRelease());
+    RunUnityPV("Unity.PV.CompareToPrereleaseLexical", () => UnityPackageVersionDepthTests.TestCompareToPrereleaseLexical());
+    RunUnityPV("Unity.PV.CompareToNull", () => UnityPackageVersionDepthTests.TestCompareToNull());
+    RunUnityPV("Unity.PV.EqualsIgnoresBuild", () => UnityPackageVersionDepthTests.TestEqualsIgnoresBuild());
+    RunUnityPV("Unity.PV.EqualsDistinguishesPre", () => UnityPackageVersionDepthTests.TestEqualsDistinguishesPrerelease());
+    RunUnityPV("Unity.PV.ToString", () => UnityPackageVersionDepthTests.TestToString());
+    RunUnityPV("Unity.PV.Ctor", () => UnityPackageVersionDepthTests.TestCtor());
+    RunUnityPV("Unity.PV.AllOperators", () => UnityPackageVersionDepthTests.TestAllOperators());
+    Console.WriteLine($"  == UnityPackageVersionDepth: {upvPass}/{upvTotal} passed ==");
+
+    // ===== Unity5 BundleVersionManager 深度块 (RecordVersion / CompareVersions / BundleVersionDiff) =====
+    int ubvPass = 0, ubvTotal = 0;
+    void RunUnityBV(string name, Action test)
+    {
+        ubvTotal++;
+        try { test(); ubvPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityBV("Unity.BV.CtorCreatesDir", () => UnityBundleVersionDepthTests.TestCtorCreatesDirectory());
+    RunUnityBV("Unity.BV.RecordWritesFile", () => UnityBundleVersionDepthTests.TestRecordVersionWritesFile());
+    RunUnityBV("Unity.BV.RecordKeepsHistory", () => UnityBundleVersionDepthTests.TestRecordVersionKeepsHistory());
+    RunUnityBV("Unity.BV.RecordMultipleBundles", () => UnityBundleVersionDepthTests.TestRecordVersionMultipleBundles());
+    RunUnityBV("Unity.BV.RecordReload", () => UnityBundleVersionDepthTests.TestRecordVersionReload());
+    RunUnityBV("Unity.BV.CompareNoDiff", () => UnityBundleVersionDepthTests.TestCompareVersionsNoDiff());
+    RunUnityBV("Unity.BV.CompareAdded", () => UnityBundleVersionDepthTests.TestCompareVersionsAdded());
+    RunUnityBV("Unity.BV.CompareRemoved", () => UnityBundleVersionDepthTests.TestCompareVersionsRemoved());
+    RunUnityBV("Unity.BV.CompareModified", () => UnityBundleVersionDepthTests.TestCompareVersionsModified());
+    RunUnityBV("Unity.BV.CompareSameHash", () => UnityBundleVersionDepthTests.TestCompareVersionsSameHashNoMod());
+    RunUnityBV("Unity.BV.CompareMixed", () => UnityBundleVersionDepthTests.TestCompareVersionsMixed());
+    Console.WriteLine($"  == UnityBundleVersionDepth: {ubvPass}/{ubvTotal} passed ==");
+
+    // ===== Unity5 Coroutine / yield 指令深度块 (WaitForSeconds / EndOfFrame / FixedUpdate / Custom / Coroutine) =====
+    int ucorPass = 0, ucorTotal = 0;
+    void RunUnityCor(string name, Action test)
+    {
+        ucorTotal++;
+        try { test(); ucorPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityCor("Unity.Yield.WaitForSeconds", () => UnityCoroutineYieldDepthTests.TestWaitForSecondsStores());
+    RunUnityCor("Unity.Yield.SecondsClamp", () => UnityCoroutineYieldDepthTests.TestWaitForSecondsClampNegative());
+    RunUnityCor("Unity.Yield.SecondsZero", () => UnityCoroutineYieldDepthTests.TestWaitForSecondsZero());
+    RunUnityCor("Unity.Yield.EndOfFrameMarker", () => UnityCoroutineYieldDepthTests.TestWaitForEndOfFrameMarker());
+    RunUnityCor("Unity.Yield.FixedUpdateMarker", () => UnityCoroutineYieldDepthTests.TestWaitForFixedUpdateMarker());
+    RunUnityCor("Unity.Yield.CustomKeepWaiting", () => UnityCoroutineYieldDepthTests.TestCustomYieldKeepWaiting());
+    RunUnityCor("Unity.Yield.CustomAbstract", () => UnityCoroutineYieldDepthTests.TestCustomYieldAbstract());
+    RunUnityCor("Unity.Coroutine.StartState", () => UnityCoroutineYieldDepthTests.TestCoroutineStartState());
+    RunUnityCor("Unity.Coroutine.OneFrame", () => UnityCoroutineYieldDepthTests.TestCoroutineOneFrame());
+    RunUnityCor("Unity.Coroutine.WaitForSeconds", () => UnityCoroutineYieldDepthTests.TestCoroutineWaitForSeconds());
+    RunUnityCor("Unity.Coroutine.FixedPhase", () => UnityCoroutineYieldDepthTests.TestCoroutineWaitSecondsFixedPhase());
+    RunUnityCor("Unity.Coroutine.EndOfFrame", () => UnityCoroutineYieldDepthTests.TestCoroutineWaitEndOfFrame());
+    RunUnityCor("Unity.Coroutine.FixedUpdate", () => UnityCoroutineYieldDepthTests.TestCoroutineWaitFixedUpdate());
+    RunUnityCor("Unity.Coroutine.NullYield", () => UnityCoroutineYieldDepthTests.TestCoroutineNullYield());
+    RunUnityCor("Unity.Coroutine.StopEarly", () => UnityCoroutineYieldDepthTests.TestCoroutineStopEarly());
+    RunUnityCor("Unity.Coroutine.StopAll", () => UnityCoroutineYieldDepthTests.TestCoroutineStopAll());
+    RunUnityCor("Unity.Coroutine.Nested", () => UnityCoroutineYieldDepthTests.TestCoroutineNested());
+    RunUnityCor("Unity.Coroutine.CustomYield", () => UnityCoroutineYieldDepthTests.TestCoroutineCustomYield());
+    Console.WriteLine($"  == UnityCoroutineYieldDepth: {ucorPass}/{ucorTotal} passed ==");
+
+    // ===== Unity5 AssetDatabase 深度块 (AssetType / RegisterAsset / GetAsset / RemoveAsset) =====
+    int uadPass = 0, uadTotal = 0;
+    void RunUnityAD(string name, Action test)
+    {
+        uadTotal++;
+        try { test(); uadPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnityAD("Unity.AD.AssetTypeValues", () => UnityAssetDatabaseDepthTests.TestAssetTypeValues());
+    RunUnityAD("Unity.AD.MetadataDefaults", () => UnityAssetDatabaseDepthTests.TestAssetMetadataDefaults());
+    RunUnityAD("Unity.AD.MetadataCachePath", () => UnityAssetDatabaseDepthTests.TestAssetMetadataCachePath());
+    RunUnityAD("Unity.AD.Ctor", () => UnityAssetDatabaseDepthTests.TestAssetDatabaseCtor());
+    RunUnityAD("Unity.AD.RegisterAsset", () => UnityAssetDatabaseDepthTests.TestRegisterAsset());
+    RunUnityAD("Unity.AD.GetByGuid", () => UnityAssetDatabaseDepthTests.TestGetAssetByGuid());
+    RunUnityAD("Unity.AD.GetByGuidString", () => UnityAssetDatabaseDepthTests.TestGetAssetByGuidString());
+    RunUnityAD("Unity.AD.GetByPath", () => UnityAssetDatabaseDepthTests.TestGetAssetByPath());
+    RunUnityAD("Unity.AD.GetAllByType", () => UnityAssetDatabaseDepthTests.TestGetAllAssetsByType());
+    RunUnityAD("Unity.AD.Remove", () => UnityAssetDatabaseDepthTests.TestRemoveAsset());
+    RunUnityAD("Unity.AD.SceneNameSettable", () => UnityAssetDatabaseDepthTests.TestCurrentSceneNameSettable());
+    Console.WriteLine($"  == UnityAssetDatabaseDepth: {uadPass}/{uadTotal} passed ==");
+
+    // ===== Unity5 SceneManagerReal 深度块 (LoadScene / UnloadScene / SetActive / GetScene*) =====
+    int usmPass = 0, usmTotal = 0;
+    void RunUnitySM(string name, Action test)
+    {
+        usmTotal++;
+        try { test(); usmPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunUnitySM("Unity.SM.LoadSceneMode", () => UnitySceneManagerDepthTests.TestLoadSceneModeValues());
+    RunUnitySM("Unity.SM.LifecycleState", () => UnitySceneManagerDepthTests.TestSceneLifecycleStateValues());
+    RunUnitySM("Unity.SM.SceneRealDefaults", () => UnitySceneManagerDepthTests.TestSceneRealDefaults());
+    RunUnitySM("Unity.SM.SceneRealCtor", () => UnitySceneManagerDepthTests.TestSceneRealCtor());
+    RunUnitySM("Unity.SM.ManagerInitial", () => UnitySceneManagerDepthTests.TestManagerInitialState());
+    RunUnitySM("Unity.SM.LoadSceneSingle", () => UnitySceneManagerDepthTests.TestLoadSceneSingle());
+    RunUnitySM("Unity.SM.LoadSceneExisting", () => UnitySceneManagerDepthTests.TestLoadSceneExisting());
+    RunUnitySM("Unity.SM.LoadSceneAdditive", () => UnitySceneManagerDepthTests.TestLoadSceneAdditive());
+    RunUnitySM("Unity.SM.UnloadScene", () => UnitySceneManagerDepthTests.TestUnloadScene());
+    RunUnitySM("Unity.SM.UnloadNull", () => UnitySceneManagerDepthTests.TestUnloadSceneNull());
+    RunUnitySM("Unity.SM.UnloadActive", () => UnitySceneManagerDepthTests.TestUnloadActiveScene());
+    RunUnitySM("Unity.SM.SetActive", () => UnitySceneManagerDepthTests.TestSetActiveScene());
+    RunUnitySM("Unity.SM.SetActiveUnloaded", () => UnitySceneManagerDepthTests.TestSetActiveSceneUnloadedThrows());
+    RunUnitySM("Unity.SM.GetByName", () => UnitySceneManagerDepthTests.TestGetSceneByName());
+    RunUnitySM("Unity.SM.GetAt", () => UnitySceneManagerDepthTests.TestGetSceneAt());
+    RunUnitySM("Unity.SM.GetByBuildIndex", () => UnitySceneManagerDepthTests.TestGetSceneByBuildIndex());
+    RunUnitySM("Unity.SM.GetActive", () => UnitySceneManagerDepthTests.TestGetActiveScene());
+    RunUnitySM("Unity.GO.Defaults", () => UnitySceneManagerDepthTests.TestGameObjectDefaults());
+    RunUnitySM("Unity.GO.Named", () => UnitySceneManagerDepthTests.TestGameObjectNamed());
+    RunUnitySM("Unity.GO.AddComponent", () => UnitySceneManagerDepthTests.TestGameObjectAddComponent());
+    RunUnitySM("Unity.GO.TryGetComponent", () => UnitySceneManagerDepthTests.TestGameObjectTryGetComponent());
+    Console.WriteLine($"  == UnitySceneManagerDepth: {usmPass}/{usmTotal} passed ==");
 
     // ===== Terrain Depth (Unity5 heightmap / splatmap / grass / trees / water / collider) =====
     int terPass = 0, terTotal = 0;
@@ -1092,6 +1359,816 @@ try
     RunZoneGraph("SystemUpdateBindsNearestLane", () => CelZoneGraphDepthTests.TestSystemUpdateBindsNearestLane());
     RunZoneGraph("SystemFindPathToPosition", () => CelZoneGraphDepthTests.TestSystemFindPathToPosition());
     Console.WriteLine($"  == CelZoneGraphDepth: {zoneGraphPass}/{zoneGraphTotal} passed ==");
+
+    int fsmPass = 0, fsmTotal = 0;
+    void RunFsm(string name, Action test)
+    {
+        fsmTotal++;
+        try { test(); fsmPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name} — {ex.Message}"); }
+    }
+    RunFsm("StateDefaults", () => CelFSMDepthTests.TestStateDefaults());
+    RunFsm("StateLifecycleCallbacks", () => CelFSMDepthTests.TestStateLifecycleCallbacks());
+    RunFsm("StateAddTransition", () => CelFSMDepthTests.TestStateAddTransition());
+    RunFsm("StateDurationExpiry", () => CelFSMDepthTests.TestStateDurationExpiry());
+    RunFsm("TransitionEvaluate", () => CelFSMDepthTests.TestTransitionEvaluate());
+    RunFsm("TransitionPriorityDefault", () => CelFSMDepthTests.TestTransitionPriorityDefault());
+    RunFsm("TransitionOneShot", () => CelFSMDepthTests.TestTransitionOneShot());
+    RunFsm("SMStartEntersInitial", () => CelFSMDepthTests.TestSMStartEntersInitial());
+    RunFsm("SMUpdateBeforeStartNoop", () => CelFSMDepthTests.TestSMUpdateBeforeStartNoop());
+    RunFsm("SMTransitionSwitchesState", () => CelFSMDepthTests.TestSMTransitionSwitchesState());
+    RunFsm("SMGlobalTransition", () => CelFSMDepthTests.TestSMGlobalTransition());
+    RunFsm("SMTransitionPriority", () => CelFSMDepthTests.TestSMTransitionPriority());
+    RunFsm("SMForceState", () => CelFSMDepthTests.TestSMForceState());
+    RunFsm("SMStop", () => CelFSMDepthTests.TestSMStop());
+    RunFsm("SMInternalTransition", () => CelFSMDepthTests.TestSMInternalTransition());
+    RunFsm("SMGetState", () => CelFSMDepthTests.TestSMGetState());
+    RunFsm("SMOnTransitionCallback", () => CelFSMDepthTests.TestSMOnTransitionCallback());
+    RunFsm("SMHistoryState", () => CelFSMDepthTests.TestSMHistoryState());
+    RunFsm("ParallelSMConcurrent", () => CelFSMDepthTests.TestParallelSMConcurrent());
+    RunFsm("ParallelSMRemoveMachine", () => CelFSMDepthTests.TestParallelSMRemoveMachine());
+    RunFsm("HSMRootPath", () => CelFSMDepthTests.TestHSMRootPath());
+    RunFsm("HSMForceRootState", () => CelFSMDepthTests.TestHSMForceRootState());
+    RunFsm("HSMSubStateMachinePath", () => CelFSMDepthTests.TestHSMSubStateMachinePath());
+    RunFsm("HSMGetStateAtPath", () => CelFSMDepthTests.TestHSMGetStateAtPath());
+    RunFsm("HSMGetCurrentStateHierarchy", () => CelFSMDepthTests.TestHSMGetCurrentStateHierarchy());
+    Console.WriteLine($"  == CelFSMDepth: {fsmPass}/{fsmTotal} passed ==");
+
+    int btPass = 0, btTotal = 0;
+    void RunBT(string name, Action test)
+    {
+        btTotal++;
+        try { test(); btPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunBT("BBDefaults", () => CelBehaviorTreeV2DepthTests.TestBBDefaults());
+    RunBT("BBTypeSafeAccessors", () => CelBehaviorTreeV2DepthTests.TestBBTypeSafeAccessors());
+    RunBT("BBDynamicFallback", () => CelBehaviorTreeV2DepthTests.TestBBDynamicFallback());
+    RunBT("BBClear", () => CelBehaviorTreeV2DepthTests.TestBBClear());
+    RunBT("BBSerializeRoundtrip", () => CelBehaviorTreeV2DepthTests.TestBBSerializeRoundtrip());
+    RunBT("NodeDefaults", () => CelBehaviorTreeV2DepthTests.TestNodeDefaults());
+    RunBT("NodeAddChild", () => CelBehaviorTreeV2DepthTests.TestNodeAddChild());
+    RunBT("NodeReset", () => CelBehaviorTreeV2DepthTests.TestNodeReset());
+    RunBT("NodeAbort", () => CelBehaviorTreeV2DepthTests.TestNodeAbort());
+    RunBT("SequenceAllSuccess", () => CelBehaviorTreeV2DepthTests.TestSequenceAllSuccess());
+    RunBT("SequenceFailure", () => CelBehaviorTreeV2DepthTests.TestSequenceFailure());
+    RunBT("SequenceRunningCarriesOver", () => CelBehaviorTreeV2DepthTests.TestSequenceRunningCarriesOver());
+    RunBT("SequenceStaysRunningUntilAllDone", () => CelBehaviorTreeV2DepthTests.TestSequenceStaysRunningUntilAllDone());
+    RunBT("SelectorFirstSuccess", () => CelBehaviorTreeV2DepthTests.TestSelectorFirstSuccess());
+    RunBT("SelectorAllFailure", () => CelBehaviorTreeV2DepthTests.TestSelectorAllFailure());
+    RunBT("SelectorFallsThroughFailure", () => CelBehaviorTreeV2DepthTests.TestSelectorFallsThroughFailure());
+    RunBT("ParallelSuccessAll", () => CelBehaviorTreeV2DepthTests.TestParallelSuccessAll());
+    RunBT("ParallelSuccessAllOneFails", () => CelBehaviorTreeV2DepthTests.TestParallelSuccessAllOneFails());
+    RunBT("ParallelSuccessAny", () => CelBehaviorTreeV2DepthTests.TestParallelSuccessAny());
+    RunBT("ParallelRunningChild", () => CelBehaviorTreeV2DepthTests.TestParallelRunningChild());
+    RunBT("RandomSelectorEventuallySucceeds", () => CelBehaviorTreeV2DepthTests.TestRandomSelectorEventuallySucceeds());
+    RunBT("WeightedRandomSelectsOnlyChild", () => CelBehaviorTreeV2DepthTests.TestWeightedRandomSelectsOnlyChild());
+    RunBT("WeightedRandomNoChildren", () => CelBehaviorTreeV2DepthTests.TestWeightedRandomNoChildren());
+    RunBT("Inverter", () => CelBehaviorTreeV2DepthTests.TestInverter());
+    RunBT("InverterPassthroughRunning", () => CelBehaviorTreeV2DepthTests.TestInverterPassthroughRunning());
+    RunBT("RepeaterCount", () => CelBehaviorTreeV2DepthTests.TestRepeaterCount());
+    RunBT("RepeaterInfinite", () => CelBehaviorTreeV2DepthTests.TestRepeaterInfinite());
+    RunBT("RepeaterFailureStops", () => CelBehaviorTreeV2DepthTests.TestRepeaterFailureStops());
+    RunBT("RepeaterRepeatOnFailure", () => CelBehaviorTreeV2DepthTests.TestRepeaterRepeatOnFailure());
+    RunBT("TimeoutElapses", () => CelBehaviorTreeV2DepthTests.TestTimeoutElapses());
+    RunBT("TimeoutResetsOnSuccess", () => CelBehaviorTreeV2DepthTests.TestTimeoutResetsOnSuccess());
+    RunBT("CoolDownBlocksAfterSuccess", () => CelBehaviorTreeV2DepthTests.TestCoolDownBlocksAfterSuccess());
+    RunBT("BBCheckEqualBool", () => CelBehaviorTreeV2DepthTests.TestBBCheckEqualBool());
+    RunBT("BBCheckEqualInt", () => CelBehaviorTreeV2DepthTests.TestBBCheckEqualInt());
+    RunBT("BBCheckGreaterLess", () => CelBehaviorTreeV2DepthTests.TestBBCheckGreaterLess());
+    RunBT("BBCheckIsSetIsNotSet", () => CelBehaviorTreeV2DepthTests.TestBBCheckIsSetIsNotSet());
+    RunBT("BBCheckNotEqualInt", () => CelBehaviorTreeV2DepthTests.TestBBCheckNotEqualInt());
+    RunBT("UntilSuccessRetries", () => CelBehaviorTreeV2DepthTests.TestUntilSuccessRetries());
+    RunBT("UntilSuccessMaxAttempts", () => CelBehaviorTreeV2DepthTests.TestUntilSuccessMaxAttempts());
+    RunBT("ConditionPassesAndFails", () => CelBehaviorTreeV2DepthTests.TestConditionPassesAndFails());
+    RunBT("NoOp", () => CelBehaviorTreeV2DepthTests.TestNoOp());
+    RunBT("Wait", () => CelBehaviorTreeV2DepthTests.TestWait());
+    RunBT("WaitForConditionTimeout", () => CelBehaviorTreeV2DepthTests.TestWaitForConditionTimeout());
+    RunBT("WaitForConditionMet", () => CelBehaviorTreeV2DepthTests.TestWaitForConditionMet());
+    RunBT("TaskLambda", () => CelBehaviorTreeV2DepthTests.TestTaskLambda());
+    RunBT("TaskExceptionBecomesError", () => CelBehaviorTreeV2DepthTests.TestTaskExceptionBecomesError());
+    RunBT("MoveToReachesTarget", () => CelBehaviorTreeV2DepthTests.TestMoveToReachesTarget());
+    RunBT("MoveToRunningWhenFar", () => CelBehaviorTreeV2DepthTests.TestMoveToRunningWhenFar());
+    RunBT("MoveToOnAbortCallback", () => CelBehaviorTreeV2DepthTests.TestMoveToOnAbortCallback());
+    RunBT("PlayAnimationNoWait", () => CelBehaviorTreeV2DepthTests.TestPlayAnimationNoWait());
+    RunBT("PlayAnimationWaitComplete", () => CelBehaviorTreeV2DepthTests.TestPlayAnimationWaitComplete());
+    RunBT("TreeDefaults", () => CelBehaviorTreeV2DepthTests.TestTreeDefaults());
+    RunBT("TreeTickNoContext", () => CelBehaviorTreeV2DepthTests.TestTreeTickNoContext());
+    RunBT("TreeTickInactive", () => CelBehaviorTreeV2DepthTests.TestTreeTickInactive());
+    RunBT("TreeTickIntervalThrottles", () => CelBehaviorTreeV2DepthTests.TestTreeTickIntervalThrottles());
+    RunBT("TreeAbort", () => CelBehaviorTreeV2DepthTests.TestTreeAbort());
+    RunBT("TreeResetClearsBlackboard", () => CelBehaviorTreeV2DepthTests.TestTreeResetClearsBlackboard());
+    RunBT("BuilderSimpleSequence", () => CelBehaviorTreeV2DepthTests.TestBuilderSimpleSequence());
+    RunBT("BuilderSelector", () => CelBehaviorTreeV2DepthTests.TestBuilderSelector());
+    RunBT("BuilderNested", () => CelBehaviorTreeV2DepthTests.TestBuilderNested());
+    RunBT("BuilderDecorators", () => CelBehaviorTreeV2DepthTests.TestBuilderDecorators());
+    RunBT("BuilderBlackboardCheckNode", () => CelBehaviorTreeV2DepthTests.TestBuilderBlackboardCheckNode());
+    RunBT("BuilderUnclosedThrows", () => CelBehaviorTreeV2DepthTests.TestBuilderUnclosedThrows());
+    RunBT("BuilderEmptyThrows", () => CelBehaviorTreeV2DepthTests.TestBuilderEmptyThrows());
+    RunBT("BuilderWaitAndMoveTo", () => CelBehaviorTreeV2DepthTests.TestBuilderWaitAndMoveTo());
+    Console.WriteLine($"  == CelBehaviorTreeV2Depth: {btPass}/{btTotal} passed ==");
+
+    int goapPass = 0, goapTotal = 0;
+    void RunGOAP(string name, Action test)
+    {
+        goapTotal++;
+        try { test(); goapPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunGOAP("WSDefaults", () => CelGOAPDepthTests.TestWSDefaults());
+    RunGOAP("WSAccessors", () => CelGOAPDepthTests.TestWSAccessors());
+    RunGOAP("WSHasKey", () => CelGOAPDepthTests.TestWSHasKey());
+    RunGOAP("WSClone", () => CelGOAPDepthTests.TestWSClone());
+    RunGOAP("WSDistanceTo", () => CelGOAPDepthTests.TestWSDistanceTo());
+    RunGOAP("WSSatisfies", () => CelGOAPDepthTests.TestWSSatisfies());
+    RunGOAP("WSApplyEffects", () => CelGOAPDepthTests.TestWSApplyEffects());
+    RunGOAP("WSFingerprint", () => CelGOAPDepthTests.TestWSFingerprint());
+    RunGOAP("ActionDefaults", () => CelGOAPDepthTests.TestActionDefaults());
+    RunGOAP("ActionPreconditionsMet", () => CelGOAPDepthTests.TestActionPreconditionsMet());
+    RunGOAP("ActionCanExecuteWithValidator", () => CelGOAPDepthTests.TestActionCanExecuteWithValidator());
+    RunGOAP("ActionGetCostWithMultiplier", () => CelGOAPDepthTests.TestActionGetCostWithMultiplier());
+    RunGOAP("ActionExecute", () => CelGOAPDepthTests.TestActionExecute());
+    RunGOAP("ActionNoExecutorDefaultsTrue", () => CelGOAPDepthTests.TestActionNoExecutorDefaultsTrue());
+    RunGOAP("GoalDefaults", () => CelGOAPDepthTests.TestGoalDefaults());
+    RunGOAP("GoalDynamicPriority", () => CelGOAPDepthTests.TestGoalDynamicPriority());
+    RunGOAP("GoalInvalidWhenAlreadyAchieved", () => CelGOAPDepthTests.TestGoalInvalidWhenAlreadyAchieved());
+    RunGOAP("GoalCoolDown", () => CelGOAPDepthTests.TestGoalCoolDown());
+    RunGOAP("GoalIsValidFunc", () => CelGOAPDepthTests.TestGoalIsValidFunc());
+    RunGOAP("ContextMemory", () => CelGOAPDepthTests.TestContextMemory());
+    RunGOAP("PlannerDefaults", () => CelGOAPDepthTests.TestPlannerDefaults());
+    RunGOAP("PlannerRegisterRemoveActions", () => CelGOAPDepthTests.TestPlannerRegisterRemoveActions());
+    RunGOAP("PlannerSimplePlan", () => CelGOAPDepthTests.TestPlannerSimplePlan());
+    RunGOAP("PlannerMultiStepPlan", () => CelGOAPDepthTests.TestPlannerMultiStepPlan());
+    RunGOAP("PlannerNoPlanWhenImpossible", () => CelGOAPDepthTests.TestPlannerNoPlanWhenImpossible());
+    RunGOAP("PlannerPrefersLowCost", () => CelGOAPDepthTests.TestPlannerPrefersLowCost());
+    RunGOAP("PlannerPickGoalHighestPriority", () => CelGOAPDepthTests.TestPlannerPickGoalHighestPriority());
+    RunGOAP("PlannerPickGoalSkipsInvalid", () => CelGOAPDepthTests.TestPlannerPickGoalSkipsInvalid());
+    RunGOAP("PlannerStats", () => CelGOAPDepthTests.TestPlannerStats());
+    RunGOAP("ExecutorDefaults", () => CelGOAPDepthTests.TestExecutorDefaults());
+    RunGOAP("ExecutorPlansAndExecutes", () => CelGOAPDepthTests.TestExecutorPlansAndExecutes());
+    RunGOAP("ExecutorFailsWhenNoPlan", () => CelGOAPDepthTests.TestExecutorFailsWhenNoPlan());
+    RunGOAP("ExecutorPlanProgress", () => CelGOAPDepthTests.TestExecutorPlanProgress());
+    RunGOAP("ExecutorForceReplan", () => CelGOAPDepthTests.TestExecutorForceReplan());
+    RunGOAP("ExecutorAbort", () => CelGOAPDepthTests.TestExecutorAbort());
+    RunGOAP("ExecutorOnActionEvents", () => CelGOAPDepthTests.TestExecutorOnActionEvents());
+    RunGOAP("MemoryCachePlan", () => CelGOAPDepthTests.TestMemoryCachePlan());
+    RunGOAP("MemoryRecordSeen", () => CelGOAPDepthTests.TestMemoryRecordSeen());
+    RunGOAP("BuilderActionAndGoal", () => CelGOAPDepthTests.TestBuilderActionAndGoal());
+    RunGOAP("BuilderDynamicGoal", () => CelGOAPDepthTests.TestBuilderDynamicGoal());
+    RunGOAP("PresetMoveTo", () => CelGOAPDepthTests.TestPresetMoveTo());
+    RunGOAP("PresetAttack", () => CelGOAPDepthTests.TestPresetAttack());
+    RunGOAP("PresetReload", () => CelGOAPDepthTests.TestPresetReload());
+    RunGOAP("PresetPickup", () => CelGOAPDepthTests.TestPresetPickup());
+    RunGOAP("PresetFlee", () => CelGOAPDepthTests.TestPresetFlee());
+    RunGOAP("PresetOpenDoor", () => CelGOAPDepthTests.TestPresetOpenDoor());
+    RunGOAP("IntegrationFullCycle", () => CelGOAPDepthTests.TestIntegrationFullCycle());
+    Console.WriteLine($"  == CelGOAPDepth: {goapPass}/{goapTotal} passed ==");
+
+    int streepass = 0, streeltotal = 0;
+    void RunST(string name, Action test)
+    {
+        streeltotal++;
+        try { test(); streepass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunST("EnumTransitionType", () => CelStateTreeDepthTests.TestEnumTransitionType());
+    RunST("EnumRunStatus", () => CelStateTreeDepthTests.TestEnumRunStatus());
+    RunST("EnumComparisonOp", () => CelStateTreeDepthTests.TestEnumComparisonOp());
+    RunST("EnumBlackboardValueType", () => CelStateTreeDepthTests.TestEnumBlackboardValueType());
+    RunST("HandleInvalidDefault", () => CelStateTreeDepthTests.TestHandleInvalidDefault());
+    RunST("HandleWithNullInstance", () => CelStateTreeDepthTests.TestHandleWithNullInstance());
+    RunST("HandleWithZeroEntity", () => CelStateTreeDepthTests.TestHandleWithZeroEntity());
+    RunST("TaskDefaults", () => CelStateTreeDepthTests.TestTaskDefaults());
+    RunST("TaskEnterExitToggle", () => CelStateTreeDepthTests.TestTaskEnterExitToggle());
+    RunST("WaitTask", () => CelStateTreeDepthTests.TestWaitTask());
+    RunST("WaitTaskSucceeds", () => CelStateTreeDepthTests.TestWaitTaskSucceeds());
+    RunST("WaitTaskResetsOnEnter", () => CelStateTreeDepthTests.TestWaitTaskResetsOnEnter());
+    RunST("SetBlackboardBool", () => CelStateTreeDepthTests.TestSetBlackboardBool());
+    RunST("SetBlackboardInt", () => CelStateTreeDepthTests.TestSetBlackboardInt());
+    RunST("SetBlackboardFloat", () => CelStateTreeDepthTests.TestSetBlackboardFloat());
+    RunST("SetBlackboardString", () => CelStateTreeDepthTests.TestSetBlackboardString());
+    RunST("SetBlackboardVector3", () => CelStateTreeDepthTests.TestSetBlackboardVector3());
+    RunST("SetBlackboardEntityId", () => CelStateTreeDepthTests.TestSetBlackboardEntityId());
+    RunST("PlayAnimationNonLoop", () => CelStateTreeDepthTests.TestPlayAnimationNonLoop());
+    RunST("PlayAnimationLoop", () => CelStateTreeDepthTests.TestPlayAnimationLoop());
+    RunST("BBConditionEqual", () => CelStateTreeDepthTests.TestBBConditionEqual());
+    RunST("BBConditionMissingKey", () => CelStateTreeDepthTests.TestBBConditionMissingKey());
+    RunST("BBConditionGreaterThan", () => CelStateTreeDepthTests.TestBBConditionGreaterThan());
+    RunST("BBConditionInRange", () => CelStateTreeDepthTests.TestBBConditionInRange());
+    RunST("TimerConditionNotYet", () => CelStateTreeDepthTests.TestTimerConditionNotYet());
+    RunST("TimerConditionExpired", () => CelStateTreeDepthTests.TestTimerConditionExpired());
+    RunST("HasTargetNoKey", () => CelStateTreeDepthTests.TestHasTargetNoKey());
+    RunST("HasTargetZeroId", () => CelStateTreeDepthTests.TestHasTargetZeroId());
+    RunST("HealthConditionLowHp", () => CelStateTreeDepthTests.TestHealthConditionLowHp());
+    RunST("HealthConditionHighHp", () => CelStateTreeDepthTests.TestHealthConditionHighHp());
+    RunST("TransitionEmptyConditionsAlwaysTrue", () => CelStateTreeDepthTests.TestTransitionEmptyConditionsAlwaysTrue());
+    RunST("TransitionCanTransitionGate", () => CelStateTreeDepthTests.TestTransitionCanTransitionGate());
+    RunST("TransitionAndLogic", () => CelStateTreeDepthTests.TestTransitionAndLogic());
+    RunST("StateEvaluateEnterConditions", () => CelStateTreeDepthTests.TestStateEvaluateEnterConditions());
+    RunST("StateSortTransitions", () => CelStateTreeDepthTests.TestStateSortTransitions());
+    RunST("AssetAddAndGetState", () => CelStateTreeDepthTests.TestAssetAddAndGetState());
+    RunST("AssetNextState", () => CelStateTreeDepthTests.TestAssetNextState());
+    RunST("AssetDuplicateStateOverwrites", () => CelStateTreeDepthTests.TestAssetDuplicateStateOverwrites());
+    RunST("InstanceBind", () => CelStateTreeDepthTests.TestInstanceBind());
+    RunST("InstanceBindEmptyAsset", () => CelStateTreeDepthTests.TestInstanceBindEmptyAsset());
+    RunST("InstanceStart", () => CelStateTreeDepthTests.TestInstanceStart());
+    RunST("InstanceStartNoAsset", () => CelStateTreeDepthTests.TestInstanceStartNoAsset());
+    RunST("InstanceStop", () => CelStateTreeDepthTests.TestInstanceStop());
+    RunST("InstanceTickTransitionsAfterTimer", () => CelStateTreeDepthTests.TestInstanceTickTransitionsAfterTimer());
+    RunST("InstanceReenterState", () => CelStateTreeDepthTests.TestInstanceReenterState());
+    RunST("InstanceNextStateWraps", () => CelStateTreeDepthTests.TestInstanceNextStateWraps());
+    RunST("InstancePause", () => CelStateTreeDepthTests.TestInstancePause());
+    RunST("InstanceSucceededTransition", () => CelStateTreeDepthTests.TestInstanceSucceededTransition());
+    RunST("InstanceFailedTransition", () => CelStateTreeDepthTests.TestInstanceFailedTransition());
+    RunST("InstanceReset", () => CelStateTreeDepthTests.TestInstanceReset());
+    RunST("InstanceStateDataResetsOnEnter", () => CelStateTreeDepthTests.TestInstanceStateDataResetsOnEnter());
+    RunST("SystemDefaults", () => CelStateTreeDepthTests.TestSystemDefaults());
+    RunST("SystemAssignAndTick", () => CelStateTreeDepthTests.TestSystemAssignAndTick());
+    RunST("SystemTickRateThrottling", () => CelStateTreeDepthTests.TestSystemTickRateThrottling());
+    RunST("SystemDisabledComponent", () => CelStateTreeDepthTests.TestSystemDisabledComponent());
+    RunST("DebuggerClearFrame", () => CelStateTreeDepthTests.TestDebuggerClearFrame());
+    RunST("DebuggerGetSnapshot", () => CelStateTreeDepthTests.TestDebuggerGetSnapshot());
+    RunST("DebuggerSummary", () => CelStateTreeDepthTests.TestDebuggerSummary());
+    Console.WriteLine($"  == CelStateTreeDepth: {streepass}/{streeltotal} passed ==");
+
+    int eqsPass = 0, eqsTotal = 0;
+    void RunEQS(string name, Action test)
+    {
+        eqsTotal++;
+        try { test(); eqsPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunEQS("ItemDefaults", () => CelEQSDepthTests.TestItemDefaults());
+    RunEQS("ItemWithPosition", () => CelEQSDepthTests.TestItemWithPosition());
+    RunEQS("ContextDefaults", () => CelEQSDepthTests.TestContextDefaults());
+    RunEQS("ContextSetQuerier", () => CelEQSDepthTests.TestContextSetQuerier());
+    RunEQS("ResultEmpty", () => CelEQSDepthTests.TestResultEmpty());
+    RunEQS("ResultSorting", () => CelEQSDepthTests.TestResultSorting());
+    RunEQS("ResultInvalidFilter", () => CelEQSDepthTests.TestResultInvalidFilter());
+    RunEQS("ResultTruncateTo", () => CelEQSDepthTests.TestResultTruncateTo());
+    RunEQS("ResultGetTopItems", () => CelEQSDepthTests.TestResultGetTopItems());
+    RunEQS("ResultGetRandomTopItem", () => CelEQSDepthTests.TestResultGetRandomTopItem());
+    RunEQS("GenAllActorsOfType", () => CelEQSDepthTests.TestGenAllActorsOfType());
+    RunEQS("GenAllActorsByTag", () => CelEQSDepthTests.TestGenAllActorsByTag());
+    RunEQS("GenActorsInRadius", () => CelEQSDepthTests.TestGenActorsInRadius());
+    RunEQS("GenPointsInRadius", () => CelEQSDepthTests.TestGenPointsInRadius());
+    RunEQS("GenGrid", () => CelEQSDepthTests.TestGenGrid());
+    RunEQS("GenAlongPath", () => CelEQSDepthTests.TestGenAlongPath());
+    RunEQS("GenCurrentLocation", () => CelEQSDepthTests.TestGenCurrentLocation());
+    RunEQS("DistancePreferCloser", () => CelEQSDepthTests.TestDistancePreferCloser());
+    RunEQS("DistancePreferFurther", () => CelEQSDepthTests.TestDistancePreferFurther());
+    RunEQS("DistanceClamp", () => CelEQSDepthTests.TestDistanceClamp());
+    RunEQS("TraceVisible", () => CelEQSDepthTests.TestTraceVisible());
+    RunEQS("TraceBlocked", () => CelEQSDepthTests.TestTraceBlocked());
+    RunEQS("TraceOutOfRange", () => CelEQSDepthTests.TestTraceOutOfRange());
+    RunEQS("DotForward", () => CelEQSDepthTests.TestDotForward());
+    RunEQS("DotPerpendicular", () => CelEQSDepthTests.TestDotPerpendicular());
+    RunEQS("AngleSmaller", () => CelEQSDepthTests.TestAngleSmaller());
+    RunEQS("AnglePerpendicular", () => CelEQSDepthTests.TestAnglePerpendicular());
+    RunEQS("PathCost", () => CelEQSDepthTests.TestPathCost());
+    RunEQS("BlackboardExactMatch", () => CelEQSDepthTests.TestBlackboardExactMatch());
+    RunEQS("BlackboardOffByOne", () => CelEQSDepthTests.TestBlackboardOffByOne());
+    RunEQS("NoiseRandom", () => CelEQSDepthTests.TestNoiseRandom());
+    RunEQS("HeightPreferHigher", () => CelEQSDepthTests.TestHeightPreferHigher());
+    RunEQS("CoverWithBlock", () => CelEQSDepthTests.TestCoverWithBlock());
+    RunEQS("CoverNoBlock", () => CelEQSDepthTests.TestCoverNoBlock());
+    RunEQS("MultipleBest", () => CelEQSDepthTests.TestMultipleBest());
+    RunEQS("MultipleAverage", () => CelEQSDepthTests.TestMultipleAverage());
+    RunEQS("CurveLinear", () => CelEQSDepthTests.TestCurveLinear());
+    RunEQS("CurveConstant", () => CelEQSDepthTests.TestCurveConstant());
+    RunEQS("CurveParabolic", () => CelEQSDepthTests.TestCurveParabolic());
+    RunEQS("QueryDefaults", () => CelEQSDepthTests.TestQueryDefaults());
+    RunEQS("QueryExecuteWithDistance", () => CelEQSDepthTests.TestQueryExecuteWithDistance());
+    RunEQS("QueryMaxResults", () => CelEQSDepthTests.TestQueryMaxResults());
+    RunEQS("QueryNoGenerator", () => CelEQSDepthTests.TestQueryNoGenerator());
+    RunEQS("QueryNoItems", () => CelEQSDepthTests.TestQueryNoItems());
+    RunEQS("QueryClone", () => CelEQSDepthTests.TestQueryClone());
+    RunEQS("ManagerRegisterQuery", () => CelEQSDepthTests.TestManagerRegisterQuery());
+    RunEQS("ManagerExecuteByName", () => CelEQSDepthTests.TestManagerExecuteByName());
+    RunEQS("ManagerCache", () => CelEQSDepthTests.TestManagerCache());
+    RunEQS("ManagerCacheExpired", () => CelEQSDepthTests.TestManagerCacheExpired());
+    RunEQS("ManagerClearCache", () => CelEQSDepthTests.TestManagerClearCache());
+    RunEQS("ManagerUnregisteredQuery", () => CelEQSDepthTests.TestManagerUnregisteredQuery());
+    Console.WriteLine($"  == CelEQSDepth: {eqsPass}/{eqsTotal} passed ==");
+
+    // ===== EnhancedPerceptionSystem 深度块 (通道/目标/刺激/AABB遮挡/感知过滤/四通道感官/记忆/遗忘曲线/注意力/主组件) =====
+    int percepPass = 0, percepTotal = 0;
+    void RunPercep(string name, Action test)
+    {
+        percepTotal++;
+        try { test(); percepPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunPercep("SenseChannelFlags", () => EnhancedPerceptionDepthTests.TestSenseChannelFlags());
+    RunPercep("PerceptionEventValues", () => EnhancedPerceptionDepthTests.TestPerceptionEventValues());
+    RunPercep("TargetDefaults", () => EnhancedPerceptionDepthTests.TestTargetDefaults());
+    RunPercep("TargetSyncFromActor", () => EnhancedPerceptionDepthTests.TestTargetSyncFromActor());
+    RunPercep("StimulusDefaults", () => EnhancedPerceptionDepthTests.TestStimulusDefaults());
+    RunPercep("AABBOcclusionAdd", () => EnhancedPerceptionDepthTests.TestAABBOcclusionAdd());
+    RunPercep("AABBOcclusionBlocked", () => EnhancedPerceptionDepthTests.TestAABBOcclusionBlocked());
+    RunPercep("AABBOcclusionClear", () => EnhancedPerceptionDepthTests.TestAABBOcclusionClear());
+    RunPercep("AABBOcclusionMiss", () => EnhancedPerceptionDepthTests.TestAABBOcclusionMiss());
+    RunPercep("AABBOcclusionBehind", () => EnhancedPerceptionDepthTests.TestAABBOcclusionBehind());
+    RunPercep("RayAABBStatic", () => EnhancedPerceptionDepthTests.TestRayAABBStatic());
+    RunPercep("FilterSightInRange", () => EnhancedPerceptionDepthTests.TestFilterSightInRange());
+    RunPercep("FilterSightOutOfRange", () => EnhancedPerceptionDepthTests.TestFilterSightOutOfRange());
+    RunPercep("FilterSightFOVMiss", () => EnhancedPerceptionDepthTests.TestFilterSightFOVMiss());
+    RunPercep("FilterSightCamouflageReduces", () => EnhancedPerceptionDepthTests.TestFilterSightCamouflageReduces());
+    RunPercep("FilterSightOcclusion", () => EnhancedPerceptionDepthTests.TestFilterSightOcclusion());
+    RunPercep("FilterHearing", () => EnhancedPerceptionDepthTests.TestFilterHearing());
+    RunPercep("STMRecordAndLastKnown", () => EnhancedPerceptionDepthTests.TestSTMRecordAndLastKnown());
+    RunPercep("STMExpire", () => EnhancedPerceptionDepthTests.TestSTMExpire());
+    RunPercep("STMForget", () => EnhancedPerceptionDepthTests.TestSTMForget());
+    RunPercep("ForgettingCurveRetention", () => EnhancedPerceptionDepthTests.TestForgettingCurveRetention());
+    RunPercep("ForgettingCurveReinforce", () => EnhancedPerceptionDepthTests.TestForgettingCurveReinforce());
+    RunPercep("LTMEncounterAndConfidence", () => EnhancedPerceptionDepthTests.TestLTMEncounterAndConfidence());
+    RunPercep("LTMGetEntry", () => EnhancedPerceptionDepthTests.TestLTMGetEntry());
+    RunPercep("LTMMultipleEncounters", () => EnhancedPerceptionDepthTests.TestLTMMultipleEncounters());
+    RunPercep("MemorySystemRecord", () => EnhancedPerceptionDepthTests.TestMemorySystemRecord());
+    RunPercep("AttentionEmpty", () => EnhancedPerceptionDepthTests.TestAttentionEmpty());
+    RunPercep("AttentionSingleTarget", () => EnhancedPerceptionDepthTests.TestAttentionSingleTarget());
+    RunPercep("AttentionBudgetSums", () => EnhancedPerceptionDepthTests.TestAttentionBudgetSums());
+    RunPercep("AttentionHighestThreatIsFocus", () => EnhancedPerceptionDepthTests.TestAttentionHighestThreatIsFocus());
+    RunPercep("AttentionIsTracked", () => EnhancedPerceptionDepthTests.TestAttentionIsTracked());
+    RunPercep("ComponentDefaults", () => EnhancedPerceptionDepthTests.TestComponentDefaults());
+    RunPercep("ComponentWithOwner", () => EnhancedPerceptionDepthTests.TestComponentWithOwner());
+    RunPercep("ComponentSetTransformProviders", () => EnhancedPerceptionDepthTests.TestComponentSetTransformProviders());
+    RunPercep("RegisterDefaultSenses", () => EnhancedPerceptionDepthTests.TestRegisterDefaultSenses());
+    RunPercep("RegisterTargetFromActor", () => EnhancedPerceptionDepthTests.TestRegisterTargetFromActor());
+    RunPercep("UnregisterTarget", () => EnhancedPerceptionDepthTests.TestUnregisterTarget());
+    RunPercep("SightSenseDetectsTarget", () => EnhancedPerceptionDepthTests.TestSightSenseDetectsTarget());
+    RunPercep("SightSenseMissesBehind", () => EnhancedPerceptionDepthTests.TestSightSenseMissesBehind());
+    RunPercep("OnLostEvent", () => EnhancedPerceptionDepthTests.TestOnLostEvent());
+    RunPercep("HearingSenseReportNoise", () => EnhancedPerceptionDepthTests.TestHearingSenseReportNoise());
+    RunPercep("HearingMaxAgeExpire", () => EnhancedPerceptionDepthTests.TestHearingMaxAgeExpire());
+    RunPercep("SmellSenseDropScent", () => EnhancedPerceptionDepthTests.TestSmellSenseDropScent());
+    RunPercep("TouchSenseReportTouch", () => EnhancedPerceptionDepthTests.TestTouchSenseReportTouch());
+    RunPercep("Clear", () => EnhancedPerceptionDepthTests.TestClear());
+    RunPercep("MemoryIntegratesWithComponent", () => EnhancedPerceptionDepthTests.TestMemoryIntegratesWithComponent());
+    Console.WriteLine($"  == EnhancedPerceptionDepth: {percepPass}/{percepTotal} passed ==");
+
+    // ===== MassCrowd 群体行为系统深度块 (SOA Chunk/EntityManager/行为处理器/RVO避障/编队/生成器) =====
+    int crowdPass = 0, crowdTotal = 0;
+    void RunCrowd(string name, Action test)
+    {
+        crowdTotal++;
+        try { test(); crowdPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunCrowd("AgentStateValues", () => MassCrowdDepthTests.TestAgentStateValues());
+    RunCrowd("BehaviorTypeValues", () => MassCrowdDepthTests.TestBehaviorTypeValues());
+    RunCrowd("LodValues", () => MassCrowdDepthTests.TestLodValues());
+    RunCrowd("FormationTypeValues", () => MassCrowdDepthTests.TestFormationTypeValues());
+    RunCrowd("ChunkCapacity", () => MassCrowdDepthTests.TestChunkCapacity());
+    RunCrowd("ChunkAddRemove", () => MassCrowdDepthTests.TestChunkAddRemove());
+    RunCrowd("ChunkFill", () => MassCrowdDepthTests.TestChunkFill());
+    RunCrowd("ChunkAgentView", () => MassCrowdDepthTests.TestChunkAgentView());
+    RunCrowd("ManagerAllocateDefaults", () => MassCrowdDepthTests.TestManagerAllocateDefaults());
+    RunCrowd("ManagerAllocateCustom", () => MassCrowdDepthTests.TestManagerAllocateCustom());
+    RunCrowd("ManagerBatchAllocate", () => MassCrowdDepthTests.TestManagerBatchAllocate());
+    RunCrowd("ManagerFree", () => MassCrowdDepthTests.TestManagerFree());
+    RunCrowd("ManagerHasAgent", () => MassCrowdDepthTests.TestManagerHasAgent());
+    RunCrowd("ManagerGetInvalidAgent", () => MassCrowdDepthTests.TestManagerGetInvalidAgent());
+    RunCrowd("ManagerReserve", () => MassCrowdDepthTests.TestManagerReserve());
+    RunCrowd("ManagerSetPath", () => MassCrowdDepthTests.TestManagerSetPath());
+    RunCrowd("ManagerPatrolLoop", () => MassCrowdDepthTests.TestManagerPatrolLoop());
+    RunCrowd("ManagerForEachChunk", () => MassCrowdDepthTests.TestManagerForEachChunk());
+    RunCrowd("ManagerGetAgentIdByLocation", () => MassCrowdDepthTests.TestManagerGetAgentIdByLocation());
+    RunCrowd("ManagerClear", () => MassCrowdDepthTests.TestManagerClear());
+    RunCrowd("SteerTowardsAligned", () => MassCrowdDepthTests.TestSteerTowardsAligned());
+    RunCrowd("SteerTowards90Deg", () => MassCrowdDepthTests.TestSteerTowards90Deg());
+    RunCrowd("SteerTowardsZeroDir", () => MassCrowdDepthTests.TestSteerTowardsZeroDir());
+    RunCrowd("SeekBehaviorMovesTowardTarget", () => MassCrowdDepthTests.TestSeekBehaviorMovesTowardTarget());
+    RunCrowd("FleeBehaviorMovesAway", () => MassCrowdDepthTests.TestFleeBehaviorMovesAway());
+    RunCrowd("WanderBehaviorProducesVelocity", () => MassCrowdDepthTests.TestWanderBehaviorProducesVelocity());
+    RunCrowd("PatrolBehaviorNoLoop", () => MassCrowdDepthTests.TestPatrolBehaviorNoLoop());
+    RunCrowd("PatrolBehaviorWithLoop", () => MassCrowdDepthTests.TestPatrolBehaviorWithLoop());
+    RunCrowd("RVO_NoNeighbors", () => MassCrowdDepthTests.TestRVO_NoNeighbors());
+    RunCrowd("RVO_HeadOnAvoidance", () => MassCrowdDepthTests.TestRVO_HeadOnAvoidance());
+    RunCrowd("RVO_ClampToMaxSpeed", () => MassCrowdDepthTests.TestRVO_ClampToMaxSpeed());
+    RunCrowd("RVO_TwoNeighbors", () => MassCrowdDepthTests.TestRVO_TwoNeighbors());
+    RunCrowd("FormationCreateGroup", () => MassCrowdDepthTests.TestFormationCreateGroup());
+    RunCrowd("FormationAddMember", () => MassCrowdDepthTests.TestFormationAddMember());
+    RunCrowd("FormationOffsetCircle", () => MassCrowdDepthTests.TestFormationOffsetCircle());
+    RunCrowd("FormationOffsetColumn", () => MassCrowdDepthTests.TestFormationOffsetColumn());
+    RunCrowd("FormationOffsetLine", () => MassCrowdDepthTests.TestFormationOffsetLine());
+    RunCrowd("FormationOffsetNone", () => MassCrowdDepthTests.TestFormationOffsetNone());
+    RunCrowd("FormationUpdateGroups", () => MassCrowdDepthTests.TestFormationUpdateGroups());
+    RunCrowd("SpawnerSpawnAt", () => MassCrowdDepthTests.TestSpawnerSpawnAt());
+    RunCrowd("SpawnerDespawn", () => MassCrowdDepthTests.TestSpawnerDespawn());
+    RunCrowd("SpawnerDespawnUnknown", () => MassCrowdDepthTests.TestSpawnerDespawnUnknown());
+    RunCrowd("GroupDefaults", () => MassCrowdDepthTests.TestGroupDefaults());
+    RunCrowd("ConfigDefaults", () => MassCrowdDepthTests.TestConfigDefaults());
+    RunCrowd("IntegrationMultipleSeekAgents", () => MassCrowdDepthTests.TestIntegrationMultipleSeekAgents());
+    Console.WriteLine($"  == MassCrowdDepth: {crowdPass}/{crowdTotal} passed ==");
+
+    // ===== LLM 智能系统深度块 (对话上下文/token估计/SSE解析/本地规则回退/LLM→行为树/NPC对话情感/任务生成/DDA) =====
+    int llmPass = 0, llmTotal = 0;
+    void RunLLM(string name, Action test)
+    {
+        llmTotal++;
+        try { test(); llmPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunLLM("PlatformValues", () => LLMIntelligenceDepthTests.TestLLMPlatformValues());
+    RunLLM("RoleValues", () => LLMIntelligenceDepthTests.TestLLMRoleValues());
+    RunLLM("ConfigDefaults", () => LLMIntelligenceDepthTests.TestConfigDefaults());
+    RunLLM("ConfigCtor", () => LLMIntelligenceDepthTests.TestConfigCtor());
+    RunLLM("MessageRoleName", () => LLMIntelligenceDepthTests.TestMessageRoleName());
+    RunLLM("MessageDefaults", () => LLMIntelligenceDepthTests.TestMessageDefaults());
+    RunLLM("UsageTotalTokens", () => LLMIntelligenceDepthTests.TestUsageTotalTokens());
+    RunLLM("ResponseDefaultsAndToString", () => LLMIntelligenceDepthTests.TestResponseDefaultsAndToString());
+    RunLLM("ConversationAppend", () => LLMIntelligenceDepthTests.TestConversationAppend());
+    RunLLM("ConversationSetSystem", () => LLMIntelligenceDepthTests.TestConversationSetSystem());
+    RunLLM("ConversationTruncateKeepsSystem", () => LLMIntelligenceDepthTests.TestConversationTruncateKeepsSystem());
+    RunLLM("ConversationTruncateDropsOld", () => LLMIntelligenceDepthTests.TestConversationTruncateDropsOld());
+    RunLLM("ConversationClear", () => LLMIntelligenceDepthTests.TestConversationClear());
+    RunLLM("ConversationId", () => LLMIntelligenceDepthTests.TestConversationId());
+    RunLLM("TokenEstimatorEmpty", () => LLMIntelligenceDepthTests.TestTokenEstimatorEmpty());
+    RunLLM("TokenEstimatorEnglish", () => LLMIntelligenceDepthTests.TestTokenEstimatorEnglish());
+    RunLLM("TokenEstimatorChinese", () => LLMIntelligenceDepthTests.TestTokenEstimatorChinese());
+    RunLLM("TokenEstimatorMinOne", () => LLMIntelligenceDepthTests.TestTokenEstimatorMinOne());
+    RunLLM("FamilyForPlatforms", () => LLMIntelligenceDepthTests.TestFamilyForPlatforms());
+    RunLLM("SSEParserBasic", () => LLMIntelligenceDepthTests.TestSSEParserBasic());
+    RunLLM("SSEParserWithEventType", () => LLMIntelligenceDepthTests.TestSSEParserWithEventType());
+    RunLLM("SSEParserMultilineData", () => LLMIntelligenceDepthTests.TestSSEParserMultilineData());
+    RunLLM("SSEParserEmptyStream", () => LLMIntelligenceDepthTests.TestSSEParserEmptyStream());
+    RunLLM("LocalRuleKnownKeyword", () => LLMIntelligenceDepthTests.TestLocalRuleKnownKeyword());
+    RunLLM("LocalRuleFallback", () => LLMIntelligenceDepthTests.TestLocalRuleFallback());
+    RunLLM("LocalRuleEmptyInput", () => LLMIntelligenceDepthTests.TestLocalRuleEmptyInput());
+    RunLLM("LocalRuleAddRule", () => LLMIntelligenceDepthTests.TestLocalRuleAddRule());
+    RunLLM("BehaviorNodeDefaults", () => LLMIntelligenceDepthTests.TestBehaviorNodeDefaults());
+    RunLLM("ParseSpecValid", () => LLMIntelligenceDepthTests.TestParseSpecValid());
+    RunLLM("ParseSpecInvalid", () => LLMIntelligenceDepthTests.TestParseSpecInvalid());
+    RunLLM("ParseSpecEmpty", () => LLMIntelligenceDepthTests.TestParseSpecEmpty());
+    RunLLM("BuildTree", () => LLMIntelligenceDepthTests.TestBuildTree());
+    RunLLM("BuildBehaviorPrompt", () => LLMIntelligenceDepthTests.TestBuildBehaviorPrompt());
+    RunLLM("PersonaDefaults", () => LLMIntelligenceDepthTests.TestPersonaDefaults());
+    RunLLM("MemoryEntryDefaults", () => LLMIntelligenceDepthTests.TestMemoryEntryDefaults());
+    RunLLM("EmotionMoodLabel", () => LLMIntelligenceDepthTests.TestEmotionMoodLabel());
+    RunLLM("EmotionApplyClamp", () => LLMIntelligenceDepthTests.TestEmotionApplyClamp());
+    RunLLM("EmotionApplyNormal", () => LLMIntelligenceDepthTests.TestEmotionApplyNormal());
+    RunLLM("QuestParseValid", () => LLMIntelligenceDepthTests.TestQuestParseValid());
+    RunLLM("QuestParseInvalid", () => LLMIntelligenceDepthTests.TestQuestParseInvalid());
+    RunLLM("QuestRuleGenerateDifficulty1", () => LLMIntelligenceDepthTests.TestQuestRuleGenerateDifficulty1());
+    RunLLM("QuestRuleGenerateDifficulty5", () => LLMIntelligenceDepthTests.TestQuestRuleGenerateDifficulty5());
+    RunLLM("QuestSpecDefaults", () => LLMIntelligenceDepthTests.TestQuestSpecDefaults());
+    RunLLM("GMAIDefaults", () => LLMIntelligenceDepthTests.TestGMAIDefaults());
+    RunLLM("GMAIEnemyStatMultiplier", () => LLMIntelligenceDepthTests.TestGMAIEnemyStatMultiplier());
+    RunLLM("GMAIObserveHighPerformance", () => LLMIntelligenceDepthTests.TestGMAIObserveHighPerformance());
+    RunLLM("GMAIObserveLowPerformance", () => LLMIntelligenceDepthTests.TestGMAIObserveLowPerformance());
+    RunLLM("GMAIObserveAdaptsGradually", () => LLMIntelligenceDepthTests.TestGMAIObserveAdaptsGradually());
+    RunLLM("GMAIHistoryWindow", () => LLMIntelligenceDepthTests.TestGMAIHistoryWindow());
+    RunLLM("PlayerSnapshotDefaults", () => LLMIntelligenceDepthTests.TestPlayerSnapshotDefaults());
+    RunLLM("GameEventDefaults", () => LLMIntelligenceDepthTests.TestGameEventDefaults());
+    Console.WriteLine($"  == LLMIntelligenceDepth: {llmPass}/{llmTotal} passed ==");
+
+    // ── Block 39: AIControllerDepth ──
+    int aiCtrlPass = 0, aiCtrlTotal = 0;
+    void RunAICtrl(string name, Action test)
+    {
+        aiCtrlTotal++;
+        try { test(); aiCtrlPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunAICtrl("AIStateTypeValues", () => AIControllerDepthTests.TestAIStateTypeValues());
+    RunAICtrl("MessageTypeValues", () => AIControllerDepthTests.TestMessageTypeValues());
+    RunAICtrl("AIStateDefaults", () => AIControllerDepthTests.TestAIStateDefaults());
+    RunAICtrl("AIStateEnterResetElapsedTime", () => AIControllerDepthTests.TestAIStateEnterResetElapsedTime());
+    RunAICtrl("AIStateUpdateAccumulates", () => AIControllerDepthTests.TestAIStateUpdateAccumulates());
+    RunAICtrl("AIStateDurationExpiredNoLimit", () => AIControllerDepthTests.TestAIStateDurationExpiredNoLimit());
+    RunAICtrl("AIStateDurationExpiredWithLimit", () => AIControllerDepthTests.TestAIStateDurationExpiredWithLimit());
+    RunAICtrl("AIStateCallbacks", () => AIControllerDepthTests.TestAIStateCallbacks());
+    RunAICtrl("TransitionDefaults", () => AIControllerDepthTests.TestTransitionDefaults());
+    RunAICtrl("TransitionCtor", () => AIControllerDepthTests.TestTransitionCtor());
+    RunAICtrl("TransitionEvaluateTrue", () => AIControllerDepthTests.TestTransitionEvaluateTrue());
+    RunAICtrl("TransitionEvaluateFalse", () => AIControllerDepthTests.TestTransitionEvaluateFalse());
+    RunAICtrl("TransitionNoCondition", () => AIControllerDepthTests.TestTransitionNoCondition());
+    RunAICtrl("TransitionOneShot", () => AIControllerDepthTests.TestTransitionOneShot());
+    RunAICtrl("TransitionOnTransitionCallback", () => AIControllerDepthTests.TestTransitionOnTransitionCallback());
+    RunAICtrl("ActionDefaults", () => AIControllerDepthTests.TestActionDefaults());
+    RunAICtrl("ActionEvaluateScore", () => AIControllerDepthTests.TestActionEvaluateScore());
+    RunAICtrl("ActionEvaluateScoreUnavailable", () => AIControllerDepthTests.TestActionEvaluateScoreUnavailable());
+    RunAICtrl("ActionExecuteAbort", () => AIControllerDepthTests.TestActionExecuteAbort());
+    RunAICtrl("ActionCustomEvaluateCost", () => AIControllerDepthTests.TestActionCustomEvaluateCost());
+    RunAICtrl("PatrolActionDefaults", () => AIControllerDepthTests.TestPatrolActionDefaults());
+    RunAICtrl("ChaseActionDefaults", () => AIControllerDepthTests.TestChaseActionDefaults());
+    RunAICtrl("AttackActionDefaults", () => AIControllerDepthTests.TestAttackActionDefaults());
+    RunAICtrl("FleeActionDefaults", () => AIControllerDepthTests.TestFleeActionDefaults());
+    RunAICtrl("SearchActionDefaults", () => AIControllerDepthTests.TestSearchActionDefaults());
+    RunAICtrl("UseCoverActionDefaults", () => AIControllerDepthTests.TestUseCoverActionDefaults());
+    RunAICtrl("HealActionDefaults", () => AIControllerDepthTests.TestHealActionDefaults());
+    RunAICtrl("RallyActionDefaults", () => AIControllerDepthTests.TestRallyActionDefaults());
+    RunAICtrl("DecisionMakerDefaults", () => AIControllerDepthTests.TestDecisionMakerDefaults());
+    RunAICtrl("DecisionMakerRegisterUnregister", () => AIControllerDepthTests.TestDecisionMakerRegisterUnregister());
+    RunAICtrl("DecisionMakerDecideBestAction", () => AIControllerDepthTests.TestDecisionMakerDecideBestAction());
+    RunAICtrl("DecisionMakerNoAvailableAction", () => AIControllerDepthTests.TestDecisionMakerNoAvailableAction());
+    RunAICtrl("DecisionMakerExecuteBestAction", () => AIControllerDepthTests.TestDecisionMakerExecuteBestAction());
+    RunAICtrl("DecisionMakerOnActionChanged", () => AIControllerDepthTests.TestDecisionMakerOnActionChanged());
+    RunAICtrl("DecisionMakerUpdate", () => AIControllerDepthTests.TestDecisionMakerUpdate());
+    RunAICtrl("DecisionMakerForceAction", () => AIControllerDepthTests.TestDecisionMakerForceAction());
+    RunAICtrl("MemoryDefaults", () => AIControllerDepthTests.TestMemoryDefaults());
+    RunAICtrl("MemoryUpdateTarget", () => AIControllerDepthTests.TestMemoryUpdateTarget());
+    RunAICtrl("MemoryGetLastKnownPosition", () => AIControllerDepthTests.TestMemoryGetLastKnownPosition());
+    RunAICtrl("MemoryGetLastKnownPositionUnknown", () => AIControllerDepthTests.TestMemoryGetLastKnownPositionUnknown());
+    RunAICtrl("MemoryGetLastKnownPositionAny", () => AIControllerDepthTests.TestMemoryGetLastKnownPositionAny());
+    RunAICtrl("MemoryGetKnownTargets", () => AIControllerDepthTests.TestMemoryGetKnownTargets());
+    RunAICtrl("MemoryGetClosestTarget", () => AIControllerDepthTests.TestMemoryGetClosestTarget());
+    RunAICtrl("MemoryGetHighestThreatTarget", () => AIControllerDepthTests.TestMemoryGetHighestThreatTarget());
+    RunAICtrl("MemoryForgetAfterTime", () => AIControllerDepthTests.TestMemoryForgetAfterTime());
+    RunAICtrl("MemoryClearAll", () => AIControllerDepthTests.TestMemoryClearAll());
+    RunAICtrl("MemoryOnTargetForgotten", () => AIControllerDepthTests.TestMemoryOnTargetForgotten());
+    RunAICtrl("MemoryOnThreatChanged", () => AIControllerDepthTests.TestMemoryOnThreatChanged());
+    RunAICtrl("CommunicationDefaults", () => AIControllerDepthTests.TestCommunicationDefaults());
+    RunAICtrl("CommunicationRegisterMember", () => AIControllerDepthTests.TestCommunicationRegisterMember());
+    RunAICtrl("CommunicationUnregisterMember", () => AIControllerDepthTests.TestCommunicationUnregisterMember());
+    RunAICtrl("CommunicationBroadcastToTeam", () => AIControllerDepthTests.TestCommunicationBroadcastToTeam());
+    RunAICtrl("CommunicationMessageExpiry", () => AIControllerDepthTests.TestCommunicationMessageExpiry());
+    RunAICtrl("CommunicationAIMessageDefaults", () => AIControllerDepthTests.TestCommunicationAIMessageDefaults());
+    RunAICtrl("ControllerDefaults", () => AIControllerDepthTests.TestControllerDefaults());
+    RunAICtrl("ControllerDefaultStatesRegistered", () => AIControllerDepthTests.TestControllerDefaultStatesRegistered());
+    RunAICtrl("ControllerDefaultActionsRegistered", () => AIControllerDepthTests.TestControllerDefaultActionsRegistered());
+    RunAICtrl("ControllerTeamRegistration", () => AIControllerDepthTests.TestControllerTeamRegistration());
+    RunAICtrl("ControllerForceState", () => AIControllerDepthTests.TestControllerForceState());
+    RunAICtrl("ControllerOnStateChanged", () => AIControllerDepthTests.TestControllerOnStateChanged());
+    Console.WriteLine($"  == AIControllerDepth: {aiCtrlPass}/{aiCtrlTotal} passed ==");
+
+    // ── Block 40: SmartObjectsDepth ──
+    int smartObjPass = 0, smartObjTotal = 0;
+    void RunSmartObj(string name, Action test)
+    {
+        smartObjTotal++;
+        try { test(); smartObjPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunSmartObj("TagValues", () => SmartObjectsDepthTests.TestTagValues());
+    RunSmartObj("TagFlags", () => SmartObjectsDepthTests.TestTagFlags());
+    RunSmartObj("SlotStateValues", () => SmartObjectsDepthTests.TestSlotStateValues());
+    RunSmartObj("QuerySortModeValues", () => SmartObjectsDepthTests.TestQuerySortModeValues());
+    RunSmartObj("SlotRefValidity", () => SmartObjectsDepthTests.TestSlotRefValidity());
+    RunSmartObj("SlotRefEquality", () => SmartObjectsDepthTests.TestSlotRefEquality());
+    RunSmartObj("SlotRefToString", () => SmartObjectsDepthTests.TestSlotRefToString());
+    RunSmartObj("SlotDefaults", () => SmartObjectsDepthTests.TestSlotDefaults());
+    RunSmartObj("DbDefaults", () => SmartObjectsDepthTests.TestDbDefaults());
+    RunSmartObj("DbCustomCellSize", () => SmartObjectsDepthTests.TestDbCustomCellSize());
+    RunSmartObj("DbRegisterAssignsId", () => SmartObjectsDepthTests.TestDbRegisterAssignsId());
+    RunSmartObj("DbRegisterPreservesId", () => SmartObjectsDepthTests.TestDbRegisterPreservesId());
+    RunSmartObj("DbRegisterNullReturnsZero", () => SmartObjectsDepthTests.TestDbRegisterNullReturnsZero());
+    RunSmartObj("DbUnregister", () => SmartObjectsDepthTests.TestDbUnregister());
+    RunSmartObj("DbUnregisterUnknownSafe", () => SmartObjectsDepthTests.TestDbUnregisterUnknownSafe());
+    RunSmartObj("DbGetEntryGetSlot", () => SmartObjectsDepthTests.TestDbGetEntryGetSlot());
+    RunSmartObj("DbEnumerateObjectIds", () => SmartObjectsDepthTests.TestDbEnumerateObjectIds());
+    RunSmartObj("SlotWorldTransform", () => SmartObjectsDepthTests.TestSlotWorldTransform());
+    RunSmartObj("SlotWorldTransformWithScale", () => SmartObjectsDepthTests.TestSlotWorldTransformWithScale());
+    RunSmartObj("SlotWorldTransformWithRotation", () => SmartObjectsDepthTests.TestSlotWorldTransformWithRotation());
+    RunSmartObj("ReserveRelease", () => SmartObjectsDepthTests.TestReserveRelease());
+    RunSmartObj("ReserveDisabledFails", () => SmartObjectsDepthTests.TestReserveDisabledFails());
+    RunSmartObj("ReserveWrongUserReleaseFails", () => SmartObjectsDepthTests.TestReserveWrongUserReleaseFails());
+    RunSmartObj("ReserveUnknownSlotFails", () => SmartObjectsDepthTests.TestReserveUnknownSlotFails());
+    RunSmartObj("MultiUserSlot", () => SmartObjectsDepthTests.TestMultiUserSlot());
+    RunSmartObj("QueryEmptyDb", () => SmartObjectsDepthTests.TestQueryEmptyDb());
+    RunSmartObj("QueryReturnsMatch", () => SmartObjectsDepthTests.TestQueryReturnsMatch());
+    RunSmartObj("QueryTagUnion", () => SmartObjectsDepthTests.TestQueryTagUnion());
+    RunSmartObj("QueryExcludedTags", () => SmartObjectsDepthTests.TestQueryExcludedTags());
+    RunSmartObj("QueryDistanceFilter", () => SmartObjectsDepthTests.TestQueryDistanceFilter());
+    RunSmartObj("QueryOccupiedFilteredOut", () => SmartObjectsDepthTests.TestQueryOccupiedFilteredOut());
+    RunSmartObj("QueryNearestSort", () => SmartObjectsDepthTests.TestQueryNearestSort());
+    RunSmartObj("QueryPrioritySort", () => SmartObjectsDepthTests.TestQueryPrioritySort());
+    RunSmartObj("QueryMaxResultsTruncation", () => SmartObjectsDepthTests.TestQueryMaxResultsTruncation());
+    RunSmartObj("QueryValidationCondition", () => SmartObjectsDepthTests.TestQueryValidationCondition());
+    RunSmartObj("QuerySlotLevelValidation", () => SmartObjectsDepthTests.TestQuerySlotLevelValidation());
+    RunSmartObj("QueryDisabledEntry", () => SmartObjectsDepthTests.TestQueryDisabledEntry());
+    RunSmartObj("QueryResultFields", () => SmartObjectsDepthTests.TestQueryResultFields());
+    RunSmartObj("UpdateTransformRecalculatesWorld", () => SmartObjectsDepthTests.TestUpdateTransformRecalculatesWorld());
+    RunSmartObj("UpdateTransformUnknownSafe", () => SmartObjectsDepthTests.TestUpdateTransformUnknownSafe());
+    RunSmartObj("EcsComponents", () => SmartObjectsDepthTests.TestEcsComponents());
+    RunSmartObj("EcsSystemDefaults", () => SmartObjectsDepthTests.TestEcsSystemDefaults());
+    RunSmartObj("EcsSystemRegisterObject", () => SmartObjectsDepthTests.TestEcsSystemRegisterObject());
+    RunSmartObj("EcsSystemRegisterObjectNoEntity", () => SmartObjectsDepthTests.TestEcsSystemRegisterObjectNoEntity());
+    RunSmartObj("EcsSystemUpdateSyncsTransform", () => SmartObjectsDepthTests.TestEcsSystemUpdateSyncsTransform());
+    RunSmartObj("EcsSystemUpdateCleansDeadObject", () => SmartObjectsDepthTests.TestEcsSystemUpdateCleansDeadObject());
+    RunSmartObj("EcsSystemUpdateCleansDeadUser", () => SmartObjectsDepthTests.TestEcsSystemUpdateCleansDeadUser());
+    RunSmartObj("InteractionInterface", () => SmartObjectsDepthTests.TestInteractionInterface());
+    RunSmartObj("SitInteractionDefaults", () => SmartObjectsDepthTests.TestSitInteractionDefaults());
+    RunSmartObj("CoverInteractionExists", () => SmartObjectsDepthTests.TestCoverInteractionExists());
+    RunSmartObj("PatrolSentryInteractionExists", () => SmartObjectsDepthTests.TestPatrolSentryInteractionExists());
+    Console.WriteLine($"  == SmartObjectsDepth: {smartObjPass}/{smartObjTotal} passed ==");
+
+    // ── Block 41: NavMeshBakingRealDepth ──
+    int navBakePass = 0, navBakeTotal = 0;
+    void RunNavBake(string name, Action test)
+    {
+        navBakeTotal++;
+        try { test(); navBakePass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunNavBake("RcMathConstants", () => NavMeshBakingRealDepthTests.TestRcMathConstants());
+    RunNavBake("RcMathBasicFuncs", () => NavMeshBakingRealDepthTests.TestRcMathBasicFuncs());
+    RunNavBake("PointInTriangle", () => NavMeshBakingRealDepthTests.TestPointInTriangle());
+    RunNavBake("PointInTriangleDegenerate", () => NavMeshBakingRealDepthTests.TestPointInTriangleDegenerate());
+    RunNavBake("TriArea2D", () => NavMeshBakingRealDepthTests.TestTriArea2D());
+    RunNavBake("ClosestPtPointSegment", () => NavMeshBakingRealDepthTests.TestClosestPtPointSegment());
+    RunNavBake("ClosestPtPointSegmentDegenerate", () => NavMeshBakingRealDepthTests.TestClosestPtPointSegmentDegenerate());
+    RunNavBake("Cross2D", () => NavMeshBakingRealDepthTests.TestCross2D());
+    RunNavBake("Dot2D", () => NavMeshBakingRealDepthTests.TestDot2D());
+    RunNavBake("RcContextDefaults", () => NavMeshBakingRealDepthTests.TestRcContextDefaults());
+    RunNavBake("RcContextDisableLog", () => NavMeshBakingRealDepthTests.TestRcContextDisableLog());
+    RunNavBake("RcContextLogLevels", () => NavMeshBakingRealDepthTests.TestRcContextLogLevels());
+    RunNavBake("RcContextProgress", () => NavMeshBakingRealDepthTests.TestRcContextProgress());
+    RunNavBake("RcContextStartStopTimer", () => NavMeshBakingRealDepthTests.TestRcContextStartStopTimer());
+    RunNavBake("RcLogLevelValues", () => NavMeshBakingRealDepthTests.TestRcLogLevelValues());
+    RunNavBake("GeometryDefaults", () => NavMeshBakingRealDepthTests.TestGeometryDefaults());
+    RunNavBake("GeometryComputeNormalsAndBounds", () => NavMeshBakingRealDepthTests.TestGeometryComputeNormalsAndBounds());
+    RunNavBake("GeometryComputeBoundsManual", () => NavMeshBakingRealDepthTests.TestGeometryComputeBoundsManual());
+    RunNavBake("VoxelConfigDefaults", () => NavMeshBakingRealDepthTests.TestVoxelConfigDefaults());
+    RunNavBake("SpanDefaults", () => NavMeshBakingRealDepthTests.TestSpanDefaults());
+    RunNavBake("SpanHeight", () => NavMeshBakingRealDepthTests.TestSpanHeight());
+    RunNavBake("SpanClone", () => NavMeshBakingRealDepthTests.TestSpanClone());
+    RunNavBake("HeightfieldConstruction", () => NavMeshBakingRealDepthTests.TestHeightfieldConstruction());
+    RunNavBake("HeightfieldIndex", () => NavMeshBakingRealDepthTests.TestHeightfieldIndex());
+    RunNavBake("HeightfieldMinDimensions", () => NavMeshBakingRealDepthTests.TestHeightfieldMinDimensions());
+    RunNavBake("CompactSpanConnections", () => NavMeshBakingRealDepthTests.TestCompactSpanConnections());
+    RunNavBake("CompactSpanMaxConnections", () => NavMeshBakingRealDepthTests.TestCompactSpanMaxConnections());
+    RunNavBake("BakerRealConstruction", () => NavMeshBakingRealDepthTests.TestBakerRealConstruction());
+    RunNavBake("BakeEmptyGeometry", () => NavMeshBakingRealDepthTests.TestBakeEmptyGeometry());
+    RunNavBake("BakeFlatQuad", () => NavMeshBakingRealDepthTests.TestBakeFlatQuad());
+    RunNavBake("BakeResultSetLogAndTimings", () => NavMeshBakingRealDepthTests.TestBakeResultSetLogAndTimings());
+    Console.WriteLine($"  == NavMeshBakingRealDepth: {navBakePass}/{navBakeTotal} passed ==");
+
+    // ── Block 42: AdvancedNavigationDepth ──
+    int advNavPass = 0, advNavTotal = 0;
+    void RunAdvNav(string name, Action test)
+    {
+        advNavTotal++;
+        try { test(); advNavPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunAdvNav("CompactHeightfieldConstruction", () => AdvancedNavigationDepthTests.TestCompactHeightfieldConstruction());
+    RunAdvNav("CompactHeightfieldWithSpanCount", () => AdvancedNavigationDepthTests.TestCompactHeightfieldWithSpanCount());
+    RunAdvNav("CompactHeightfieldIndex", () => AdvancedNavigationDepthTests.TestCompactHeightfieldIndex());
+    RunAdvNav("CompactHeightfieldAddSpan", () => AdvancedNavigationDepthTests.TestCompactHeightfieldAddSpan());
+    RunAdvNav("NavMeshTileDefaults", () => AdvancedNavigationDepthTests.TestNavMeshTileDefaults());
+    RunAdvNav("NavMeshTileAliases", () => AdvancedNavigationDepthTests.TestNavMeshTileAliases());
+    RunAdvNav("NavMeshTilePolyCount", () => AdvancedNavigationDepthTests.TestNavMeshTilePolyCount());
+    RunAdvNav("NavMeshTileBuildBvhEmpty", () => AdvancedNavigationDepthTests.TestNavMeshTileBuildBvhEmpty());
+    RunAdvNav("NavMeshLinkDefaults", () => AdvancedNavigationDepthTests.TestNavMeshLinkDefaults());
+    RunAdvNav("NavMeshLinkToBaseLink", () => AdvancedNavigationDepthTests.TestNavMeshLinkToBaseLink());
+    RunAdvNav("NavMeshLinkTypeValues", () => AdvancedNavigationDepthTests.TestNavMeshLinkTypeValues());
+    RunAdvNav("ModifierDefaults", () => AdvancedNavigationDepthTests.TestModifierDefaults());
+    RunAdvNav("ModifierContainsIgnoreY", () => AdvancedNavigationDepthTests.TestModifierContainsIgnoreY());
+    RunAdvNav("ModifierContainsWithY", () => AdvancedNavigationDepthTests.TestModifierContainsWithY());
+    RunAdvNav("ModifierDisabledNotContains", () => AdvancedNavigationDepthTests.TestModifierDisabledNotContains());
+    RunAdvNav("TileCacheDefaults", () => AdvancedNavigationDepthTests.TestTileCacheDefaults());
+    RunAdvNav("TileCachePutGet", () => AdvancedNavigationDepthTests.TestTileCachePutGet());
+    RunAdvNav("TileCacheMissNoLoader", () => AdvancedNavigationDepthTests.TestTileCacheMissNoLoader());
+    RunAdvNav("TileCacheLoader", () => AdvancedNavigationDepthTests.TestTileCacheLoader());
+    RunAdvNav("TileCacheLRUEviction", () => AdvancedNavigationDepthTests.TestTileCacheLRUEviction());
+    RunAdvNav("TileCacheUnload", () => AdvancedNavigationDepthTests.TestTileCacheUnload());
+    RunAdvNav("TileCacheOverwrite", () => AdvancedNavigationDepthTests.TestTileCacheOverwrite());
+    RunAdvNav("PathSmootherStringPullStraight", () => AdvancedNavigationDepthTests.TestPathSmootherStringPullStraight());
+    RunAdvNav("PathSmootherStringPullWithCorner", () => AdvancedNavigationDepthTests.TestPathSmootherStringPullWithCorner());
+    RunAdvNav("PathSmootherStringPullEmpty", () => AdvancedNavigationDepthTests.TestPathSmootherStringPullEmpty());
+    RunAdvNav("PathSmootherStringPullSingle", () => AdvancedNavigationDepthTests.TestPathSmootherStringPullSingle());
+    RunAdvNav("PathSmootherBezierSmooth", () => AdvancedNavigationDepthTests.TestPathSmootherBezierSmooth());
+    RunAdvNav("DynamicNavMeshDefaults", () => AdvancedNavigationDepthTests.TestDynamicNavMeshDefaults());
+    RunAdvNav("DynamicNavMeshAddObstacle", () => AdvancedNavigationDepthTests.TestDynamicNavMeshAddObstacle());
+    RunAdvNav("DynamicNavMeshAddRemoveModifier", () => AdvancedNavigationDepthTests.TestDynamicNavMeshAddRemoveModifier());
+    RunAdvNav("DynamicNavMeshAddLink", () => AdvancedNavigationDepthTests.TestDynamicNavMeshAddLink());
+    RunAdvNav("NavTileFromNavigation", () => AdvancedNavigationDepthTests.TestNavTileFromNavigation());
+    Console.WriteLine($"  == AdvancedNavigationDepth: {advNavPass}/{advNavTotal} passed ==");
+
+    int nmqPass = 0, nmqTotal = 0;
+    void RunNMQ(string name, Action test)
+    {
+        nmqTotal++;
+        try { test(); nmqPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunNMQ("HeaderMagicAndDefaults", () => NavMeshQueryRealDepthTests.TestHeaderMagicAndDefaults());
+    RunNMQ("PolyRefBitPacking", () => NavMeshQueryRealDepthTests.TestPolyRefBitPacking());
+    RunNMQ("PolyRefInvalid", () => NavMeshQueryRealDepthTests.TestPolyRefInvalid());
+    RunNMQ("PolyRefSaltMask", () => NavMeshQueryRealDepthTests.TestPolyRefSaltMask());
+    RunNMQ("PolyRefToString", () => NavMeshQueryRealDepthTests.TestPolyRefToString());
+    RunNMQ("NavMeshPolyDefaults", () => NavMeshQueryRealDepthTests.TestNavMeshPolyDefaults());
+    RunNMQ("NavMeshPolyImplicitConversion", () => NavMeshQueryRealDepthTests.TestNavMeshPolyImplicitConversion());
+    RunNMQ("FilterDefaults", () => NavMeshQueryRealDepthTests.TestFilterDefaults());
+    RunNMQ("FilterIsPassableInclude", () => NavMeshQueryRealDepthTests.TestFilterIsPassableInclude());
+    RunNMQ("FilterIsPassableExclude", () => NavMeshQueryRealDepthTests.TestFilterIsPassableExclude());
+    RunNMQ("FilterGetCost", () => NavMeshQueryRealDepthTests.TestFilterGetCost());
+    RunNMQ("WalkFilter", () => NavMeshQueryRealDepthTests.TestWalkFilter());
+    RunNMQ("SwimFilter", () => NavMeshQueryRealDepthTests.TestSwimFilter());
+    RunNMQ("JumpFilter", () => NavMeshQueryRealDepthTests.TestJumpFilter());
+    RunNMQ("DefaultFilter", () => NavMeshQueryRealDepthTests.TestDefaultFilter());
+    RunNMQ("NavMeshConstruction", () => NavMeshQueryRealDepthTests.TestNavMeshConstruction());
+    RunNMQ("NavMeshAddTileReturnsRef", () => NavMeshQueryRealDepthTests.TestNavMeshAddTileReturnsRef());
+    RunNMQ("NavMeshGetTileAt", () => NavMeshQueryRealDepthTests.TestNavMeshGetTileAt());
+    RunNMQ("NavMeshRemoveTile", () => NavMeshQueryRealDepthTests.TestNavMeshRemoveTile());
+    RunNMQ("NavMeshWorldToTile", () => NavMeshQueryRealDepthTests.TestNavMeshWorldToTile());
+    RunNMQ("NavMeshGetPoly", () => NavMeshQueryRealDepthTests.TestNavMeshGetPoly());
+    RunNMQ("NavMeshGetTileByRef", () => NavMeshQueryRealDepthTests.TestNavMeshGetTileByRef());
+    RunNMQ("NavMeshObstacles", () => NavMeshQueryRealDepthTests.TestNavMeshObstacles());
+    RunNMQ("NavMeshUpdateTile", () => NavMeshQueryRealDepthTests.TestNavMeshUpdateTile());
+    RunNMQ("FindPathSameRef", () => NavMeshQueryRealDepthTests.TestFindPathSameRef());
+    RunNMQ("FindPathInvalidRef", () => NavMeshQueryRealDepthTests.TestFindPathInvalidRef());
+    RunNMQ("FindPathLinear", () => NavMeshQueryRealDepthTests.TestFindPathLinear());
+    RunNMQ("FindPathFiltered", () => NavMeshQueryRealDepthTests.TestFindPathFiltered());
+    RunNMQ("FindNearestPolyHit", () => NavMeshQueryRealDepthTests.TestFindNearestPolyHit());
+    RunNMQ("PointInPoly", () => NavMeshQueryRealDepthTests.TestPointInPoly());
+    RunNMQ("NavPathConstruction", () => NavMeshQueryRealDepthTests.TestNavPathConstruction());
+    RunNMQ("NavPathEmpty", () => NavMeshQueryRealDepthTests.TestNavPathEmpty());
+    RunNMQ("NavPathSinglePoint", () => NavMeshQueryRealDepthTests.TestNavPathSinglePoint());
+    RunNMQ("NavPathSetPoints", () => NavMeshQueryRealDepthTests.TestNavPathSetPoints());
+    RunNMQ("NavPathTypeDefaults", () => NavMeshQueryRealDepthTests.TestNavPathTypeDefaults());
+    RunNMQ("NavMeshObstacleContains", () => NavMeshQueryRealDepthTests.TestNavMeshObstacleContains());
+    RunNMQ("NavMeshObstacleDefaults", () => NavMeshQueryRealDepthTests.TestNavMeshObstacleDefaults());
+    RunNMQ("NavPathTypeAndStateEnums", () => NavMeshQueryRealDepthTests.TestNavPathTypeAndStateEnums());
+    RunNMQ("NavMeshAreaDefaults", () => NavMeshQueryRealDepthTests.TestNavMeshAreaDefaults());
+    Console.WriteLine($"  == NavMeshQueryRealDepth: {nmqPass}/{nmqTotal} passed ==");
+
+    // ===== AudioDSPReal Depth (音频 DSP 数字信号处理) =====
+    int dspPass = 0, dspTotal = 0;
+    void RunDSP(string name, Action test)
+    {
+        dspTotal++;
+        try { test(); dspPass++; Console.WriteLine($"  [PASS] {name}"); }
+        catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
+    }
+    RunDSP("AudioSampleFormatEnumValues", () => AudioDSPRealDepthTests.TestAudioSampleFormatEnumValues());
+    RunDSP("FormatDescriptorDefaults", () => AudioDSPRealDepthTests.TestFormatDescriptorDefaults());
+    RunDSP("FormatDescriptorCustom", () => AudioDSPRealDepthTests.TestFormatDescriptorCustom());
+    RunDSP("FormatDescriptorDurationSeconds", () => AudioDSPRealDepthTests.TestFormatDescriptorDurationSeconds());
+    RunDSP("FormatDescriptorDurationZeroRate", () => AudioDSPRealDepthTests.TestFormatDescriptorDurationZeroRate());
+    RunDSP("FormatDescriptorBytesPerSample", () => AudioDSPRealDepthTests.TestFormatDescriptorBytesPerSample());
+    RunDSP("FormatDescriptorClone", () => AudioDSPRealDepthTests.TestFormatDescriptorClone());
+    RunDSP("AudioBufferDefaults", () => AudioDSPRealDepthTests.TestAudioBufferDefaults());
+    RunDSP("AudioBufferChannelAccess", () => AudioDSPRealDepthTests.TestAudioBufferChannelAccess());
+    RunDSP("AudioBufferClear", () => AudioDSPRealDepthTests.TestAudioBufferClear());
+    RunDSP("AudioBufferToFromInterleaved", () => AudioDSPRealDepthTests.TestAudioBufferToFromInterleaved());
+    RunDSP("AudioBufferStaticToInterleaved", () => AudioDSPRealDepthTests.TestAudioBufferStaticToInterleaved());
+    RunDSP("AudioBufferStaticToPlanar", () => AudioDSPRealDepthTests.TestAudioBufferStaticToPlanar());
+    RunDSP("AudioBufferMixInAndGain", () => AudioDSPRealDepthTests.TestAudioBufferMixInAndGain());
+    RunDSP("AudioBufferReadFrameRoundTrip", () => AudioDSPRealDepthTests.TestAudioBufferReadFrameRoundTrip());
+    RunDSP("AudioBufferWriteFrame", () => AudioDSPRealDepthTests.TestAudioBufferWriteFrame());
+    RunDSP("AudioBufferDispose", () => AudioDSPRealDepthTests.TestAudioBufferDispose());
+    RunDSP("BiquadDefaultLowPass", () => AudioDSPRealDepthTests.TestBiquadDefaultLowPass());
+    RunDSP("BiquadHighPassDCNearZero", () => AudioDSPRealDepthTests.TestBiquadHighPassDCNearZero());
+    RunDSP("BiquadProcessDCLowPass", () => AudioDSPRealDepthTests.TestBiquadProcessDCLowPass());
+    RunDSP("BiquadProcessDCHighPass", () => AudioDSPRealDepthTests.TestBiquadProcessDCHighPass());
+    RunDSP("BiquadReset", () => AudioDSPRealDepthTests.TestBiquadReset());
+    RunDSP("BiquadNotchBlocksFrequency", () => AudioDSPRealDepthTests.TestBiquadNotchBlocksFrequency());
+    RunDSP("BiquadAllPassGainIsOne", () => AudioDSPRealDepthTests.TestBiquadAllPassGainIsOne());
+    RunDSP("BiquadPeakingEQBoost", () => AudioDSPRealDepthTests.TestBiquadPeakingEQBoost());
+    RunDSP("OnePoleDefault", () => AudioDSPRealDepthTests.TestOnePoleDefault());
+    RunDSP("OnePoleHighPassDC", () => AudioDSPRealDepthTests.TestOnePoleHighPassDC());
+    RunDSP("OnePoleReset", () => AudioDSPRealDepthTests.TestOnePoleReset());
+    RunDSP("LinkwitzRileyDefaults", () => AudioDSPRealDepthTests.TestLinkwitzRileyDefaults());
+    RunDSP("LinkwitzRileyCrossoverSum", () => AudioDSPRealDepthTests.TestLinkwitzRileyCrossoverSum());
+    RunDSP("LinkwitzRileyLowPassDC", () => AudioDSPRealDepthTests.TestLinkwitzRileyLowPassDC());
+    RunDSP("AllpassUnityGain", () => AudioDSPRealDepthTests.TestAllpassUnityGain());
+    RunDSP("AllpassFeedbackClamp", () => AudioDSPRealDepthTests.TestAllpassFeedbackClamp());
+    RunDSP("AllpassReset", () => AudioDSPRealDepthTests.TestAllpassReset());
+    RunDSP("CombFeedbackClamp", () => AudioDSPRealDepthTests.TestCombFeedbackClamp());
+    RunDSP("CombZeroInputSilence", () => AudioDSPRealDepthTests.TestCombZeroInputSilence());
+    RunDSP("CombImpulseDecay", () => AudioDSPRealDepthTests.TestCombImpulseDecay());
+    RunDSP("MovingAverageDCCapture", () => AudioDSPRealDepthTests.TestMovingAverageDCCapture());
+    RunDSP("MovingAverageSinglePulse", () => AudioDSPRealDepthTests.TestMovingAverageSinglePulse());
+    RunDSP("MovingAverageMinLength", () => AudioDSPRealDepthTests.TestMovingAverageMinLength());
+    RunDSP("MovingAverageReset", () => AudioDSPRealDepthTests.TestMovingAverageReset());
+    RunDSP("FFTPowerOfTwo", () => AudioDSPRealDepthTests.TestFFTPowerOfTwo());
+    RunDSP("FFTLog2", () => AudioDSPRealDepthTests.TestFFTLog2());
+    RunDSP("FFTForwardDC", () => AudioDSPRealDepthTests.TestFFTForwardDC());
+    RunDSP("FFTInverseRoundTrip", () => AudioDSPRealDepthTests.TestFFTInverseRoundTrip());
+    RunDSP("FFTMagnitude", () => AudioDSPRealDepthTests.TestFFTMagnitude());
+    RunDSP("FFTPowerSpectrum", () => AudioDSPRealDepthTests.TestFFTPowerSpectrum());
+    RunDSP("FFTBinFrequency", () => AudioDSPRealDepthTests.TestFFTBinFrequency());
+    RunDSP("FFTFrequencyToBin", () => AudioDSPRealDepthTests.TestFFTFrequencyToBin());
+    RunDSP("WindowRectangular", () => AudioDSPRealDepthTests.TestWindowRectangular());
+    RunDSP("WindowHannEndsAtZero", () => AudioDSPRealDepthTests.TestWindowHannEndsAtZero());
+    RunDSP("WindowHannMidPeak", () => AudioDSPRealDepthTests.TestWindowHannMidPeak());
+    RunDSP("WindowHammingEndsAtNonZero", () => AudioDSPRealDepthTests.TestWindowHammingEndsAtNonZero());
+    RunDSP("WindowBlackmanEndsNearZero", () => AudioDSPRealDepthTests.TestWindowBlackmanEndsNearZero());
+    RunDSP("ApplyWindowModifies", () => AudioDSPRealDepthTests.TestApplyWindowModifies());
+    RunDSP("BesselI0", () => AudioDSPRealDepthTests.TestBesselI0());
+    RunDSP("CompressorDefaults", () => AudioDSPRealDepthTests.TestCompressorDefaults());
+    RunDSP("CompressorRatioClamp", () => AudioDSPRealDepthTests.TestCompressorRatioClamp());
+    RunDSP("CompressorReleaseClamp", () => AudioDSPRealDepthTests.TestCompressorReleaseClamp());
+    RunDSP("CompressorBelowThresholdNoCompression", () => AudioDSPRealDepthTests.TestCompressorBelowThresholdNoCompression());
+    RunDSP("CompressorAboveThresholdCompresses", () => AudioDSPRealDepthTests.TestCompressorAboveThresholdCompresses());
+    RunDSP("CompressorReset", () => AudioDSPRealDepthTests.TestCompressorReset());
+    RunDSP("ExpanderDefaults", () => AudioDSPRealDepthTests.TestExpanderDefaults());
+    RunDSP("ExpanderRatioClamp", () => AudioDSPRealDepthTests.TestExpanderRatioClamp());
+    RunDSP("ExpanderReleaseClamp", () => AudioDSPRealDepthTests.TestExpanderReleaseClamp());
+    RunDSP("LimiterDefaults", () => AudioDSPRealDepthTests.TestLimiterDefaults());
+    RunDSP("LimiterHardMode", () => AudioDSPRealDepthTests.TestLimiterHardMode());
+    RunDSP("LimiterBrickwall", () => AudioDSPRealDepthTests.TestLimiterBrickwall());
+    RunDSP("LimiterLimitModeEnum", () => AudioDSPRealDepthTests.TestLimiterLimitModeEnum());
+    RunDSP("NoiseGateDefaults", () => AudioDSPRealDepthTests.TestNoiseGateDefaults());
+    RunDSP("NoiseGateReleaseClamp", () => AudioDSPRealDepthTests.TestNoiseGateReleaseClamp());
+    RunDSP("NoiseGateRangeClamp", () => AudioDSPRealDepthTests.TestNoiseGateRangeClamp());
+    RunDSP("NoiseGateClosesOnSilence", () => AudioDSPRealDepthTests.TestNoiseGateClosesOnSilence());
+    RunDSP("TransientDesignerDefaults", () => AudioDSPRealDepthTests.TestTransientDesignerDefaults());
+    RunDSP("TransientDesignerSilencePassthrough", () => AudioDSPRealDepthTests.TestTransientDesignerSilencePassthrough());
+    Console.WriteLine($"  == AudioDSPRealDepth: {dspPass}/{dspTotal} passed ==");
 
     int n2dPass = 0, n2dTotal = 0;
     void RunNode2D(string name, Action test)
@@ -1959,11 +3036,11 @@ try
     Console.WriteLine($"  == IKDepth: {ikPass}/{ikTotal} passed ==");
 
     // ── UE5.8 级世界流送子系统深度验证（StreamingPriority/预测/组合/可见性）──
-    int stPass = 0, stTotal = 0;
+    int ueStPass = 0, ueStTotal = 0;
     void RunStreaming(string name, Action test)
     {
-        stTotal++;
-        try { test(); stPass++; Console.WriteLine($"  [PASS] {name}"); }
+        ueStTotal++;
+        try { test(); ueStPass++; Console.WriteLine($"  [PASS] {name}"); }
         catch (Exception ex) { TestHelpers.RecordFailure(); Console.WriteLine($"  [FAIL] {name}: {ex.Message}"); }
     }
     RunStreaming("StreamingPriorityGameplayForced", () => StreamingTests.TestStreamingPriorityGameplayForced());
@@ -1988,7 +3065,7 @@ try
     RunStreaming("SelectLodDistanceBranches", () => StreamingTests.TestSelectLodDistanceBranches());
     RunStreaming("SelectLodBoundaryPrecision", () => StreamingTests.TestSelectLodBoundaryPrecision());
     RunStreaming("ShouldLoadByDistance", () => StreamingTests.TestShouldLoadByDistance());
-    Console.WriteLine($"  == StreamingDepth: {stPass}/{stTotal} passed ==");
+    Console.WriteLine($"  == StreamingDepth: {ueStPass}/{ueStTotal} passed ==");
 
     // ── UE5.8 级导航网格子系统深度验证（FindNearestPoly/PointInPoly/Raycast/MoveAlongSurface/A*）──
     int nmPass = 0, nmTotal = 0;

@@ -219,10 +219,18 @@ namespace YamaEngine.Shaders
                 else
                     args.Add("-O3");
 
-                // 着色器模型 6.x 默认启用这些
-                if (targetProfile.Contains("6_"))
+                // -enable-16bit-types 仅 SM 6.2+ 支持；6.0/6.1 会报错
+                if (targetProfile.Contains("6_2") || targetProfile.Contains("6_3") ||
+                    targetProfile.Contains("6_4") || targetProfile.Contains("6_5") ||
+                    targetProfile.Contains("6_6") || targetProfile.Contains("6_7") ||
+                    targetProfile.Contains("6_8") || targetProfile.Contains("6_9"))
                 {
                     args.AddRange(new[] { "-HV", "2021", "-enable-16bit-types" });
+                }
+                else if (targetProfile.Contains("6_"))
+                {
+                    args.Add("-HV");
+                    args.Add("2021");
                 }
 
                 if (defines != null)

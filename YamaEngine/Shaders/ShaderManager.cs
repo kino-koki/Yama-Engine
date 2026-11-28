@@ -212,7 +212,10 @@ namespace YamaEngine.Shaders
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[FAIL] 读取/解析着色器文件 {file}: {ex.Message.Split('\n')[0]}");
+                }
             }
             Console.WriteLine($"[ShaderManager] 预编译完成. 内存缓存: {_cache.Count} 个着色器。");
         }

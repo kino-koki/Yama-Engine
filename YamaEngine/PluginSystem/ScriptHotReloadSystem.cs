@@ -1028,8 +1028,12 @@ namespace YamaEngine.PluginSystem
 
         #region 手动触发
 
-        /// <summary>手动触发热重载。</summary>
+        /// <summary>手动触发热重载 (同步, 可从任意线程安全调用)。</summary>
         public AfterReloadEventArgs TriggerReload(List<string>? files = null)
+            => Task.Run(() => TriggerReloadAsync(files)).GetAwaiter().GetResult();
+
+        /// <summary>手动触发热重载 (异步)。</summary>
+        public async Task<AfterReloadEventArgs> TriggerReloadAsync(List<string>? files = null)
         {
             files ??= _sourceDirectories
                 .SelectMany(d => Directory.Exists(d) ? Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories) : Array.Empty<string>())
@@ -1043,17 +1047,21 @@ namespace YamaEngine.PluginSystem
                 Timestamp = DateTime.Now
             }).ToList();
 
-            return ReloadAsync(changes).Result;
+            return await ReloadAsync(changes).ConfigureAwait(false);
         }
 
-        /// <summary>触发单文件热重载。</summary>
+        /// <summary>触发单文件热重载 (同步, 可从任意线程安全调用)。</summary>
         public AfterReloadEventArgs TriggerReloadForFile(string filePath)
+            => Task.Run(() => TriggerReloadForFileAsync(filePath)).GetAwaiter().GetResult();
+
+        /// <summary>触发单文件热重载 (异步)。</summary>
+        public async Task<AfterReloadEventArgs> TriggerReloadForFileAsync(string filePath)
         {
             var changes = new List<FileChangeInfo>
             {
                 new FileChangeInfo { FilePath = filePath, ChangeType = WatcherChangeTypes.Changed, Timestamp = DateTime.Now }
             };
-            return ReloadAsync(changes).Result;
+            return await ReloadAsync(changes).ConfigureAwait(false);
         }
 
         #endregion

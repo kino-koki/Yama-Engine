@@ -150,6 +150,7 @@ namespace YamaEngine.Assets
         private readonly ConcurrentQueue<ImportTask> _queue = new();
         private readonly List<Task> _activeTasks = new();
         private readonly SemaphoreSlim _signal = new(0);
+        private readonly SemaphoreSlim _capacity;
         private readonly CancellationTokenSource _cts = new();
         private readonly int _maxParallelism;
         private volatile bool _disposed;
@@ -170,6 +171,7 @@ namespace YamaEngine.Assets
         public ImportQueue(int maxParallelism = 4)
         {
             _maxParallelism = maxParallelism;
+            _capacity = new SemaphoreSlim(maxParallelism, maxParallelism);
         }
 
         /// <summary>启动导入队列。</summary>
@@ -211,21 +213,23 @@ namespace YamaEngine.Assets
                 try
                 {
                     _signal.Wait(_cts.Token);
-                    while (_queue.TryDequeue(out var task) && !_disposed)
+                    while (!_disposed && !_queue.IsEmpty)
                     {
-                        if (_activeTasks.Count >= _maxParallelism)
+                        // 有界、可取消地等待并发槽位, 避免 _activeTasks 无界增长
+                        _capacity.Wait(_cts.Token);
+                        if (!_queue.TryDequeue(out var task))
                         {
-                            // 等待有空闲槽位
-                            var completed = Task.WhenAny(_activeTasks).GetAwaiter().GetResult();
-                            _activeTasks.Remove(completed);
+                            _capacity.Release();
+                            break;
                         }
 
                         var taskCopy = task;
                         var t = Task.Run(() => ExecuteTask(taskCopy), _cts.Token);
-                        _activeTasks.Add(t);
+                        lock (_activeTasks) _activeTasks.Add(t);
                         t.ContinueWith(t =>
                         {
                             lock (_activeTasks) _activeTasks.Remove(t);
+                            _capacity.Release();
                         }, TaskContinuationOptions.ExecuteSynchronously);
                     }
                 }
@@ -254,6 +258,7 @@ namespace YamaEngine.Assets
             _signal.Release();
             _dispatcherThread?.Join(1000);
             _signal.Dispose();
+            _capacity.Dispose();
             _cts.Dispose();
         }
     }

@@ -43,7 +43,7 @@
 
 > **历史轨迹**：2026-08-07 引擎库实测 1414 个编译错误（177/766 文件受影响）→ 2026-08-22 降至 374 → 逐步清零。2026-11-01 完成 `YamaEngine.Tests`（115→0，commit `2f4f8b8`）与 `YamaEditor`（56→0，commit `b900c87`）收尾，实现**全部托管项目 0 错误**。
 >
-> 仓库路径：`G:\Yama-Engine`（原名 `G:\Shanyu GamesEngine and Modeling`，2026-11 更名）。
+> 仓库路径：`H:\Yama-Engine`（原名 `G:\Shanyu GamesEngine and Modeling`，2026-11 更名；曾位于 `G:\Yama-Engine`）。
 
 ---
 
@@ -86,7 +86,7 @@
 | 领域 | 技术 |
 |------|------|
 | 图形后端 | Vulkan 1.4 (Silk.NET) + RHI 抽象层（D3D12 后端已废弃并从 csproj 排除，仅有 `D3D12Device.cs` 1 个文件残留） |
-| 渲染管线 | PBR · 级联阴影 · 路径追踪（原型）· MicroCluster（原型）· TSR · 体积雾 —— 算法层存在，多数高级特性未在真实 GPU 上验证 |
+| 渲染管线 | PBR · 级联阴影 · 路径追踪（原型）· MicroCluster（原型）· TSR · 体积雾 —— GPU-Driven PBR + CSM + ACES 已在真实 GPU（AMD Radeon）上实测通过；MicroCluster/ProbeField/ReSTIR/SVGF/路径追踪仍为算法原型，未端到端验证 |
 | 物理 | 纯 C# 实现（GJK/EPA/SAT/9 种关节/流体/布料）——核心算法真实手写，编译通过 |
 | AI | GOAP · NavMesh · 行为树 · LLM 集成（开发中） |
 | 动画 | Motion Matching · IK · 动画图表 · 重定向 |
@@ -144,7 +144,7 @@ dotnet run --project YamaEngine.Tests\YamaEngine.Tests.csproj
 
 ## 下一步（在"能编译"基础上继续）
 
-1. **GPU 端到端验证**：把高级渲染算法（MicroCluster/ProbeField/ReSTIR/SVGF）接入真实 Vulkan 管线并实测。
+1. **GPU 端到端验证（部分完成）**：GPU-Driven PBR + CSM + ACES 已在真实 GPU 实测通过；MicroCluster/ProbeField/ReSTIR/SVGF/路径追踪仍待接入真实管线并实测。
 2. **运行时排查**：解决 `VulkanPipelineState` 原生崩溃（0xC0000005）等运行时问题。
 3. **工程卫生**：清理根目录历史脚本（`_analyze*.py`、`fix_dups*.py`、失真错误日志与 `_dup_backup/`）。
 4. **测试跑通**：确认 `YamaEngine.Tests` 全用例在真实环境通过。
