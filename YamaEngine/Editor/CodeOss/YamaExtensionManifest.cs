@@ -14,7 +14,8 @@ namespace YamaEngine.Editor.CodeOss
         public static readonly string[] Commands = new string[]
         {
             "yama.build", "yama.test", "yama.smoke", "yama.snapshot",
-            "yama.rollback", "yama.sotaStatus", "yama.coupledMass"
+            "yama.rollback", "yama.sotaStatus", "yama.coupledMass",
+            "yama.codeossMinimal", "yama.invoke", "yama.capabilities"
         };
 
         public static string Build(string version)

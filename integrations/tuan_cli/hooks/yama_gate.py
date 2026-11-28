@@ -51,6 +51,9 @@ def checks():
     has("integrations/tuan_cli/yama_actions.json", "callable-actions")
     has("integrations/tuan_cli/yama_cli.py", "subcommand.handle")
     has("YamaEngine.Tests/CodeOssMinimalTests.cs", "TestR19")
+    # 第二十轮：Python 门禁进真实 CI + 引擎侧桥接接线 + fetch 口径不回漂
+    has("YamaEngine.Tests/CodeOssMinimalBridgeTests.cs", "TestR20")
+    has("scripts/fetch_codeoss.py", "本仓库不编译")
     return out
 
 

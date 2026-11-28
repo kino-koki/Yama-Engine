@@ -1,7 +1,11 @@
-# Code - OSS 1.148.0 最轻量 web-only 干净 MIT 构建门禁（模板）
-# 说明：本仓库推送 token 的 scope 仅为 repo，写 .github/workflows/ 会被拒。
-# 请在 GitHub 网页端把本文件移到 .github/workflows/codeoss-gate.yml 即可启用。
-# 与 build.yml 解耦：不参与 -warnaserror / Test / Smoke 门禁。
+# Code - OSS 1.148.0 最轻量 web-only 干净 MIT 构建门禁（模板，未启用）
+# 第二十轮实测：token 的 X-OAuth-Scopes 仅 `repo`，POST /git/trees 含
+# .github/workflows/build.yml 会被 404 拒绝（去掉该路径即 201）。
+# 故本文件仍需**在 GitHub 网页端移入 .github/workflows/** 才能启用，
+# 本仓库不谎报已启用。与此同时，同一套 Python 校验语义已由
+# YamaEngine.Tests/CodeOssMinimalTests.cs 与 CodeOssMinimalBridgeTests.cs
+# 双实现进 xUnit，由现有 build.yml 的 Test step 每次真实执行。
+# 与 Windows build job 解耦，不参与 -warnaserror / Test / Smoke 口径。
 #
 # 「最轻量」= 零 Node / 零 Electron / 零 npm 依赖的离线校验门禁。
 # 本门禁**不编译** 1.8 GB 上游 workbench，也**不宣称**产物存在

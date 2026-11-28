@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Code - OSS 1.148.0 干净 MIT 构建：锁定校验 / 拉取 / 应用 product.json。
+"""Code - OSS 1.148.0 最轻量 web-only 干净 MIT 构建：锁定校验 / 应用 product.json。
 
 纯 stdlib。三种模式：
     --check        只校验 UPSTREAM.lock.json + product.json，不联网、不写文件
-    --apply-only   把 product.json 覆盖到 submodule 目录（CI build job 用）
+    --apply-only   把 product.json 覆盖到 submodule 目录
     (默认)         --check + 提示 submodule 初始化命令 + 打印最小构建步骤
+
+第十九轮起本仓库的口径是「最轻量 web-only 干净 MIT 构建面」：
+不编译 1.8GB 上游 workbench、不打包 Electron、不下载内置扩展、
+不连 Marketplace。本脚本只负责锁与 product.json，编译步骤见
+scripts/build_codeoss_minimal.py --plan（且明确标注本仓库未编译）。
 """
 from __future__ import annotations
 import argparse, json, os, shutil, subprocess, sys
@@ -95,8 +100,9 @@ def main():
         "steps": ([] if a.apply_only else [
             "git submodule update --init --depth 1 ide/codeoss/upstream",
             "python scripts/fetch_codeoss.py --apply-only",
-            "cd ide/codeoss/upstream && npm ci && npm run compile",
-            "产物为干净 MIT workbench；不得替换为官方 VS Code 二进制/商标",
+            "python scripts/build_codeoss_minimal.py --check  # 最轻量锁 + 6 文件 SHA-256",
+            "web-only 最小构建步骤见 scripts/build_codeoss_minimal.py --plan",
+            "本仓库不编译 1.8GB 上游 workbench，不宣称产物存在；不得替换为官方 VS Code 二进制/商标",
         ]),
     }, ensure_ascii=False, indent=2))
     if not a.check and not a.apply_only:

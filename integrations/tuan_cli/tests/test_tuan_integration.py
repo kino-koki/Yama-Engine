@@ -70,7 +70,7 @@ class TestHooks(unittest.TestCase):
         self.assertEqual(d["event"], "PostToolUse")
         self.assertIn(d["decision"], ("allow", "warn"))
         self.assertIn("checked", d)
-        self.assertEqual(d["checked"], 26)
+        self.assertEqual(d["checked"], 28)
         self.assertIn("SOTA", d["note"])
 
 
@@ -204,6 +204,10 @@ class TestContract(unittest.TestCase):
         self.assertEqual(c["codeoss_minimal"]["profile"], "web-only-minimal")
         self.assertFalse(c["codeoss_minimal"]["compile_in_this_repo"])
         self.assertEqual(len(c["callable_actions"]["actions"]), 7)
+        self.assertEqual(c["codeoss_bridge_commands"], 10)
+        self.assertFalse(c["ci_gate_enabled"])
+        self.assertIn("NOT enabled", c["ci_gate"])
+        self.assertIn("CodeOssMinimalBridgeTests.cs", c["csharp_equivalent_gate"])
         reg = json.loads(read("yama_actions.json"))
         self.assertEqual(len(reg["actions"]), 7)
         self.assertEqual(reg["tools"], c["mcp_tools"])

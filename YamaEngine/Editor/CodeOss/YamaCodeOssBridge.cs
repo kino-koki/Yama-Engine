@@ -53,6 +53,16 @@ namespace YamaEngine.Editor.CodeOss
                 case "yama.coupledMass":
                     return (true, "audit",
                         "YrPhysicsPipeline.UseCoupledMassMatrix + LastCoupledTrace");
+                // 第二十轮：最轻量构建面 + Tuan 真实被调用能力进入引擎侧命令路由。
+                case "yama.codeossMinimal":
+                    return (true, "verify",
+                        "scripts/build_codeoss_minimal.py --check -> clean_mit_build + config_sha256 (read-only)");
+                case "yama.invoke":
+                    return (true, "delegate",
+                        "integrations/tuan_cli/yama_bridge.py::invoke(action, params) read-only fail-closed");
+                case "yama.capabilities":
+                    return (true, "capabilities",
+                        "integrations/tuan_cli/contract.json -> 13 tools / 13 subcommands / 7 actions");
                 default:
                     return (false, string.Empty, string.Empty);
             }

@@ -28,6 +28,15 @@
   仅参考**协议格式与事件名**，代码全部本项目自研重写，未拷贝其实现。
 - LSP 3.17 / DAP 1.x / JSON-RPC 2.0 为公开协议规范。
 
+## 真实 CI 验证（第二十轮）
+
+本环境 token 无 `workflow` scope，写 `.github/workflows/` 实测 404，
+故 `ci/codeoss-gate.yml` 仍是待网页端启用的模板（契约
+`ci_gate_enabled=false` 如实标记）。但下面这些本地命令的**语义**已由
+`YamaEngine.Tests/CodeOssMinimalTests.cs` 与 `CodeOssMinimalBridgeTests.cs`
+双实现进 C# xUnit，由现有 `build.yml` 的 Test step 每次真实执行——
+MCP 真委派、CLI 直调、SHA-256、口径不回漂都在真实门禁里被校验。
+
 ## 本地验证（无需 .NET / 无需 Tuan 安装）
 
 ```bash

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using YamaEngine.Editor.CodeOss;
 using Xunit;
 
 namespace YamaEngine.Tests
@@ -315,6 +316,45 @@ namespace YamaEngine.Tests
                 "yama_cli.py")));
             Assert.True(File.Exists(Path.Combine(Root, "scripts",
                 "build_codeoss_minimal.py")));
+        }
+
+        [Fact]
+        public void TestRound20EngineSideBridgeExposesMinimalBuild()
+        {
+            // 证明最轻量能力真的编进了被引用的程序集，不只是磁盘上的脚本。
+            Assert.Equal(10, YamaExtensionManifest.Commands.Length);
+            Assert.Contains("yama.codeossMinimal", YamaExtensionManifest.Commands);
+            Assert.Contains("yama.invoke", YamaExtensionManifest.Commands);
+            Assert.Contains("yama.capabilities", YamaExtensionManifest.Commands);
+            string manifest = YamaExtensionManifest.Build("1.148.0");
+            Assert.True(YamaExtensionManifest.IsWellFormed(manifest));
+            using var product = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(Root, "ide", "codeoss", "product.json")));
+            var parsed = YamaCodeOssProduct.FromJson(product.RootElement.GetRawText());
+            Assert.True(parsed.HasMinimalSection);
+            Assert.Equal("web-only-minimal", parsed.MinimalProfile);
+            Assert.Equal("web", parsed.MinimalBuildTarget);
+            Assert.False(parsed.MinimalCompiledInThisRepo);
+            Assert.True(parsed.IsMinimalWebBuild);
+            Assert.True(parsed.IsCleanMitBuild);
+            var bridge = new YamaCodeOssBridge(product.RootElement.GetRawText(), "1.148.0");
+            Assert.True(bridge.IsCleanMitBuild);
+            Assert.True(bridge.Dispatch("yama.codeossMinimal").Handled);
+            Assert.True(bridge.Dispatch("yama.invoke").Handled);
+            Assert.True(bridge.Dispatch("yama.capabilities").Handled);
+            // Python 门禁无法写进 workflow（token 仅 repo，实测 404），
+            // 故如实锁成「模板未启用 + C# 等价门禁真实存在」，不谎报已启用。
+            using var ct = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root,
+                "integrations", "tuan_cli", "contract.json")));
+            Assert.False(ct.RootElement.GetProperty("ci_gate_enabled").GetBoolean());
+            Assert.Contains("NOT enabled", ct.RootElement.GetProperty("ci_gate").GetString()!);
+            Assert.True(File.Exists(Path.Combine(Root, "ci", "codeoss-gate.yml")));
+            Assert.True(File.Exists(Path.Combine(Root, "YamaEngine.Tests",
+                "CodeOssMinimalBridgeTests.cs")));
+            // fetch 脚本口径不回漂
+            string fetch = File.ReadAllText(Path.Combine(Root, "scripts", "fetch_codeoss.py"));
+            Assert.DoesNotContain("npm ci && npm run compile", fetch);
+            Assert.Contains("本仓库不编译", fetch);
         }
 
         [Fact]

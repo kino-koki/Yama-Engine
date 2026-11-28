@@ -85,5 +85,9 @@
       "hook_gate",
       "command_intent"
     ]
-  }
+  },
+  "ci_gate": "ci/codeoss-gate.yml (template; NOT enabled in this repo - workflow write returns 404 with repo-only token)",
+  "ci_gate_enabled": false,
+  "csharp_equivalent_gate": "YamaEngine.Tests/CodeOssMinimalTests.cs + CodeOssMinimalBridgeTests.cs (executed by build.yml Test step)",
+  "codeoss_bridge_commands": 10
 }

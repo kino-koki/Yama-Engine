@@ -43,8 +43,8 @@ G4 仍未闭合。
   `yama_actions.json`（静态动作注册表）、`yama_cli.py`（独立 CLI 入口）；
   MCP / 插件子命令 / 独立 CLI **三入口统一委派**到同一个 dispatcher。
 - **C. 双实现门禁**：Python 侧（unittest + `build_codeoss_minimal.py --check`）
-  与 C# 侧（12 项新反射断言 + 1 个新 `[Fact]`）用同一套 SHA-256 口径，
-  任何一侧漂移都红灯。累计 **258 项**反射断言 + **13** 个 `[Fact]`。
+  与 C# 侧（12 项新反射断言 + 1 个新 `[Fact]`（第二十轮再加 12 项 + 1 个 `[Fact]`））用同一套 SHA-256 口径，
+  任何一侧漂移都红灯。累计 **270 项**反射断言 + **13** 个 `[Fact]`。
 
 ## 2. 阶段与里程碑（每阶段都有可判定验收，不靠口头汇报）
 
@@ -126,3 +126,38 @@ M3 的 `verify_codeoss_minimal` 动作依赖 M1 的脚本，故 M3 单测放在 
    `tools/call` 回读（本轮已把 Yama 侧入口全部备好）。
 4. 迭代求解器：零空间投影 / 冗余接触剔除预条件（降 K 条件数）、精确锥互补。
 5. 真机 GPU / 规模 / 平台 SDK / 外部验证（G4–G8，需硬件与团队）。
+
+
+## 7. M5 完善轮（第二十轮，2026-11-28）——把三个真实缺口补齐
+
+第十九轮交付后有三处「说了但没真正落地」的地方，本轮逐条修掉，
+**不靠放宽断言、不靠改文档措辞糊过去**：
+
+| 缺口 | 第十九轮状态 | 第二十轮真实修复 | 验收 |
+|---|---|---|---|
+| 口径漂移 | `scripts/fetch_codeoss.py` 的 steps 仍写 `npm ci && npm run compile` / "产物为干净 MIT workbench"，与最轻量 web-only 矛盾 | 改成 web-only 步骤 + "本仓库不编译"；`build_codeoss_minimal.py --check` 新增**反回漂断言**（fetch 再出现编译宣称就红灯） | `TestR20FetchScriptNoElectronCompileClaim` / `TestR20MinimalCheckGuardsAgainstFetchDrift` |
+| Python 门禁没真跑 | `--check` 与 unittest 只在本地合并视图验证；`ci/codeoss-gate.yml` 是 `ci/` 下模板 | **实测**：token 仅 `repo` scope，写 `.github/workflows/` 返回 404（对照实验见交付文档），做不到。改为把 Python 校验语义**完整双实现进 C# xUnit**（`build.yml` 的 Test step 每次真实执行），并把「模板未启用」锁成断言；模板保留待网页端人工启用 | `TestR20GateTemplateIsHonestAndCsharpEquivalentExists` / `TestR20CsharpGateCoversPythonBehaviour` / 契约 `ci_gate_enabled=false` |
+| 引擎侧没接线 | 只加了 C# 测试去读磁盘上的 Python 脚本；`YamaCodeOssProduct` 不解析 `yamaMinimal`，manifest 与 bridge 仍只有 7 个命令 | Product 解析 9 项 minimal 声明并给出 `IsMinimalWebBuild`；manifest 7→**10** 命令；bridge 路由 10 命令；R15 硬编码 7→10 同步 | 新增 `CodeOssMinimalBridgeTests.cs` 10 项 + 1 个程序集级 `[Fact]` |
+
+顺带修掉一处小的不诚实：`--plan` 原来写死了 `npm run compile-web`，
+但 1.148.0 的实际脚本名本环境**未核实**，现改为"按该 tag 上游构建文档执行、
+本仓库未核实脚本名、不写死"。
+
+### M5 验收矩阵（追加）
+
+| 层 | 命令 / 断言 | 期望 |
+|---|---|---|
+| 真实 CI | `build.yml` 的 Test step（Windows .NET） | C# 等价门禁 24 项 R19/R20 断言 + 14 个 `[Fact]` 全过；Python 模板**未启用**如实标记 |
+| 反回漂 | `python scripts/build_codeoss_minimal.py --check` | `errors=[]`；fetch 脚本若写回 `npm run compile` 即返回非 0 |
+| C# 桥接 | `CodeOssMinimalBridgeTests` 10 项 + `RepoContractTests` 新 `[Fact]` | 全过；`Commands.Length==10`、`IsMinimalWebBuild=true` |
+| 累计 | 反射断言 / `[Fact]` | **270 / 14**；hook 核查 **28** 项 |
+
+### M5 之后仍未闭合的（不谎报）
+
+- 上游 1.8 GB web-only workbench **仍未编译**，G4 仍未闭合；
+  `compiledInThisRepo=false` 依旧是硬声明。
+- **Python 门禁模板仍未在 CI 启用**：本环境 token 无 `workflow` scope，
+  实测写入被 404 拒绝；需网页端人工移入 `.github/workflows/`。
+  本轮不谎报已启用，只保证等价语义由 C# xUnit 每次真实执行。
+- **未向 `kino-koki/Tuan-CLI` 仓库写入任何文件**，仍按 `TUAN.md` 逐次确认。
+- 真机 GPU / 规模 / 平台 SDK / 生态 / 外部验证（G4–G8）本环境物理上不具备。

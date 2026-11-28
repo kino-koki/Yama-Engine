@@ -59,6 +59,11 @@ python scripts/build_codeoss_minimal.py --emit-manifest # 轻量构建清单 JSO
 
 ## CI 说明
 
-`ci/codeoss-gate.yml` 是模板（当前推送 token 无 `workflow` scope，需在网页端
-移到 `.github/workflows/` 启用）。它与现有 `build.yml` 完全解耦，且**零 Node
-依赖**：现有 -warnaserror / Test / Smoke 门禁不因 Code - OSS 而变化。
+**第二十轮实测**：本环境 token 仅 `repo` scope，写 `.github/workflows/`
+返回 404，因此 `ci/codeoss-gate.yml` **仍是模板、仍需网页端人工移入**
+`.github/workflows/` 才启用，不谎报已启用。同一套 Python 校验语义
+（`fetch_codeoss.py --check` / `build_codeoss_minimal.py --check` /
+`--emit-manifest` / Tuan unittest / 独立 CLI / 自研边界审计）已由
+`CodeOssMinimalTests.cs` 与 `CodeOssMinimalBridgeTests.cs` 双实现进 C# xUnit，
+由现有 `build.yml` 的 Test step **每次真实执行**。契约
+`ci_gate_enabled=false` 如实标记模板状态。

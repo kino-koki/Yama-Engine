@@ -78,8 +78,10 @@ workbench 已在 CI 编译验收；不分发官方 VS Code 二进制或商标；
 - 不宣称已达 SOTA：G0–G3 已闭合，G4–G8 需真机 GPU / 规模 / 平台 SDK /
   生态 / 外部验证，本环境物理上不具备。
 - 不宣称零第三方；不宣称精确 LCP/SOCP；不宣称迭代谱系替代直接解。
-- `ci/codeoss-gate.yml` 仍在 `ci/` 下（token scope 仅 `repo`），
-  网页端移入 `.github/workflows/` 才算启用，**本轮不谎报已启用**。
+- `ci/codeoss-gate.yml` 第十九轮时仍在 `ci/` 下（当时未启用，本轮如实记录）。
+  **第二十轮实测确认该写入会被 404 拒绝（token 仅 `repo` scope），
+  故仍保持模板状态**；但同一套 Python 校验语义已双实现进 C# xUnit，
+  由现有 Test step 每次真实执行。见 `docs/ROUND20_DELIVERY.md`。
 - 不删断言、不塞隔离清单、不放宽容差、不吞异常。
 
 ## 6. 下一步

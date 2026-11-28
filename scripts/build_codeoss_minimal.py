@@ -114,6 +114,18 @@ def check():
         errs.append("轻量门禁不得声明完整 npm/Electron 编译")
     if "build_codeoss_minimal.py --check" not in gate:
         errs.append("轻量门禁未调用离线校验")
+    # 反回漂：fetch_codeoss.py 不得再宣称完整 Electron workbench 编译
+    try:
+        fetch = open(p("scripts/fetch_codeoss.py"), "r", encoding="utf-8").read()
+    except OSError as e:
+        fetch = ""
+        errs.append("fetch_codeoss.py 读取失败: " + str(e))
+    if "npm ci && npm run compile" in fetch or "npm run compile" in fetch:
+        errs.append("fetch_codeoss.py 口径回漂：仍宣称完整 Electron 编译")
+    if "本仓库不编译" not in fetch:
+        errs.append("fetch_codeoss.py 未声明本仓库不编译上游")
+    if "build_codeoss_minimal.py --check" not in fetch:
+        errs.append("fetch_codeoss.py 未指向最轻量离线校验")
     # gitmodules 锁
     try:
         gm = open(p(".gitmodules"), "r", encoding="utf-8").read()
@@ -130,14 +142,14 @@ def plan():
         "tag": "1.148.0",
         "commit": COMMIT,
         "compiled_in_this_repo": False,
-        "note": "本仓库不编译 1.8GB 上游 workbench；以下是带 Node 24 的机器上的手动 web-only 最小构建步骤，不宣称已执行。",
+        "note": "本仓库不编译 1.8GB 上游 workbench；以下是带 Node 24 的机器上的手动 web-only 最小构建步骤，不宣称已执行。具体 npm 脚本名以该 tag 的上游构建文档为准，本仓库未核实、不写死。",
         "steps": [
             "git submodule update --init --depth 1 ide/codeoss/upstream",
             "python scripts/fetch_codeoss.py --apply-only   # 覆盖干净 MIT product.json",
             "python scripts/build_codeoss_minimal.py --check # 离线锁 + 摘要校验",
-            "# web-only 最小面：只装 workbench web 构建所需依赖，跳过 Electron 桌面壳与原生模块",
+            "# web-only 最小面：只装 web 构建所需依赖，跳过 Electron 桌面壳与原生模块",
             "cd ide/codeoss/upstream && npm ci --omit=optional",
-            "cd ide/codeoss/upstream && npm run compile-web   # 若该 tag 无此脚本则用 gulp compile-web",
+            "按该 tag 的上游 web 构建文档执行对应编译脚本（本仓库未核实脚本名，故不写死）",
             "# 产物仅为静态 web workbench 资源；不打包 Electron、不下载内置扩展、不连 Marketplace",
         ],
     }
