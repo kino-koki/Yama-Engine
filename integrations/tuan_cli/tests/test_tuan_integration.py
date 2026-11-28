@@ -36,6 +36,11 @@ class TestSkills(unittest.TestCase):
         self.assertIn("UseCoupledMassReduction", txt)
         self.assertIn("LastReducedPoints", txt)
 
+    def test_coupled_skill_mentions_global_block_switch(self):
+        txt = read("skills/yama-coupled-mass/SKILL.md")
+        self.assertIn("UseGlobalBlockSolve", txt)
+        self.assertIn("LastGlobalBlockTrace", txt)
+
     def test_sota_skill_forbids_false_claim(self):
         txt = read("skills/yama-sota-audit/SKILL.md")
         self.assertIn("禁止", txt)
@@ -78,7 +83,7 @@ class TestMcpServer(unittest.TestCase):
         ])
         self.assertEqual(len(rs), 2)
         self.assertEqual(rs[0]["result"]["serverInfo"]["name"], "yama-engine")
-        self.assertEqual(len(rs[1]["result"]["tools"]), 8)
+        self.assertEqual(len(rs[1]["result"]["tools"]), 9)
 
     def test_coupled_mass_tool_is_exposed(self):
         rs = self._rpc([
@@ -86,6 +91,13 @@ class TestMcpServer(unittest.TestCase):
                         "params": {"name": "yama_coupled_mass", "arguments": {}}}),
         ])
         self.assertIn("LastCoupledTrace", rs[0]["result"]["content"][0]["text"])
+
+    def test_global_blocks_tool_is_exposed(self):
+        rs = self._rpc([
+            json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                        "params": {"name": "yama_global_blocks", "arguments": {}}}),
+        ])
+        self.assertIn("LastGlobalBlockTrace", rs[0]["result"]["content"][0]["text"])
 
     def test_tools_call_smoke_and_unknown(self):
         rs = self._rpc([
@@ -107,6 +119,8 @@ class TestSubcommand(unittest.TestCase):
         self.assertEqual(subcommand.handle(["rollback", "--tick", "-1"])["ok"], False)
         self.assertIn("NOT SOTA", subcommand.handle(["sota"])["status"])
         self.assertIn("CoupledSteps", subcommand.handle(["coupled"])["trace_fields"])
+        self.assertIn("MaxCrossBlock",
+                      subcommand.handle(["globalblocks"])["trace_fields"])
 
 
 class TestContract(unittest.TestCase):

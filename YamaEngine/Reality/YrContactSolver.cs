@@ -46,10 +46,51 @@ namespace YamaEngine.Reality
           MaxOffDiagonal = maxOff; LastK = lastK; LastUsedCoupling = lastUsed; }
     }
 
+    /// <summary>
+    /// 第十七轮全局块求解的可观测轨迹（纯观测量，**不进快照**）。
+    /// 把「跨接触点耦合是否真的参与了求解」变成可判定事实。
+    /// </summary>
+    public readonly struct YrGlobalBlockTrace
+    {
+        public readonly int Groups;
+        public readonly int MaxPointsPerGroup;
+        public readonly int TotalIterations;
+        public readonly int SolvedGroups;
+        public readonly int FallbackGroups;
+        public readonly float MaxCrossBlock;
+        public readonly bool LastUsedGlobal;
+        public YrGlobalBlockTrace(int groups, int maxPts, int iters,
+                                  int solved, int fallback, float cross, bool lastUsed)
+        { Groups = groups; MaxPointsPerGroup = maxPts; TotalIterations = iters;
+          SolvedGroups = solved; FallbackGroups = fallback;
+          MaxCrossBlock = cross; LastUsedGlobal = lastUsed; }
+    }
+
     public sealed class YrContactSolver
     {
         private RigidBody3D[] _bodies = Array.Empty<RigidBody3D>();
         private YrContact[] _contacts = Array.Empty<YrContact>();
+
+        /// <summary>
+        /// 启用跨接触点 3m×3m 全局块求解（默认 **false**）。
+        /// 关闭时 Solve 与第十六轮逐字相同 → 222 项断言零回归。
+        /// 优先级高于 UseCoupledMassMatrix（开启时后者被跳过，见文档）。
+        /// </summary>
+        public bool UseGlobalBlockSolve { get; set; } = false;
+
+        /// <summary>Cholesky 主元阻尼；设 0 可让奇异上下文强制走安全退回路径。</summary>
+        public float GlobalBlockDamping { get; set; } = YrContactBlockMatrix.DefaultDamping;
+
+        private int _gGroups, _gMaxPts, _gIters, _gSolved, _gFallback;
+        private float _gMaxCross;
+        private bool _gLastUsed;
+
+        public YrGlobalBlockTrace LastGlobalBlockTrace => new YrGlobalBlockTrace(
+            _gGroups, _gMaxPts, _gIters, _gSolved, _gFallback, _gMaxCross, _gLastUsed);
+
+        public void ResetGlobalBlockTrace()
+        { _gGroups = 0; _gMaxPts = 0; _gIters = 0; _gSolved = 0;
+          _gFallback = 0; _gMaxCross = 0f; _gLastUsed = false; }
 
         /// <summary>
         /// 启用完整 3×3 接触有效质量矩阵的块求解（默认 **false**）。
@@ -159,6 +200,8 @@ namespace YamaEngine.Reality
 
         public void Solve(int iterations)
         {
+            // 默认关闭时下面整个分支都不执行，循环体与第十六轮逐字相同 → 逐位零回归。
+            if (UseGlobalBlockSolve) { SolveGlobalBlocks(iterations); return; }
             for (int it = 0; it < iterations; it++)
             {
                 for (int k = 0; k < _contacts.Length; k++)
@@ -171,6 +214,136 @@ namespace YamaEngine.Reality
                 }
             }
         }
+
+        /// <summary>
+        /// 按 (min(A,B), max(A,B), 原序) 定序分组；不同对无共享刚体，
+        /// 全局 K 的跨对块为零，分组独立求解与整体求解等价。
+        /// </summary>
+        private void SolveGlobalBlocks(int iterations)
+        {
+            ResetGlobalBlockTrace();
+            var valid = new System.Collections.Generic.List<int>();
+            for (int k = 0; k < _contacts.Length; k++)
+                if (Valid(_contacts[k])) valid.Add(k);
+            valid.Sort((x, y) => {
+                int ax = Math.Min(_contacts[x].BodyA, _contacts[x].BodyB);
+                int bx = Math.Max(_contacts[x].BodyA, _contacts[x].BodyB);
+                int ay = Math.Min(_contacts[y].BodyA, _contacts[y].BodyB);
+                int by = Math.Max(_contacts[y].BodyA, _contacts[y].BodyB);
+                if (ax != ay) return ax.CompareTo(ay);
+                if (bx != by) return bx.CompareTo(by);
+                return x.CompareTo(y);
+            });
+
+            int p = 0;
+            while (p < valid.Count)
+            {
+                int ka = Math.Min(_contacts[valid[p]].BodyA, _contacts[valid[p]].BodyB);
+                int kb = Math.Max(_contacts[valid[p]].BodyA, _contacts[valid[p]].BodyB);
+                int q = p + 1;
+                while (q < valid.Count)
+                {
+                    int qa = Math.Min(_contacts[valid[q]].BodyA, _contacts[valid[q]].BodyB);
+                    int qb = Math.Max(_contacts[valid[q]].BodyA, _contacts[valid[q]].BodyB);
+                    if (qa != ka || qb != kb) break;
+                    q++;
+                }
+                var group = new int[q - p];
+                for (int t = 0; t < q - p; t++) group[t] = valid[p + t];
+                SolveOneGroup(group, iterations);
+                p = q;
+            }
+        }
+
+        /// <summary>
+        /// 单组全局块求解：一次组装 3m×3m K + 一次 Cholesky，之后每次迭代
+        /// 基于**同一时刻**速度算全部 rhs，统一解出 Δλ 并统一施加冲量
+        /// （投影 Jacobi，与 sequential impulse 的 Gauss-Seidel 语义不同）。
+        /// λ_n ≥ 0 累加钳制与二维库仑圆锥投影逐点施加，成对合成冲量守恒。
+        /// </summary>
+        private void SolveOneGroup(int[] idx, int iterations)
+        {
+            int m = idx.Length;
+            int n = 3 * m;
+            _gGroups++;
+            if (m > _gMaxPts) _gMaxPts = m;
+
+            float[] k = YrContactBlockMatrix.BuildGlobalK(
+                _contacts, idx, m, _bodies,
+                out RVec3[] ns, out RVec3[] t1s, out RVec3[] t2s);
+            float cross = YrContactBlockMatrix.MaxCrossBlockNorm(k, m);
+            if (cross > _gMaxCross) _gMaxCross = cross;
+
+            bool ok = YrContactBlockMatrix.Cholesky(
+                k, n, GlobalBlockDamping, out float[] lower);
+            if (!ok)
+            {
+                // 奇异上下文：退回原 SI 路径（与默认关闭逐字一致），绝不制造 NaN。
+                _gFallback++;
+                _gLastUsed = false;
+                for (int it = 0; it < iterations; it++)
+                {
+                    for (int q = 0; q < m; q++)
+                    {
+                        ref var c = ref _contacts[idx[q]];
+                        if (UseCoupledMassMatrix) SolveCoupled(ref c);
+                        else { SolveNormal(ref c); SolveFriction(ref c); }
+                    }
+                }
+                return;
+            }
+            _gSolved++;
+            _gLastUsed = true;
+
+            var rhs = new float[n];
+            var mus = new float[m];
+            var applied = new RVec3[m];
+            for (int it = 0; it < iterations; it++)
+            {
+                _gIters++;
+                // 先观测全部点的速度（此时尚未施加本轮任何冲量）
+                for (int q = 0; q < m; q++)
+                {
+                    ref var c = ref _contacts[idx[q]];
+                    RVec3 v = RelativeVelocityAt(c);
+                    float v1 = v.Dot(t1s[q]), v2 = v.Dot(t2s[q]);
+                    float slip = MathF.Sqrt(v1 * v1 + v2 * v2);
+                    mus[q] = slip > 1e-4f ? c.FrictionDynamic : c.FrictionStatic;
+                    rhs[3 * q + 0] = c.TargetNormalVelocity - v.Dot(ns[q]);
+                    rhs[3 * q + 1] = -v1;
+                    rhs[3 * q + 2] = -v2;
+                }
+
+                float[] dl = YrContactBlockMatrix.Solve(lower, n, rhs);
+                // 先算好全部新 λ 与合成冲量，再统一施加 → Jacobi 语义
+                for (int q = 0; q < m; q++)
+                {
+                    ref var c = ref _contacts[idx[q]];
+                    float oldN = c.NormalLambda;
+                    float old1 = c.TangentLambda1;
+                    float old2 = c.TangentLambda2;
+                    float nN = MathF.Max(0f, oldN + dl[3 * q + 0]);
+                    float n1 = old1 + dl[3 * q + 1];
+                    float n2 = old2 + dl[3 * q + 2];
+                    float limit = MathF.Max(0f, mus[q] * nN);
+                    float len = MathF.Sqrt(n1 * n1 + n2 * n2);
+                    if (len > limit && len > 1e-12f)
+                    {
+                        float sc = limit / len;
+                        n1 *= sc; n2 *= sc;
+                    }
+                    c.NormalLambda = nN;
+                    c.TangentLambda1 = n1;
+                    c.TangentLambda2 = n2;
+                    applied[q] = ns[q] * (nN - oldN)
+                               + t1s[q] * (n1 - old1)
+                               + t2s[q] * (n2 - old2);
+                }
+                for (int q = 0; q < m; q++)
+                    ApplyImpulsePair(_contacts[idx[q]], applied[q]);
+            }
+        }
+
 
         /// <summary>
         /// 第十五轮：把第十四轮的 3×3 K 接进逐接触求解。

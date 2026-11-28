@@ -36,6 +36,9 @@ def checks():
     has("docs/THIRD_PARTY_INVENTORY.json", "package_references")
     has("docs/THIRD_PARTY_INVENTORY.json", "optional_physics_backends")
     has("YamaEngine.Tests/RealityPhysicsFifteenthTests.cs", "TestR15")
+    has("YamaEngine/Reality/YrContactBlockMatrix.cs", "BuildGlobalK")
+    has("YamaEngine/Reality/YrContactSolver.cs", "UseGlobalBlockSolve")
+    has("YamaEngine.Tests/RealityPhysicsSeventeenthTests.cs", "TestR17")
     return out
 
 

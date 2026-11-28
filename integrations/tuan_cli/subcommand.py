@@ -7,7 +7,8 @@
 from __future__ import annotations
 import argparse
 
-SUBCOMMANDS = ("build", "test", "smoke", "snapshot", "rollback", "ledger", "sota", "coupled")
+SUBCOMMANDS = ("build", "test", "smoke", "snapshot", "rollback", "ledger", "sota",
+                "coupled", "globalblocks")
 
 
 def build_parser():
@@ -35,6 +36,12 @@ def handle(argv):
                 "intent": "YrPhysicsPipeline.UseCoupledMassMatrix + LastCoupledTrace",
                 "trace_fields": ["TotalSteps", "CoupledSteps", "FallbackSteps",
                                  "MaxOffDiagonal", "LastK", "LastUsedCoupling"]}
+    if a.yama_cmd == "globalblocks":
+        return {"ok": True, "command": "globalblocks",
+                "intent": "YrPhysicsPipeline.UseGlobalBlockSolve + LastGlobalBlockTrace",
+                "trace_fields": ["Groups", "MaxPointsPerGroup", "TotalIterations",
+                                 "SolvedGroups", "FallbackGroups", "MaxCrossBlock",
+                                 "LastUsedGlobal"]}
     if a.yama_cmd == "smoke" and a.frames <= 0:
         return {"ok": False, "error": "frames must be > 0"}
     if a.yama_cmd == "rollback" and a.tick < 0:

@@ -24,7 +24,8 @@
     "yama_rollback",
     "yama_ledger",
     "yama_sota_status",
-    "yama_coupled_mass"
+    "yama_coupled_mass",
+    "yama_global_blocks"
   ],
   "subcommands": [
     "build",
@@ -34,7 +35,8 @@
     "rollback",
     "ledger",
     "sota",
-    "coupled"
+    "coupled",
+    "globalblocks"
   ],
   "files": [
     "README.md",

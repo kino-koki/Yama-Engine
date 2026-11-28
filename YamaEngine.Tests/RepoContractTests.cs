@@ -201,7 +201,10 @@ namespace YamaEngine.Tests
             Assert.Equal(5, skills);
             int tools = 0;
             foreach (var _ in r.GetProperty("mcp_tools").EnumerateArray()) tools++;
-            Assert.Equal(8, tools);
+            Assert.Equal(9, tools);
+            int sub = 0;
+            foreach (var _ in r.GetProperty("subcommands").EnumerateArray()) sub++;
+            Assert.Equal(9, sub);
         }
 
         [Fact]

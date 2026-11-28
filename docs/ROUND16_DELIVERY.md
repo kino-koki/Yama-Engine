@@ -27,8 +27,9 @@
 
 ## 下一步（继续推进，不停）
 
-1. 把 `ReduceByCoupledMass` 与第十五轮的 `UseCoupledMassMatrix` 做联动验证
-   （同一帧同时开启，观测选点与求解是否互相一致）。
+1. ~~把 `ReduceByCoupledMass` 与第十五轮的 `UseCoupledMassMatrix` 做联动验证~~ →
+   **第十七轮已闭合**：三开关（含新增 `UseGlobalBlockSolve`）同时开启，管线正常推进、
+   快照不变、Restore 逐位一致（`docs/ROUND17_DELIVERY.md`）。
 2. 跨接触点的块 Jacobi / Gauss-Seidel 全局求解（自研、默认关闭、零回归）。
 3. 带 Node 20 的专用 job 编译 Code - OSS 1.148.0 干净 MIT workbench 并验收。
 4. 按 `TUAN.md` 逐次授权后把适配层合并进 Tuan-CLI 仓库。

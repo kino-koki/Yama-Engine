@@ -93,6 +93,22 @@ namespace YamaEngine.Reality
         }
         public int LastReducedPoints => _narrow.LastReducedPoints;
         /// <summary>
+        /// 第十七轮：转发跨接触点全局块求解开关（默认 false）。
+        /// 优先级高于 UseCoupledMassMatrix；trace 是纯观测量，不进 Snapshot。
+        /// </summary>
+        public bool UseGlobalBlockSolve
+        {
+            get => _contacts.UseGlobalBlockSolve;
+            set => _contacts.UseGlobalBlockSolve = value;
+        }
+        public float GlobalBlockDamping
+        {
+            get => _contacts.GlobalBlockDamping;
+            set => _contacts.GlobalBlockDamping = value;
+        }
+        public YrGlobalBlockTrace LastGlobalBlockTrace => _contacts.LastGlobalBlockTrace;
+        public void ResetGlobalBlockTrace() => _contacts.ResetGlobalBlockTrace();
+        /// <summary>
         /// 穿透位置投影强度。默认 0.4；设 0 可关闭。
         /// 注意：位置瞬移是非物理修正，会改变轨道角动量项 r×(mv)，
         /// 因此严格角动量守恒要求 beta=0（见第五轮文档）。
