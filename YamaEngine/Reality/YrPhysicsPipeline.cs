@@ -72,6 +72,20 @@ namespace YamaEngine.Reality
         public int SolverIterations { get; set; } = 10;
         public YrSurface Surface { get; set; } = YrSurface.Default;
         /// <summary>
+        /// 第十五轮：把 3×3 耦合块求解接进 StepFixed 的接触求解器。
+        /// 默认 false —— 现有 210 项回归与位级快照语义逐位不变。
+        /// 设为 true 后，每帧 `_contacts.Solve(SolverIterations)` 走耦合路径，
+        /// 可通过 LastCoupledTrace 观测是否真的用上了非对角耦合。
+        /// trace 是纯观测量，**不进 Snapshot**，快照格式/长度不变。
+        /// </summary>
+        public bool UseCoupledMassMatrix
+        {
+            get => _contacts.UseCoupledMassMatrix;
+            set => _contacts.UseCoupledMassMatrix = value;
+        }
+        public YrCoupledSolveTrace LastCoupledTrace => _contacts.LastCoupledTrace;
+        public void ResetCoupledTrace() => _contacts.ResetCoupledTrace();
+        /// <summary>
         /// 穿透位置投影强度。默认 0.4；设 0 可关闭。
         /// 注意：位置瞬移是非物理修正，会改变轨道角动量项 r×(mv)，
         /// 因此严格角动量守恒要求 beta=0（见第五轮文档）。

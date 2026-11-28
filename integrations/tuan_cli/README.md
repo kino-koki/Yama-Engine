@@ -15,9 +15,9 @@
 
 | 层 | 文件 | 挂接方式 |
 |---|---|---|
-| Skills | `skills/*/SKILL.md` ×4 | Tuan 内置技能格式（YAML frontmatter + ≥3 步正文），auto 激活；`yama-build` / `yama-test` / `yama-physics-gate` / `yama-sota-audit` |
+| Skills | `skills/*/SKILL.md` ×5 | Tuan 内置技能格式（YAML frontmatter + ≥3 步正文），auto 激活；`yama-build` / `yama-test` / `yama-physics-gate` / `yama-sota-audit` / `yama-coupled-mass` |
 | Hooks | `hooks/yama_hooks.yaml` + `yama_gate.py` | `PostToolUse` / `Stop`（Tuan `CORE_HOOK_EVENTS` 实名），stdin/stdout JSON 决策，纯 stdlib、不依赖 .NET |
-| MCP Server | `mcp_server.py` | 自研 JSON-RPC 2.0 over stdio（对齐 Tuan 零依赖客户端）：`initialize` / `tools/list` / `tools/call`，7 个只读/意图工具 |
+| MCP Server | `mcp_server.py` | 自研 JSON-RPC 2.0 over stdio（对齐 Tuan 零依赖客户端）：`initialize` / `tools/list` / `tools/call`，8 个只读/意图工具 |
 | 子命令 | `subcommand.py` | `tuan yama build\|test\|smoke\|snapshot\|rollback\|ledger\|sota`，纯函数、不执行写操作 |
 | CI 状态回读 | `contract.json` + `RepoContractTests` | Yama 每次 CI 都校验适配层文件完整、skill frontmatter 合法、Code - OSS lock 精确 |
 

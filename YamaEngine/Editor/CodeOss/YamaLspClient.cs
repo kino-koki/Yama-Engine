@@ -39,6 +39,37 @@ namespace YamaEngine.Editor.CodeOss
             return YamaJsonRpcFraming.JsonRpc("shutdown", LastId, "null");
         }
 
+        /// <summary>第十五轮：LSP textDocument/didChange（全量同步）。</summary>
+        public string DidChange(string uri, int version, string text)
+        {
+            string p = "{\"textDocument\":{\"uri\":" + YamaJsonRpcFraming.Quote(uri)
+                + ",\"version\":" + version.ToString() + "},"
+                + "\"contentChanges\":[{\"text\":"
+                + YamaJsonRpcFraming.Quote(text) + "}]}";
+            return "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didChange\",\"params\":" + p + "}";
+        }
+
+        /// <summary>第十五轮：LSP completion 请求（补全位置）。</summary>
+        public string Completion(string uri, int line, int character)
+        {
+            LastId = _nextId++;
+            string p = "{\"textDocument\":{\"uri\":" + YamaJsonRpcFraming.Quote(uri)
+                + "},\"position\":{\"line\":" + line.ToString()
+                + ",\"character\":" + character.ToString()
+                + "},\"context\":{\"triggerKind\":1}}";
+            return YamaJsonRpcFraming.JsonRpc("textDocument/completion", LastId, p);
+        }
+
+        /// <summary>第十五轮：LSP definition 请求（符号跳转）。</summary>
+        public string Definition(string uri, int line, int character)
+        {
+            LastId = _nextId++;
+            string p = "{\"textDocument\":{\"uri\":" + YamaJsonRpcFraming.Quote(uri)
+                + "},\"position\":{\"line\":" + line.ToString()
+                + ",\"character\":" + character.ToString() + "}}";
+            return YamaJsonRpcFraming.JsonRpc("textDocument/definition", LastId, p);
+        }
+
         public byte[] FrameInitialize(string rootUri)
             => YamaJsonRpcFraming.Encode(Initialize(rootUri));
 

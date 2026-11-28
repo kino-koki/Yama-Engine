@@ -7,7 +7,7 @@
 from __future__ import annotations
 import argparse
 
-SUBCOMMANDS = ("build", "test", "smoke", "snapshot", "rollback", "ledger", "sota")
+SUBCOMMANDS = ("build", "test", "smoke", "snapshot", "rollback", "ledger", "sota", "coupled")
 
 
 def build_parser():
@@ -30,6 +30,11 @@ def handle(argv):
         return {"ok": True, "command": "sota",
                 "status": "G0-G3 closed; G4-G8 open; NOT SOTA",
                 "source": "docs/SOTA_GAP_ANALYSIS.md"}
+    if a.yama_cmd == "coupled":
+        return {"ok": True, "command": "coupled",
+                "intent": "YrPhysicsPipeline.UseCoupledMassMatrix + LastCoupledTrace",
+                "trace_fields": ["TotalSteps", "CoupledSteps", "FallbackSteps",
+                                 "MaxOffDiagonal", "LastK", "LastUsedCoupling"]}
     if a.yama_cmd == "smoke" and a.frames <= 0:
         return {"ok": False, "error": "frames must be > 0"}
     if a.yama_cmd == "rollback" and a.tick < 0:

@@ -9,7 +9,8 @@
     "yama-build",
     "yama-test",
     "yama-physics-gate",
-    "yama-sota-audit"
+    "yama-sota-audit",
+    "yama-coupled-mass"
   ],
   "hook_events": [
     "PostToolUse",
@@ -22,7 +23,8 @@
     "yama_snapshot",
     "yama_rollback",
     "yama_ledger",
-    "yama_sota_status"
+    "yama_sota_status",
+    "yama_coupled_mass"
   ],
   "subcommands": [
     "build",
@@ -31,7 +33,8 @@
     "snapshot",
     "rollback",
     "ledger",
-    "sota"
+    "sota",
+    "coupled"
   ],
   "files": [
     "README.md",
@@ -40,6 +43,7 @@
     "skills/yama-test/SKILL.md",
     "skills/yama-physics-gate/SKILL.md",
     "skills/yama-sota-audit/SKILL.md",
+    "skills/yama-coupled-mass/SKILL.md",
     "hooks/yama_hooks.yaml",
     "hooks/yama_gate.py",
     "mcp_server.py",

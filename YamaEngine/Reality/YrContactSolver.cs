@@ -28,10 +28,47 @@ namespace YamaEngine.Reality
     /// `L += r × j`，无需再乘 I⁻¹ —— 结构上不会把内力矩算错。
     /// 位置修正（穿透恢复）与速度求解分离，避免 Baumgarte 注入虚假动能。
     /// </summary>
+    /// <summary>
+    /// 第十五轮耦合块求解的可观测轨迹（纯观测量，**不进快照**）。
+    /// 用于把「3×3 K 的非对角耦合是否真的参与了逐接触求解」变成可判定事实。
+    /// </summary>
+    public readonly struct YrCoupledSolveTrace
+    {
+        public readonly int TotalSteps;
+        public readonly int CoupledSteps;
+        public readonly int FallbackSteps;
+        public readonly float MaxOffDiagonal;
+        public readonly YrMat3Sym LastK;
+        public readonly bool LastUsedCoupling;
+        public YrCoupledSolveTrace(int total, int coupled, int fallback,
+                                   float maxOff, YrMat3Sym lastK, bool lastUsed)
+        { TotalSteps = total; CoupledSteps = coupled; FallbackSteps = fallback;
+          MaxOffDiagonal = maxOff; LastK = lastK; LastUsedCoupling = lastUsed; }
+    }
+
     public sealed class YrContactSolver
     {
         private RigidBody3D[] _bodies = Array.Empty<RigidBody3D>();
         private YrContact[] _contacts = Array.Empty<YrContact>();
+
+        /// <summary>
+        /// 启用完整 3×3 接触有效质量矩阵的块求解（默认 **false**）。
+        /// 关闭时 Solve 走与第十四轮逐字相同的标量路径 → 190 项断言零回归；
+        /// 开启时每次接触一次性解出 (n,t1,t2) 三个方向的耦合冲量。
+        /// </summary>
+        public bool UseCoupledMassMatrix { get; set; } = false;
+
+        private int _totalSteps, _coupledSteps, _fallbackSteps;
+        private float _maxOff;
+        private YrMat3Sym _lastK;
+        private bool _lastUsed;
+
+        public YrCoupledSolveTrace LastCoupledTrace => new YrCoupledSolveTrace(
+            _totalSteps, _coupledSteps, _fallbackSteps, _maxOff, _lastK, _lastUsed);
+
+        public void ResetCoupledTrace()
+        { _totalSteps = 0; _coupledSteps = 0; _fallbackSteps = 0;
+          _maxOff = 0f; _lastK = default; _lastUsed = false; }
 
         public void SetBodies(RigidBody3D[] bodies)
             => _bodies = bodies ?? Array.Empty<RigidBody3D>();
@@ -66,7 +103,8 @@ namespace YamaEngine.Reality
             return (t1, t2);
         }
 
-        private RVec3 RelativeVelocityAt(in YrContact c)
+        /// <summary>接触点相对速度（含两体角速度贡献），公开供回归门禁精确观测。</summary>
+        public RVec3 RelativeVelocityAt(in YrContact c)
         {
             RigidBody3D a = _bodies[c.BodyA], b = _bodies[c.BodyB];
             RVec3 ra = c.Point - a.Position, rb = c.Point - b.Position;
@@ -127,10 +165,98 @@ namespace YamaEngine.Reality
                 {
                     ref var c = ref _contacts[k];
                     if (!Valid(c)) continue;
-                    SolveNormal(ref c);
-                    SolveFriction(ref c);
+                    // 默认路径逐字保持原状：任何开关关闭时都是逐位零回归。
+                    if (UseCoupledMassMatrix) SolveCoupled(ref c);
+                    else { SolveNormal(ref c); SolveFriction(ref c); }
                 }
             }
+        }
+
+        /// <summary>
+        /// 第十五轮：把第十四轮的 3×3 K 接进逐接触求解。
+        ///
+        /// 在接触正交基 (n,t1,t2) 下，速度误差 rhs = (targetNV - vn, -v_t1, -v_t2)，
+        /// 冲量增量 Δλ = K⁻¹·rhs —— **一次性解出三个方向**，保留 K 的非对角耦合
+        /// （标量版等价于把 K 的非对角强行置零后分三次独立求解）。
+        ///
+        /// 之后仍按 sequential impulse 语义做 λ_n ≥ 0 累加钳制与二维库仑圆锥投影，
+        /// 再以合成冲量 n·Δλ_n + t1·Δλ_t1 + t2·Δλ_t2 成对施加。
+        ///
+        /// 两个安全退化（保证可判定 parity、绝不制造 NaN）：
+        /// ① K 严格对角（|非对角| ≤ 1e-6）→ 直接走原 SolveNormal/SolveFriction，
+        ///    与关闭开关时**逐位一致**；
+        /// ② K 非正定（如两体 invMass/invInertia 全零）→ TrySolve 返回 false，
+        ///    同样退回原路径。
+        ///
+        /// 诚实边界：块求解只覆盖单个接触点内部的 3 方向耦合，未做跨接触点的
+        /// 全局 LCP/SOCP；摩擦锥仍是二维圆锥投影；K 由当前帧姿态构造，迭代中
+        /// 不随姿态更新。
+        /// </summary>
+        private void SolveCoupled(ref YrContact c)
+        {
+            RigidBody3D a = _bodies[c.BodyA], b = _bodies[c.BodyB];
+            RVec3 n = c.Normal.Normalized();
+            var basis = Basis(n);
+            RVec3 t1 = basis.T1, t2 = basis.T2;
+
+            RVec3 vrel = RelativeVelocityAt(c);
+            float slip = MathF.Sqrt(
+                vrel.Dot(t1) * vrel.Dot(t1) + vrel.Dot(t2) * vrel.Dot(t2));
+            float mu = slip > 1e-4f ? c.FrictionDynamic : c.FrictionStatic;
+
+            var mass = new YrContactMass(
+                a.InvMass, b.InvMass,
+                a.InvInertiaLocal, b.InvInertiaLocal,
+                a.Orientation, b.Orientation,
+                a.Position, b.Position, mu);
+            YrMat3Sym k = YrContactMassMatrix3x3.BuildK(
+                mass, c.Point, n, t1, t2);
+
+            float off = MathF.Max(MathF.Abs(k.M01),
+                        MathF.Max(MathF.Abs(k.M02), MathF.Abs(k.M12)));
+            _totalSteps++;
+            if (off > _maxOff) _maxOff = off;
+            _lastK = k;
+
+            // 不能用 && 短路接 out 参数：C# 的确定性赋值分析看不到
+            // 「coupled==true ⇒ dlambda 已赋值」这个逻辑关联，会把
+            // dlambda.X/Y/Z 判为 possibly unassigned field（云端 -warnaserror 红灯）。
+            RVec3 rhs = new RVec3(c.TargetNormalVelocity - vrel.Dot(n),
+                                  -vrel.Dot(t1), -vrel.Dot(t2));
+            RVec3 dlambda = RVec3.Zero;
+            bool coupled = false;
+            if (off > 1e-6f)
+                coupled = YrContactMassMatrix3x3.TrySolve(k, rhs, out dlambda);
+            _lastUsed = coupled;
+
+            if (!coupled)
+            {
+                _fallbackSteps++;
+                SolveNormal(ref c);
+                SolveFriction(ref c);
+                return;
+            }
+            _coupledSteps++;
+
+            float oldN = c.NormalLambda, old1 = c.TangentLambda1, old2 = c.TangentLambda2;
+            float nN = MathF.Max(0f, oldN + dlambda.X);
+            float n1 = old1 + dlambda.Y, n2 = old2 + dlambda.Z;
+
+            // 与标量版同一套库仑圆锥投影（不是盒式近似）
+            float limit = MathF.Max(0f, mu * nN);
+            float len = MathF.Sqrt(n1 * n1 + n2 * n2);
+            if (len > limit && len > 1e-12f)
+            {
+                float s = limit / len;
+                n1 *= s; n2 *= s;
+            }
+            c.NormalLambda = nN;
+            c.TangentLambda1 = n1;
+            c.TangentLambda2 = n2;
+            RVec3 applied = n * (nN - oldN)
+                          + t1 * (n1 - old1)
+                          + t2 * (n2 - old2);
+            ApplyImpulsePair(c, applied);
         }
 
         private void SolveNormal(ref YrContact c)

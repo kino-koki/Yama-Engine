@@ -27,6 +27,8 @@ TOOLS = [
      "inputSchema": {"type": "object", "properties": {}, "required": []}},
     {"name": "yama_sota_status", "description": "G0–G8 差距状态（不宣称达标）",
      "inputSchema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "yama_coupled_mass", "description": "3×3 耦合块求解 trace（只读意图）",
+     "inputSchema": {"type": "object", "properties": {}, "required": []}},
 ]
 
 INTENTS = {
@@ -37,6 +39,8 @@ INTENTS = {
     "yama_rollback": "YrPhysicsPipeline.RewindTo(tick) -> Restore",
     "yama_ledger": "ConservationLedger: mass/elements/energy/momentum 显式过账",
     "yama_sota_status": "G0-G3 已闭合(云端 CI); G4-G8 未闭合(需真机/SDK/团队/时间)",
+    "yama_coupled_mass": ("YrPhysicsPipeline.UseCoupledMassMatrix + LastCoupledTrace -> "
+                          "TotalSteps/CoupledSteps/FallbackSteps/MaxOffDiagonal/LastK/LastUsedCoupling"),
 }
 
 

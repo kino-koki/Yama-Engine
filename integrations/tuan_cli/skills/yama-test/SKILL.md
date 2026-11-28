@@ -16,6 +16,6 @@ use_count: 0
 3. 核对反射发现的是 `public static void Test*` 方法（`XunitAdapter.cs`），
    任何异常都原样重抛；`KnownLimitations.cs` 必须是空清单，否则视为看板未清零。
 4. 若失败，从 check-run annotations 回读精确用例名与错误，不改测试构造去凑绿。
-5. 报告物理断言总数（第十三/十四轮后为 190 项）与音频用例数（5 个）。
+5. 报告物理断言总数（第十三/十四轮后为 210 项）与音频用例数（5 个）。
 
 约束：禁止用 Skip、吞异常、KnownLimitations 隔离来制造绿灯。

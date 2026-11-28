@@ -34,7 +34,9 @@
 | 自研边界审计 + 13 个 PackageReference 全 SPDX 署名 | 第十四轮 | ✅ CI |
 | Code - OSS 1.148.0 干净 MIT 内置 + 自研 LSP/DAP 桥接 | 第十四轮 | ✅ CI（配置/桥接层） |
 | Tuan-CLI skill/hook/MCP/子命令适配层（Yama 侧） | 第十四轮 | ✅ CI（契约层） |
-| **190 项反射断言 + 5 个音频用例真实执行** | `build.yml` Test step | ✅ CI |
+| 3×3 耦合块求解接进 YrPhysicsPipeline（默认关闭、零回归、trace 可观测） | 第十五轮 | ✅ CI |
+| 自研 LSP/DAP 协议面扩展（didChange / completion / 异常断点 / 求值） | 第十五轮 | ✅ CI |
+| **210 项反射断言 + 5 个音频用例真实执行** | `build.yml` Test step | ✅ CI |
 
 这一层是**确定性、可回放、云端编译并执行**的，属于可信的工程基线。
 

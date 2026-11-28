@@ -44,6 +44,28 @@ namespace YamaEngine.Editor.CodeOss
             => Request("stackTrace", "{\"threadId\":" + threadId.ToString()
                 + ",\"startFrame\":0,\"levels\":64}");
 
+        /// <summary>第十五轮：DAP 异常断点过滤器。</summary>
+        public string SetExceptionBreakpoints(string[] filters)
+        {
+            var sb = new StringBuilder(160);
+            sb.Append("{\"filters\":[");
+            for (int i = 0; i < filters.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(YamaJsonRpcFraming.Quote(filters[i]));
+            }
+            sb.Append("]}");
+            return Request("setExceptionBreakpoints", sb.ToString());
+        }
+
+        /// <summary>第十五轮：DAP 帧内表达式求值。</summary>
+        public string Evaluate(int frameId, string expression)
+        {
+            string a = "{\"expression\":" + YamaJsonRpcFraming.Quote(expression)
+                + ",\"frameId\":" + frameId.ToString() + ",\"context\":\"watch\"}";
+            return Request("evaluate", a);
+        }
+
         /// <summary>解析 stackTrace 响应，返回 (frameId, name, line) 列表。</summary>
         public static List<(int FrameId, string Name, int Line)> ParseStackTrace(string json)
         {

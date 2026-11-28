@@ -50,6 +50,9 @@ namespace YamaEngine.Editor.CodeOss
                     return (true, "rollback", "YrPhysicsPipeline.Restore/RewindTo");
                 case "yama.sotaStatus":
                     return (true, "audit", "docs/SOTA_GAP_ANALYSIS.md G0-G8");
+                case "yama.coupledMass":
+                    return (true, "audit",
+                        "YrPhysicsPipeline.UseCoupledMassMatrix + LastCoupledTrace");
                 default:
                     return (false, string.Empty, string.Empty);
             }

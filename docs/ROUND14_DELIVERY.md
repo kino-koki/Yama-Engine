@@ -42,7 +42,9 @@
 
 ## 下一步（持续推进）
 
-1. 把 `ReduceByCoupledMass` 接进 `YrContactSolver` 逐接触求解。
+1. ~~把 `ReduceByCoupledMass` 接进 `YrContactSolver` 逐接触求解~~ →
+   **第十五轮已闭合**：耦合块求解已接入 `YrContactSolver` + `YrPhysicsPipeline`
+   （`docs/ROUND15_DELIVERY.md`）；选点缩减仍未接入窄相，见下一步。
 2. 在带 Node 20 的专用 job 编译 Code - OSS clean workbench 并截图验收。
 3. 按 `TUAN.md` 逐次授权后把适配层合并进 Tuan-CLI 仓库。
 4. 扩 MP3 夹具、Rust 原生内核编译加载、真机 GPU 帧循环。

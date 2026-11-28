@@ -279,9 +279,10 @@ namespace YamaEngine.Tests
             }
             int skills = 0;
             foreach (var s in r.GetProperty("skills").EnumerateArray()) skills++;
-            Require(skills == 4, "应有 4 个 skills");
+            Require(skills == 5, "应有 5 个 skills");
             foreach (string s in new string[] { "yama-build", "yama-test",
-                                               "yama-physics-gate", "yama-sota-audit" })
+                                               "yama-physics-gate", "yama-sota-audit",
+                                               "yama-coupled-mass" })
             {
                 string txt = Read("integrations/tuan_cli/skills/" + s + "/SKILL.md");
                 // Windows runner 的 checkout 会把 .md 转成 CRLF（Git for Windows

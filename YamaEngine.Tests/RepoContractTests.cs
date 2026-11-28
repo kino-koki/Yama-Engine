@@ -198,10 +198,10 @@ namespace YamaEngine.Tests
                     "适配层文件缺失: " + f.GetString());
             int skills = 0;
             foreach (var _ in r.GetProperty("skills").EnumerateArray()) skills++;
-            Assert.Equal(4, skills);
+            Assert.Equal(5, skills);
             int tools = 0;
             foreach (var _ in r.GetProperty("mcp_tools").EnumerateArray()) tools++;
-            Assert.Equal(7, tools);
+            Assert.Equal(8, tools);
         }
 
         [Fact]

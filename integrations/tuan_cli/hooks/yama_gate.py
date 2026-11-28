@@ -25,11 +25,14 @@ def checks():
         return ok
     has("docs/SELF_RESEARCH_BOUNDARY.md", "不借鉴")
     has("docs/THIRD_PARTY_SPX.md", "MIT")
-    has("docs/SOTA_GAP_ANALYSIS.md", "G0–G8")
+    # 关键词用 ASCII "G0"：en dash 关键词漂移会把「文件存在」误报成「契约缺失」
+    has("docs/SOTA_GAP_ANALYSIS.md", "G0")
     has("ide/codeoss/UPSTREAM.lock.json", "1.148.0")
     has("ide/codeoss/product.json", "MIT")
     has(".gitmodules", "microsoft/vscode")
     has("YamaEngine.Tests/RepoContractTests.cs", "TestSelfResearchBoundarySpdx")
+    has("YamaEngine/Reality/YrContactSolver.cs", "UseCoupledMassMatrix")
+    has("YamaEngine.Tests/RealityPhysicsFifteenthTests.cs", "TestR15")
     return out
 
 

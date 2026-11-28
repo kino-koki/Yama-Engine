@@ -63,15 +63,23 @@ namespace YamaEngine.Reality
 
         /// <summary>构造完整 K（6 个独立分量）。</summary>
         public static YrMat3Sym BuildK(in YrContactMass m, RVec3 point)
-        {
-            Basis(new RVec3(0f, 0f, 1f), out _, out _, out _);
-            // 法向由调用方传入的 normal 决定（见重载）
-            return BuildK(m, point, new RVec3(0f, 0f, 1f));
-        }
+            => BuildK(m, point, new RVec3(0f, 0f, 1f));
 
         public static YrMat3Sym BuildK(in YrContactMass m, RVec3 point, RVec3 normal)
         {
             Basis(normal, out RVec3 n, out RVec3 t1, out RVec3 t2);
+            return BuildK(m, point, n, t1, t2);
+        }
+
+        /// <summary>
+        /// 第十五轮：允许调用方指定接触正交基 (n,t1,t2)。
+        /// YrContactSolver 用自己的 Basis(n)（seed=(0,1,0)/(1,0,0)）构造，
+        /// 与 YrContactReduction.TangentBasis 的基不同；接线时必须显式传入，
+        /// 否则 K 的三个方向会与求解器的切向 λ 分量错位。
+        /// </summary>
+        public static YrMat3Sym BuildK(in YrContactMass m, RVec3 point,
+                                       RVec3 n, RVec3 t1, RVec3 t2)
+        {
             RVec3[] d = new RVec3[] { n, t1, t2 };
             RVec3 ra = point - m.CenterA, rb = point - m.CenterB;
             float invMSum = m.InvMassA + m.InvMassB;
@@ -123,6 +131,23 @@ namespace YamaEngine.Reality
             float x1 = (y1 - l.At(2, 1) * x2) / l.At(1, 1);
             float x0 = (y0 - l.At(1, 0) * x1 - l.At(2, 0) * x2) / l.At(0, 0);
             return new RVec3(x0, x1, x2);
+        }
+
+        /// <summary>
+        /// 一次分解同时完成正定判定与求解（第十五轮求解器接线用）。
+        /// 非正定返回 false 且 x=Zero，调用方据此安全退回标量路径。
+        /// </summary>
+        public static bool TrySolve(in YrMat3Sym k, RVec3 b, out RVec3 x)
+        {
+            if (!Cholesky(k, out YrMat3Full l)) { x = RVec3.Zero; return false; }
+            float y0 = b.X / l.At(0, 0);
+            float y1 = (b.Y - l.At(1, 0) * y0) / l.At(1, 1);
+            float y2 = (b.Z - l.At(2, 0) * y0 - l.At(2, 1) * y1) / l.At(2, 2);
+            float x2 = y2 / l.At(2, 2);
+            float x1 = (y1 - l.At(2, 1) * x2) / l.At(1, 1);
+            float x0 = (y0 - l.At(1, 0) * x1 - l.At(2, 0) * x2) / l.At(0, 0);
+            x = new RVec3(x0, x1, x2);
+            return true;
         }
 
         /// <summary>自研 cyclic Jacobi 对称特征分解：QᵀKQ = diag(lambda)。</summary>

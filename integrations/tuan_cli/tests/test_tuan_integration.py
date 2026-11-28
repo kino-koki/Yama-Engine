@@ -14,7 +14,8 @@ def read(rel):
 
 
 class TestSkills(unittest.TestCase):
-    EXPECTED = ("yama-build", "yama-test", "yama-physics-gate", "yama-sota-audit")
+    EXPECTED = ("yama-build", "yama-test", "yama-physics-gate",
+                "yama-sota-audit", "yama-coupled-mass")
 
     def test_all_skills_have_valid_frontmatter(self):
         for s in self.EXPECTED:
@@ -72,7 +73,14 @@ class TestMcpServer(unittest.TestCase):
         ])
         self.assertEqual(len(rs), 2)
         self.assertEqual(rs[0]["result"]["serverInfo"]["name"], "yama-engine")
-        self.assertEqual(len(rs[1]["result"]["tools"]), 7)
+        self.assertEqual(len(rs[1]["result"]["tools"]), 8)
+
+    def test_coupled_mass_tool_is_exposed(self):
+        rs = self._rpc([
+            json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                        "params": {"name": "yama_coupled_mass", "arguments": {}}}),
+        ])
+        self.assertIn("LastCoupledTrace", rs[0]["result"]["content"][0]["text"])
 
     def test_tools_call_smoke_and_unknown(self):
         rs = self._rpc([
@@ -93,6 +101,7 @@ class TestSubcommand(unittest.TestCase):
         self.assertEqual(subcommand.handle(["smoke", "--frames", "0"])["ok"], False)
         self.assertEqual(subcommand.handle(["rollback", "--tick", "-1"])["ok"], False)
         self.assertIn("NOT SOTA", subcommand.handle(["sota"])["status"])
+        self.assertIn("CoupledSteps", subcommand.handle(["coupled"])["trace_fields"])
 
 
 class TestContract(unittest.TestCase):
